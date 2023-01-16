@@ -26,15 +26,6 @@ import evaluation as ev
 import warnings
 
 warnings.filterwarnings("ignore")
-# set base directory of the functional fusion 
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
-if not Path(base_dir).exists():
-    base_dir = '/srv/diedrichsen/data/FunctionalFusion'
-atlas_dir = base_dir + '/Atlases'
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
-if not Path(base_dir).exists():
-    base_dir = '/srv/diedrichsen/data/FunctionalFusion'
-atlas_dir = base_dir + '/Atlases'
 
 # OPEN ISSUES: 
 # 1. Where to save the train and evaluation results?
@@ -77,7 +68,7 @@ def get_train_config(
    # get the cortical parcellation you want to use in modelling
    train_config['label_img'] = []
    for hemi in ['L', 'R']:
-      train_config['label_img'].append(atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
+      train_config['label_img'].append(prep.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
    
 
    return train_config
@@ -121,7 +112,7 @@ def get_eval_config(
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
    for hemi in ['L', 'R']:
-      eval_config['label_img'].append(atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
+      eval_config['label_img'].append(prep.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
 
 
    return eval_config
@@ -234,7 +225,7 @@ def train_model(config, group = True, save_tensor = False):
                         type=config['type'])
    
    # get dataset class 
-   Data = fdata.get_dataset_class(base_dir, dataset=config["dataset"])
+   Data = fdata.get_dataset_class(prep.base_dir, dataset=config["dataset"])
    # get info
    info = Data.get_info(config['ses_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
@@ -246,7 +237,7 @@ def train_model(config, group = True, save_tensor = False):
 
 
    # get cortical atlas object(will be used to aggregate data within tessellation)
-   X_atlas, _ = at.get_atlas(config['cortex'],atlas_dir)
+   X_atlas, _ = at.get_atlas(config['cortex'],prep.atlas_dir)
    # get the vector containing tessel labels
    X_atlas.get_parcel(config['label_img'], unite_hemi = False)
    vector = np.concatenate(X_atlas.label_vector, axis = 0)
@@ -355,7 +346,7 @@ def eval_model(config, group = True, save_tensor = False, save = False):
                         type=config['type'])
 
    # get dataset class 
-   Data = fdata.get_dataset_class(base_dir, dataset=config["dataset"])
+   Data = fdata.get_dataset_class(prep.base_dir, dataset=config["dataset"])
    # get info
    info = Data.get_info(config['eval_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
@@ -367,7 +358,7 @@ def eval_model(config, group = True, save_tensor = False, save = False):
    X_tensor = np.load(X_file)
 
    # get atlases 
-   X_atlas, xainfo = at.get_atlas(config['cortex'],atlas_dir)
+   X_atlas, xainfo = at.get_atlas(config['cortex'],prep.atlas_dir)
 
    # get the cortical data averaged over parcels
    X_atlas.get_parcel(config['label_img'], unite_hemi = False)
@@ -486,7 +477,7 @@ if __name__ == "__main__":
       df_train_list.append(df_tmp)
    df = pd.concat(df_train_list, ignore_index=True)
    # save the dataframe
-   filepath = os.path.join(base_dir, 'WMFS', 'mdtb_train_model_ses-s1.tsv')
+   filepath = os.path.join(prep.base_dir, 'WMFS', 'mdtb_train_model_ses-s1.tsv')
    df.to_csv(filepath, index = False, sep='\t')
 
    """
@@ -502,6 +493,6 @@ if __name__ == "__main__":
 
    df = pd.concat(df_eval_list, ignore_index=True)
    # save the dataframe
-   filepath = os.path.join(base_dir, 'WMFS', 'mdtb_eval_model_ses-s2.tsv')
+   filepath = os.path.join(prep.base_dir, 'WMFS', 'mdtb_eval_model_ses-s2.tsv')
    df.to_csv(filepath, index = False, sep='\t')
 
