@@ -80,7 +80,7 @@ def calculate_reliability(Y, dataframe):
         R2 (scalar): Squared correlation
         R2_vox (1d-array): Squared correlation per voxel
     """
-    Y_flip = np.r_[Y[dataframe["sess"] == 2, :], Y[dataframe["sess"] == 1, :]]
+    Y_flip = np.r_[Y[dataframe["half"] == 2, :], Y[dataframe["half"] == 1, :]]
 
     R, R_vox = calculate_R(Y, Y_flip)
     R2, R2_vox = calculate_R2(Y, Y_flip)
