@@ -2,20 +2,17 @@ import numpy as np
 import deepdish as dd
 import pathlib as Path
 import sys
+import os
 sys.path.append('..')
 import Functional_Fusion as ff
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
+import Functional_Fusion.matrix as fm
 
 # set base directory of the functional fusion 
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
-if not Path(base_dir).exists():
-    base_dir = '/srv/diedrichsen/data/FunctionalFusion'
+base_dir = '/srv/diedrichsen/data/FunctionalFusion'
 atlas_dir = base_dir + '/Atlases'
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
-if not Path(base_dir).exists():
-    base_dir = '/srv/diedrichsen/data/FunctionalFusion'
-atlas_dir = base_dir + '/Atlases'
+conn_dir = '/srv/diedrichsen/data/Cerebellum/connectivity/'
 
 # make sure you have extrated data in functional fusion framework before running these function
 def extract_group_data(dataset = "MDTB", ses_id = 'ses-s1'):
@@ -49,7 +46,8 @@ def extract_data(base_dir, dataset_name, ses_id, type, atlas):
 def save_data_tensor(dataset = "WMFS",
                     atlas='SUIT3',
                     ses_id='ses-s1',
-                    type="CondHalf"):
+                    type="CondHalf", 
+                    outpath = conn_dir):
     """
     create a data tensor (n_subj, n_contrast, n_voxel) and saves it
 
@@ -61,6 +59,12 @@ def save_data_tensor(dataset = "WMFS",
                                                 sess=ses_id,
                                                 type="CondHalf", 
                                                 info_only=False)
-    filename = Data.base_dir + f'/{dataset}_{atlas}_{ses_id}_{type}.npy'
+    # check if directory exists
+    is_dir = os.path.exists(outpath + dataset)
+    if not is_dir:
+        # Create a new directory because it does not exist
+        os.makedirs(outpath + dataset)
+    filename = outpath + dataset+ f'/{dataset}_{atlas}_{ses_id}_{type}.npy'
     np.save(filename,data_tensor)
-    return 
+
+    return data_tensor
