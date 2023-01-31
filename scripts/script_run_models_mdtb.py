@@ -75,7 +75,7 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
    # get info
    info = Data.get_info(config['eval_id'],config['type'])
    T = Data.get_participants()
-   subject_list = T.participant_
+   subject_list = T.participant_id
 
    weights_list = []
    scales_list = []
@@ -103,6 +103,8 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
    return 
 
 if __name__ == "__main__":
+   # train_models()
+   # eval_models()
    for a in [0, 2, 4, 6, 8, 10, 12]:
       print(f"-Doing alpha = {a}")
       get_best_weights(log_alpha=a)
