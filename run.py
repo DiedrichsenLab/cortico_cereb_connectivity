@@ -18,6 +18,7 @@ import nibabel as nb
 import Functional_Fusion as ff
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
+import Functional_Fusion.matrix as fm
 import prepare_data as prep
 
 import model as model
@@ -28,24 +29,23 @@ import warnings
 warnings.filterwarnings("ignore")
 
 # OPEN ISSUES: 
-# 1. Where to save the train and evaluation results?
 # 2. Handling crossing sessions (half or ses) - right now it only uses half
 
 # get training config dictionary
 def get_train_config(
-   dataset = "MDTB", 
-   ses_id = "ses-s1", 
-   method = "L2regression",
-   log_alpha = 8, 
-   cerebellum = "SUIT3",
-   cortex = "fs32k",
-   parcellation = "Icosahedron-1002_Sym.32k",
-   mode = "crossed",  
-   type = "CondHalf",
-   cv_fold = 4,
-   # weighting = True, 
-   validate_model = True,
-):
+                     dataset = "MDTB", 
+                     ses_id = "ses-s1", 
+                     method = "L2regression",
+                     log_alpha = 8, 
+                     cerebellum = "SUIT3",
+                     cortex = "fs32k",
+                     parcellation = "Icosahedron-1002_Sym.32k",
+                     mode = "crossed",  
+                     type = "CondHalf",
+                     cv_fold = 4,
+                     # weighting = True, 
+                     validate_model = True,
+                     ):
    """
    create a config file for training
 
@@ -215,41 +215,33 @@ def train_model(config, group = True, save_tensor = False):
       # get data tensor for SUIT3
         prep.save_data_tensor(dataset = config["dataset"],
                         atlas=config['cerebellum'],
-                        sess=config['ses_id'],
-                        type=config['type'])
+                        ses_id=config['ses_id'],
+                        type=config['type'], 
+                        )
 
         # get data tensor for fs32k
         prep.save_data_tensor(dataset = config["dataset"],
                         atlas=config['cortex'],
-                        sess=config['ses_id'],
-                        type=config['type'])
+                        ses_id=config['ses_id'],
+                        type=config['type'], 
+                        )
    
    # get dataset class 
    Data = fdata.get_dataset_class(prep.base_dir, dataset=config["dataset"])
    # get info
    info = Data.get_info(config['ses_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
-   Y_file = Data.base_dir + f"/{config['dataset']}_{config['cerebellum']}_{config['ses_id']}_{config['type']}.npy"
+   Y_file = prep.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cerebellum']}_{config['ses_id']}_{config['type']}.npy"
    Y_tensor = np.load(Y_file)
    # load data tensor for fs32k
-   X_file = Data.base_dir + f"/{config['dataset']}_{config['cortex']}_{config['ses_id']}_{config['type']}.npy"
+   X_file = prep.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cortex']}_{config['ses_id']}_{config['type']}.npy"
    X_tensor = np.load(X_file)
 
 
    # get cortical atlas object(will be used to aggregate data within tessellation)
    X_atlas, _ = at.get_atlas(config['cortex'],prep.atlas_dir)
    # get the vector containing tessel labels
-   X_atlas.get_parcel(config['label_img'], unite_hemi = False)
-   vector = np.concatenate(X_atlas.label_vector, axis = 0)
-   # get the mask used to create the atlas
-   mask = np.concatenate(X_atlas.mask, axis = 0)
-   # apply the mask
-   # NOTE: this could be deleted if we apply the left and right hemi mask to 
-   # all the surface label giftis we have under atl-fs32k
-   vector = vector[mask > 0] 
-   # create a matrix for aggregating data (cannot use dataset.agg_data now! Need to make changes)
-   C = indicator(vector,positive=True)   
-
+   X_atlas.get_parcel(config['label_img'], unite_struct = False)
 
    # get participants for the dataset
    if group: # will just use the group averaged dataset
@@ -269,11 +261,10 @@ def train_model(config, group = True, save_tensor = False):
       Y = Y_tensor[i, :, :]
     
       # get the mean across tessels for cortical data
-      X = np.nan_to_num(X) # replace nans first 
-      X = (X @ C)/np.sum(C, axis = 0)
+      X = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
 
       Y = np.nan_to_num(Y) # replace nans first 
-      
+      X = np.nan_to_num(X) # replace nans first
       # Generate new model
       alpha = np.exp(config["log_alpha"]) # get alpha
       conn_model = getattr(model, config["method"])(alpha)
@@ -310,14 +301,14 @@ def train_model(config, group = True, save_tensor = False):
             train_dict[k].append(v)
 
       # get directory to save the trained model
-      save_path = Data.base_dir + f'/derivatives/{sub}/conn/train/'
+      save_path = os.path.join(prep.conn_dir,config['dataset'],'train', config['name'])
       # check if the directory exists
       try:
          os.makedirs(save_path)
       except OSError:
          pass
 
-      fname = save_path + f'/{config["name"]}_{sub}.h5'
+      fname = save_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
       dd.io.save(fname, conn_model, compression=None)
    
    return conn_model, pd.DataFrame.from_dict(train_dict)
@@ -334,43 +325,35 @@ def eval_model(config, group = True, save_tensor = False, save = False):
    # save tensors?
    if save_tensor:
       # get data tensor for SUIT3
-        prep.save_data_tensor(dataset = config["dataset"],
+        prep.get_data_tensor(dataset = config["dataset"],
                         atlas='SUIT3',
-                        sess=config['eval_id'],
-                        type=config['type'])
+                        ses_id=config['eval_id'],
+                        type=config['type'], 
+                        save = save_tensor)
 
         # get data tensor for fs32k
-        prep.save_data_tensor(dataset = config["dataset"],
+        prep.get_data_tensor(dataset = config["dataset"],
                         atlas='fs32k',
-                        sess=config['eval_id'],
-                        type=config['type'])
+                        ses_id=config['eval_id'],
+                        type=config['type'], 
+                        save= save_tensor)
 
    # get dataset class 
    Data = fdata.get_dataset_class(prep.base_dir, dataset=config["dataset"])
    # get info
    info = Data.get_info(config['eval_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
-   Y_file = Data.base_dir + f"/{config['dataset']}_{config['cerebellum']}_{config['eval_id']}_{config['type']}.npy"
+   Y_file = prep.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cerebellum']}_{config['eval_id']}_{config['type']}.npy"
    Y_tensor = np.load(Y_file)
 
    # load data tensor for fs32k
-   X_file = Data.base_dir + f"/{config['dataset']}_{config['cortex']}_{config['eval_id']}_{config['type']}.npy"
+   X_file = prep.conn_dir + config['dataset']+ f"/{config['dataset']}_{config['cortex']}_{config['eval_id']}_{config['type']}.npy"
    X_tensor = np.load(X_file)
 
-   # get atlases 
-   X_atlas, xainfo = at.get_atlas(config['cortex'],prep.atlas_dir)
-
-   # get the cortical data averaged over parcels
-   X_atlas.get_parcel(config['label_img'], unite_hemi = False)
-   vector = np.concatenate(X_atlas.label_vector, axis = 0)
-   # get the mask used to create the atlas
-   mask = np.concatenate(X_atlas.mask, axis = 0)
-   # apply the mask
-   # NOTE: this could be deleted if we apply the left and right hemi mask to 
-   # all the surface label giftis we have under atl-fs32k
-   vector = vector[mask > 0]    
-   # create a matrix for aggregating data (cannot use dataset.agg_data now! Need to make changes)
-   C = indicator(vector,positive=True)
+   # get cortical atlas object(will be used to aggregate data within tessellation)
+   X_atlas, _ = at.get_atlas(config['cortex'],prep.atlas_dir)
+   # get the vector containing tessel labels
+   X_atlas.get_parcel(config['label_img'], unite_struct = False)
 
 
    # get participants for the dataset
@@ -383,32 +366,31 @@ def eval_model(config, group = True, save_tensor = False, save = False):
    # loop over subjects
    for i, sub in enumerate(subject_list):
       print(f'- Evaluate {sub} {config["method"]} log alpha {config["log_alpha"]}')
+
       # get the slice of tensor corresponding to the current subject
       X = X_tensor[i, :, :]
       Y = Y_tensor[i, :, :]
+    
+      # get the mean across tessels for cortical data
+      X = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
 
-      # get the mean across parcel
-      X = np.nan_to_num(X) # replace nans first 
-      X = (X @ C)/np.sum(C, axis = 0)
       Y = np.nan_to_num(Y) # replace nans first 
+      X = np.nan_to_num(X) # replace nans first
 
       # get model name
-      model_path = Data.base_dir + f'/derivatives/{sub}/conn/train/'
+      model_path = prep.conn_dir + config['dataset']+ f'/train/{config["name"]}'
       # check if the directory exists
       try:
-         fname = model_path + f'{config["name"]}_{sub}.h5'
+         fname = model_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
          fitted_model = dd.io.load(fname)
       except:
          print(f"Run the model first")
-         # print(f"! dir for {sub} already exists")
-
+         
       # Get model predictions
       Y_pred = fitted_model.predict(X)
       if config["mode"] == "crossed":
          Y_pred = np.r_[Y_pred[info.half == 2, :], Y_pred[info.half == 1, :]]
-      # get the scaling factor of the model
       
-
       # get rmse
       rmse = mean_squared_error(Y, Y_pred, squared=False)
       eval_sub = {"rmse_eval": rmse,
@@ -437,62 +419,7 @@ def eval_model(config, group = True, save_tensor = False, save = False):
          eval_dict[k].append(v)
 
       # get eval name
-      eval_path = Data.base_dir + f'/derivatives/{sub}/conn/eval/'
+      eval_path = prep.conn_dir + config['dataset']+ f'/{sub}/eval/'
       # Save the maps
       
    return pd.DataFrame.from_dict(eval_dict), eval_voxels
-
-
-
-if __name__ == "__main__":
-
-   """
-   save data tensors for MDTB
-   """
-   # save_data_tensor(dataset = "MDTB",
-   #                  atlas='SUIT3',
-   #                  sess='ses-s1',
-   #                  type="CondHalf")
-   # save_data_tensor(dataset = "MDTB",
-   #                  atlas='fs32k',
-   #                  sess='ses-s1',
-   #                  type="CondHalf")
-
-   # save_data_tensor(dataset = "MDTB",
-   #                  atlas='SUIT3',
-   #                  sess='ses-s2',
-   #                  type="CondHalf")
-   # save_data_tensor(dataset = "MDTB",
-   #                  atlas='fs32k',
-   #                  sess='ses-s2',
-   #                  type="CondHalf")
-
-   """
-   training models
-   """
-   df_train_list = []
-   for a in [0, 2, 4, 6, 8, 10, 12]:
-      config = get_train_config(log_alpha = a)
-      _, df_tmp =train_model(config, save_tensor = False, save = True, group = True)
-      df_train_list.append(df_tmp)
-   df = pd.concat(df_train_list, ignore_index=True)
-   # save the dataframe
-   filepath = os.path.join(prep.base_dir, 'WMFS', 'mdtb_train_model_ses-s1.tsv')
-   df.to_csv(filepath, index = False, sep='\t')
-
-   """
-   evaluating models
-   """
-   df_eval_list = []
-   df_eval_voxel_list = []
-   for a in [0, 2, 4, 6, 8, 10, 12]:
-      config = get_eval_config(log_alpha = a)
-      eval_tmp, eval_voxels_tmp = eval_model(config, save_tensor = False, save = True, group = True)
-      df_eval_list.append(eval_tmp)
-      df_eval_voxel_list.append(df_eval_voxel_list)
-
-   df = pd.concat(df_eval_list, ignore_index=True)
-   # save the dataframe
-   filepath = os.path.join(prep.base_dir, 'WMFS', 'mdtb_eval_model_ses-s2.tsv')
-   df.to_csv(filepath, index = False, sep='\t')
-
