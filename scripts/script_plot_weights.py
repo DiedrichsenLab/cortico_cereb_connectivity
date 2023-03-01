@@ -65,6 +65,6 @@ def plot_weights(method="L2Regression",
 if __name__ == "__main__":
     # plot_weights(cerebellum='MDTB10')
     plot_weights(cerebellum="NettekovenSym34",
-                 save_as=f'{ut.model_dir}/Atlases/NettekovenSym34_cortex_connmodel')
+                 save_as=f'{ut.model_dir}/Atlases/NettekovenSym34_cortex_connmodel.dscalar.nii')
     # plot_weights(cerebellum="Verbal2Back")
     # plot_weights(cerebellum="Buckner7")
