@@ -9,20 +9,16 @@ import pandas as pd
 import re
 import sys
 from collections import defaultdict
-sys.path.append('../cortico-cereb_connectivity')
-sys.path.append('../Functional_Fusion') 
-sys.path.append('..')
 import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
-import data as cdata
+import cortico_cereb_connectivity.globals as gl
+import cortico_cereb_connectivity.run_model as rm
 import atlas_map as am
 from pathlib import Path
 
-# set base directory of the functional fusion 
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
-if not Path(base_dir).exists():
-    base_dir = '/srv/diedrichsen/data/FunctionalFusion'
-atlas_dir = base_dir + '/Atlases'
+
+
+
 
 def plot_weights(method = "L2Regression", 
                  cortex = "Icosahedron-1002_Sym.32k", 
@@ -31,19 +27,24 @@ def plot_weights(method = "L2Regression",
                  dataset_name = "MDTB", 
                  ses_id = "ses-s1", 
                  ):
+    
+    # get the config 
+    config = rm.get_train_config()
+    # get the group weights
+    W = rm.get_group_weights(config, fcn = np.nanmean, fold = "train")
     # get the file containing best weights
-    filename = os.path.join(cdata.conn_dir, dataset_name, 'train', f'{cortex}_{ses_id}_{method}_logalpha_{log_alpha}_best_weights.npy')
+    filename = os.path.join(gl.conn_dir, dataset_name, 'train', f'{cortex}_{ses_id}_{method}_logalpha_{log_alpha}_best_weights.npy')
     weights = np.load(filename)
 
     # get atlases and create parcels/parcel labels
-    atlas_cereb, _ = am.get_atlas('SUIT3',atlas_dir)
-    atlas_cortex, _ = am.get_atlas('fs32k', atlas_dir)
+    atlas_cereb, _ = am.get_atlas('SUIT3',gl.atlas_dir)
+    atlas_cortex, _ = am.get_atlas('fs32k', gl.atlas_dir)
 
     # get label files for cerebellum and cortex
-    label_cereb = atlas_dir + '/tpl-SUIT' + f'/atl-{cerebellum}_space-SUIT_dseg.nii'
+    label_cereb = gl.atlas_dir + '/tpl-SUIT' + f'/atl-{cerebellum}_space-SUIT_dseg.nii'
     label_cortex = []
     for hemi in ['L', 'R']:
-        label_cortex.append(atlas_dir + '/tpl-fs32k' + f'/{cortex}.{hemi}.label.gii')
+        label_cortex.append(gl.atlas_dir + '/tpl-fs32k' + f'/{cortex}.{hemi}.label.gii')
 
     # get parcel for both atlases
     atlas_cereb.get_parcel(label_cereb)
@@ -58,6 +59,6 @@ def plot_weights(method = "L2Regression",
 
 if __name__ == "__main__":
     plot_weights(cerebellum='MDTB10')
-    plot_weights(cerebellum="NettekovenSym34")
-    plot_weights(cerebellum="Verbal2Back")
-    plot_weights(cerebellum="Buckner7")
+    # plot_weights(cerebellum="NettekovenSym34")
+    # plot_weights(cerebellum="Verbal2Back")
+    # plot_weights(cerebellum="Buckner7")

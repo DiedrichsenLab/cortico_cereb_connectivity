@@ -11,25 +11,23 @@ import pandas as pd
 from collections import defaultdict
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import mean_squared_error
-import sys
-# sys.path.append('../Functional_Fusion') 
-sys.path.append('..')
 import nibabel as nb
 import Functional_Fusion as ff
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import Functional_Fusion.matrix as fm
-import data as cdata
+import cortico_cereb_connectivity.globals as gl
 
-import model as model
-import evaluation as ev
+import cortico_cereb_connectivity.model as model
+import cortico_cereb_connectivity.evaluation as ev
 
 import warnings
 
 warnings.filterwarnings("ignore")
 
-# OPEN ISSUES: 
-# 2. Handling crossing sessions (half or ses) - right now it only uses half
+# TODO: 
+# Handling crossing sessions (half or ses) - right now it only uses half
+# make the code not dependant on saved tensor
 
 # get training config dictionary
 def get_train_config(
@@ -68,7 +66,7 @@ def get_train_config(
    # get the cortical parcellation you want to use in modelling
    train_config['label_img'] = []
    for hemi in ['L', 'R']:
-      train_config['label_img'].append(cdata.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
+      train_config['label_img'].append(gl.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
    
 
    return train_config
@@ -112,7 +110,7 @@ def get_eval_config(
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
    for hemi in ['L', 'R']:
-      eval_config['label_img'].append(cdata.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
+      eval_config['label_img'].append(gl.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
 
 
    return eval_config
@@ -199,7 +197,7 @@ def eval_metrics(Y, Y_pred, info):
     return data
 
 # training model
-def train_model(config, group = True, save_tensor = False):
+def train_model(config, group = True):
    """
    training a specific model based on the config file created
    Args: 
@@ -210,36 +208,18 @@ def train_model(config, group = True, save_tensor = False):
       conn_model (model object) - trained model  
       train_df (pd.DataFrame)   - datafarme containing training information
    """
-   # save tensors?
-   if save_tensor:
-      # get data tensor for SUIT3
-        cdata.save_data_tensor(dataset = config["dataset"],
-                        atlas=config['cerebellum'],
-                        ses_id=config['ses_id'],
-                        type=config['type'], 
-                        )
-
-        # get data tensor for fs32k
-        cdata.save_data_tensor(dataset = config["dataset"],
-                        atlas=config['cortex'],
-                        ses_id=config['ses_id'],
-                        type=config['type'], 
-                        )
-   
    # get dataset class 
-   Data = fdata.get_dataset_class(cdata.base_dir, dataset=config["dataset"])
+   Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])
    # get info
    info = Data.get_info(config['ses_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
-   Y_file = cdata.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cerebellum']}_{config['ses_id']}_{config['type']}.npy"
-   Y_tensor = np.load(Y_file)
-   # load data tensor for fs32k
-   X_file = cdata.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cortex']}_{config['ses_id']}_{config['type']}.npy"
-   X_tensor = np.load(X_file)
+   tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["ses_id"],type=config["type"], info_only=False)
+   tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["ses_id"],type=config["type"], info_only=False)
 
 
    # get cortical atlas object(will be used to aggregate data within tessellation)
-   X_atlas, _ = at.get_atlas(config['cortex'],cdata.atlas_dir)
+   # NOTE: model will be trained on cerebellar voxels and average within cortical tessels.
+   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
    # get the vector containing tessel labels
    X_atlas.get_parcel(config['label_img'], unite_struct = False)
 
@@ -257,14 +237,15 @@ def train_model(config, group = True, save_tensor = False):
    for i, sub in enumerate(subject_list):
       print(f'- Train {sub} {config["method"]} log alpha {config["log_alpha"]}')
       # get the slice of tensor corresponding to the current subject
-      X = X_tensor[i, :, :]
-      Y = Y_tensor[i, :, :]
+      X = tensor_X[i, :, :]
+      Y = tensor_Y[i, :, :]
     
       # get the mean across tessels for cortical data
       X = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
 
-      Y = np.nan_to_num(Y) # replace nans first 
-      X = np.nan_to_num(X) # replace nans first
+      # replace nans in X and Y
+      Y = np.nan_to_num(Y) 
+      X = np.nan_to_num(X) 
       # Generate new model
       alpha = np.exp(config["log_alpha"]) # get alpha
       conn_model = getattr(model, config["method"])(alpha)
@@ -301,7 +282,7 @@ def train_model(config, group = True, save_tensor = False):
             train_dict[k].append(v)
 
       # get directory to save the trained model
-      save_path = os.path.join(cdata.conn_dir,config['dataset'],'train', config['name'])
+      save_path = os.path.join(gl.conn_dir,config['dataset'],'train', config['name'])
       # check if the directory exists
       try:
          os.makedirs(save_path)
@@ -314,7 +295,7 @@ def train_model(config, group = True, save_tensor = False):
    return conn_model, pd.DataFrame.from_dict(train_dict)
 
 # evaluating model
-def eval_model(config, group = True, save_tensor = False, save = False):
+def eval_model(config, group = True, save = False):
    """
    """
 
@@ -322,36 +303,16 @@ def eval_model(config, group = True, save_tensor = False, save = False):
    eval_dict = defaultdict(list)
    eval_voxels = defaultdict(list)
 
-   # save tensors?
-   if save_tensor:
-      # get data tensor for SUIT3
-        cdata.get_data_tensor(dataset = config["dataset"],
-                        atlas='SUIT3',
-                        ses_id=config['eval_id'],
-                        type=config['type'], 
-                        save = save_tensor)
-
-        # get data tensor for fs32k
-        cdata.get_data_tensor(dataset = config["dataset"],
-                        atlas='fs32k',
-                        ses_id=config['eval_id'],
-                        type=config['type'], 
-                        save= save_tensor)
-
    # get dataset class 
-   Data = fdata.get_dataset_class(cdata.base_dir, dataset=config["dataset"])
+   Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])
    # get info
-   info = Data.get_info(config['eval_id'],config['type'])
+   info = Data.get_info(config['ses_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
-   Y_file = cdata.conn_dir + config['dataset'] + f"/{config['dataset']}_{config['cerebellum']}_{config['eval_id']}_{config['type']}.npy"
-   Y_tensor = np.load(Y_file)
-
-   # load data tensor for fs32k
-   X_file = cdata.conn_dir + config['dataset']+ f"/{config['dataset']}_{config['cortex']}_{config['eval_id']}_{config['type']}.npy"
-   X_tensor = np.load(X_file)
+   tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["ses_id"],type=config["type"], info_only=False)
+   tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["ses_id"],type=config["type"], info_only=False)
 
    # get cortical atlas object(will be used to aggregate data within tessellation)
-   X_atlas, _ = at.get_atlas(config['cortex'],cdata.atlas_dir)
+   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
    # get the vector containing tessel labels
    X_atlas.get_parcel(config['label_img'], unite_struct = False)
 
@@ -368,8 +329,8 @@ def eval_model(config, group = True, save_tensor = False, save = False):
       print(f'- Evaluate {sub} {config["method"]} log alpha {config["log_alpha"]}')
 
       # get the slice of tensor corresponding to the current subject
-      X = X_tensor[i, :, :]
-      Y = Y_tensor[i, :, :]
+      X = tensor_X[i, :, :]
+      Y = tensor_Y[i, :, :]
     
       # get the mean across tessels for cortical data
       X = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
@@ -378,7 +339,7 @@ def eval_model(config, group = True, save_tensor = False, save = False):
       X = np.nan_to_num(X) # replace nans first
 
       # get model name
-      model_path = cdata.conn_dir + config['dataset']+ f'/train/{config["name"]}'
+      model_path = gl.conn_dir + config['dataset']+ f'/train/{config["name"]}'
       # check if the directory exists
       try:
          fname = model_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
@@ -419,7 +380,40 @@ def eval_model(config, group = True, save_tensor = False, save = False):
          eval_dict[k].append(v)
 
       # get eval name
-      eval_path = cdata.conn_dir + config['dataset']+ f'/{sub}/eval/'
+      eval_path = gl.conn_dir + config['dataset']+ f'/{sub}/eval/'
       # Save the maps
       
    return pd.DataFrame.from_dict(eval_dict), eval_voxels
+
+def get_group_weights(config, fcn = np.nanmean, fold = "train"):
+   """
+   loop over the model for each subject, get weight and calculate group measure
+   """
+
+   # get the dataset class the model was trained on
+   Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])  
+   # get the directory where models are saved
+   model_path = gl.conn_dir + f"/{config['dataset']}/{fold}/{config['name']}"
+
+   # get the list of subjects
+   T = Data.get_participants()
+   subject_list = T.participant_id
+
+   # loop over subjects and load the model
+   weight_list = []
+   for sub in subject_list:
+      print(f"- getting weights for {sub}")
+      # load the model
+      fname = model_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
+      fitted_model = dd.io.load(fname)
+
+      # get the weights and append it to the list
+      weight_list.append(fitted_model.coef_)
+
+   # concatenate weights in the list
+   weight_array = np.concat(weight_list, axis = 0)
+
+   # apply function to get group weight
+   weight_group = fcn(weight_array)
+
+   return weight_group
