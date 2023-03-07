@@ -13,7 +13,7 @@ import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
-import atlas_map as am
+import Functional_Fusion.atlas_map as am
 from pathlib import Path
 
 

@@ -31,12 +31,12 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
 
       return df
 
-def eval_models():
+def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
    df_eval_list = []
    df_eval_voxel_list = []
-   for a in [0, 2, 4, 6, 8, 10, 12]:
+   for a in logalpha_list:
       config = rm.get_eval_config(log_alpha = a)
-      eval_tmp, eval_voxels_tmp = rm.eval_model(config, save_tensor = False, save = True, group = False)
+      eval_tmp, eval_voxels_tmp = rm.eval_model(config, save = True, group = False)
       df_eval_list.append(eval_tmp)
       df_eval_voxel_list.append(df_eval_voxel_list)
 
@@ -83,8 +83,8 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
    return 
 
 if __name__ == "__main__":
-   train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
-   # eval_models()
+   # train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
+   eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
    # for a in [0, 2, 4, 6, 8, 10, 12]:
    #    print(f"-Doing alpha = {a}")
    #    get_best_weights(log_alpha=a)

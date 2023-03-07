@@ -297,6 +297,7 @@ def train_model(config, group = True):
 # evaluating model
 def eval_model(config, group = True, save = False):
    """
+   evaluate models
    """
 
    # initialize eval dictionary
@@ -306,7 +307,7 @@ def eval_model(config, group = True, save = False):
    # get dataset class 
    Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])
    # get info
-   info = Data.get_info(config['ses_id'],config['type'])
+   info = Data.get_info(config['eval_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
    tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["ses_id"],type=config["type"], info_only=False)
    tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["ses_id"],type=config["type"], info_only=False)
