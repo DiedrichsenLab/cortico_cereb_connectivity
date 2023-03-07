@@ -296,6 +296,7 @@ def train_model(config, group = True):
 # evaluating model
 def eval_model(config, group = True, save = False):
    """
+   evaluate models
    """
 
    # initialize eval dictionary
