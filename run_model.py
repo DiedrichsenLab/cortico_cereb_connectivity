@@ -2,6 +2,13 @@
 
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
+# TODO: Change variables in the dictionary to accomodate cross dataset integration
+# TODO: for each alpha, get the group average weight across training subject (maybe if group option is selected)
+# TODO: For each alpha get the group average scale across training subjects (again if group option is selected)
+# TODO: implement the weighting option  
+# TODO: Reorganize the directory structure??
+# TODO: choose a better naming for the model. Current name is too long
+# TODO: Handling crossing sessions (half or ses) - right now it only uses half
 import os
 import numpy as np
 import deepdish as dd
@@ -25,9 +32,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-# TODO: 
-# Handling crossing sessions (half or ses) - right now it only uses half
-
 # get training config dictionary
 def get_train_config(
                      dataset = "MDTB", 
@@ -40,22 +44,39 @@ def get_train_config(
                      mode = "crossed",  
                      type = "CondHalf",
                      cv_fold = 4,
+                     cross_over = "half", 
                      # weighting = True, 
                      validate_model = True,
                      ):
-   """
-   create a config file for training
+   """get_train_config
+   Function to create a config dictionary containing the info for the training
 
+   Args:
+       dataset (str, optional): _description_. Defaults to "MDTB".
+       ses_id (str, optional): _description_. Defaults to "ses-s1".
+       method (str, optional): _description_. Defaults to "L2regression".
+       log_alpha (int, optional): _description_. Defaults to 8.
+       cerebellum (str, optional): _description_. Defaults to "SUIT3".
+       cortex (str, optional): _description_. Defaults to "fs32k".
+       parcellation (str, optional): _description_. Defaults to "Icosahedron-1002_Sym.32k".
+       mode (str, optional): _description_. Defaults to "crossed".
+       type (str, optional): _description_. Defaults to "CondHalf".
+       cv_fold (int, optional): _description_. Defaults to 4.
+       cross_over (str, optional): _another option: or dataset name if you want to integrate over sessions of the dataset_. Defaults to "half".
+
+   Returns:
+       _type_: _description_
    """
    train_config = {}
    train_config['dataset'] = dataset # name of the dataset to be used in training models
-   train_config['ses_id'] = ses_id   
+   train_config['train_id'] = ses_id   
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['log_alpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
    train_config['cortex'] = cortex
    train_config['parcellation'] = parcellation
    train_config['mode'] = mode 
+   train_config['cross'] = cross_over
    # train_config['weighting'] = weighting
    train_config["validate_model"] = validate_model
    train_config["type"] = type 
@@ -209,13 +230,39 @@ def train_model(config, group = True):
    """
    # get dataset class 
    Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])
-   # get info
-   info = Data.get_info(config['ses_id'],config['type'])
+   
    # load data tensor for cortex and cerebellum atlases
-   tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["ses_id"],type=config["type"], info_only=False)
-   tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["ses_id"],type=config["type"], info_only=False)
+   ## loop over sessions chosen through train_id and concatenate data
+   tensor_X_list = []
+   tensor_Y_list = []
+   info_list = []
+   if config["cross"] == config["dataset"]: # if you want to train the model over the whole dataset
+      
+      for ses_id in Data.sessions:
 
-
+         YY, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=ses_id,type=config["type"], info_only=False)
+         XX, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=ses_id,type=config["type"], info_only=False)
+         tensor_X_list.append(XX)
+         tensor_Y_list.append(YY)
+         info_list.append(info)
+   else:
+      YY, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["train_id"],type=config["type"], info_only=False)
+      XX, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["train_id"],type=config["type"], info_only=False)
+      tensor_X_list.append(XX)
+      tensor_Y_list.append(YY)
+      info_list.append(info)
+      
+   # concatenate data across conditions over the selected sessions
+   tensor_X = np.concatenate(tensor_X_list, axis = 1) # axis 1 is the conditions
+   tensor_Y = np.concatenate(tensor_Y_list, axis = 1) # axis 1 is the conditions
+   
+   # concatenate the dataframes representing info
+   info = pd.concat(info_list, axis = 0)
+   # create a column to show unified condition numbers
+   info["cond_num_uni"] = np.arange(1, len(info.index)+1)
+   # add a variable for crossing
+   info["ses_num"] = (info["sess"] == info_list[-1].sess[0]) + 1  
+   
    # get cortical atlas object(will be used to aggregate data within tessellation)
    # NOTE: model will be trained on cerebellar voxels and average within cortical tessels.
    X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
@@ -251,7 +298,7 @@ def train_model(config, group = True):
 
       # cross the sessions
       if config["mode"] == "crossed":
-         Y = np.r_[Y[info.half == 2, :], Y[info.half == 1, :]]
+         Y = np.r_[Y[info["ses_num"] == 2, :], Y[info["ses_num"] == 1, :]]
 
       # Fit model, get train and validate metrics
       conn_model.fit(X, Y)
@@ -288,7 +335,7 @@ def train_model(config, group = True):
       except OSError:
          pass
 
-      fname = save_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
+      fname = save_path + f"/{config['name']}_{sub}.h5"
       dd.io.save(fname, conn_model, compression=None)
    
    return conn_model, pd.DataFrame.from_dict(train_dict)
@@ -308,8 +355,8 @@ def eval_model(config, group = True, save = False):
    # get info
    info = Data.get_info(config['eval_id'],config['type'])
    # load data tensor for cortex and cerebellum atlases
-   tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["ses_id"],type=config["type"], info_only=False)
-   tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["ses_id"],type=config["type"], info_only=False)
+   tensor_Y, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="SUIT3",sess=config["train_id"],type=config["type"], info_only=False)
+   tensor_X, info, _ = fdata.get_dataset(gl.base_dir,config["dataset"],atlas="fs32k",sess=config["train_id"],type=config["type"], info_only=False)
 
    # get cortical atlas object(will be used to aggregate data within tessellation)
    X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
@@ -333,7 +380,7 @@ def eval_model(config, group = True, save = False):
       Y = tensor_Y[i, :, :]
     
       # get the mean across tessels for cortical data
-      X = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
+      X, labels_list = fdata.agg_parcels(X, X_atlas.label_vector,fcn=np.nanmean)
 
       Y = np.nan_to_num(Y) # replace nans first 
       X = np.nan_to_num(X) # replace nans first
