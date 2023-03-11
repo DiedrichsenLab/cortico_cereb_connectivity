@@ -30,6 +30,20 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
       df.to_csv(filepath, index = False, sep='\t')
 
       return df
+   
+def train_models_all(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
+      df_train_list = []
+      for a in logalpha_list:
+         print(f"- Training model for loglapha {a}")
+         config = rm.get_train_config(log_alpha = a, ses_id = "all", type = "CondAll", cross_over = "MDTB")
+         _, df_tmp =rm.train_model(config, group = False)
+         df_train_list.append(df_tmp)
+      df = pd.concat(df_train_list, ignore_index=True)
+      # save the dataframe
+      filepath = os.path.join(gl.conn_dir, config['dataset'], 'mdtb_sub_train_model_all.tsv')
+      df.to_csv(filepath, index = False, sep='\t')
+
+      return df
 
 def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
    df_eval_list = []
@@ -83,8 +97,8 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
    return 
 
 if __name__ == "__main__":
-   # train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
-   eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
+   train_models_all(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
+   # eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
    # for a in [0, 2, 4, 6, 8, 10, 12]:
    #    print(f"-Doing alpha = {a}")
    #    get_best_weights(log_alpha=a)
