@@ -17,16 +17,49 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 
-def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
+def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
+                 cross_over = "sess", 
+                 dataset = "MDTB"):
+      """_summary_
+
+      Args:
+         logalpha_list (list, optional): _description_. Defaults to [0, 2, 4, 6, 8, 10, 12].
+         cross_over (str, optional): _description_. Defaults to "sess".
+         dataset (str, optional): _description_. Defaults to "MDTB".
+
+      Returns:
+         _type_: _description_
+      """
       df_train_list = []
       for a in logalpha_list:
          print(f"- Training model for loglapha {a}")
-         config = rm.get_train_config(log_alpha = a)
-         _, df_tmp =rm.train_model(config, group = False)
+         # get model config
+         config = rm.get_train_config(log_alpha = a, 
+                                      cross_over = cross_over, 
+                                      train_dataset = dataset)
+         
+         # get the list of trained connectivity models and training summary
+         conn_list, config, df_tmp =rm.train_model(config, group = False)
          df_train_list.append(df_tmp)
+         
+         # get the average weight for each alpha
+         ## this will later be used if you want to evaluate the weights on a completely different dataset
+         ## loop over subject level models (items in the conn_list) and save them alongside config
+         weights_list = [model.coef_.T for model in conn_list]
+         
+         # get group average weights
+         weights_arr = np.concat(weights_list, axis = 0)
+         weights_group = np.nanmean(weights_arr, axis = 0)
+         
+         # save the group level weights in the directory where model data is saved
+         save_path = os.path.join(gl.conn_dir,config['train_dataset'],'train', config['name'])
+         fname = save_path + f"/{config['name']}_cross_{config['cross_over']}_group_weights.npy"
+         # save group level weights
+         np.save(fname, weights_group)
+
       df = pd.concat(df_train_list, ignore_index=True)
       # save the dataframe
-      filepath = os.path.join(gl.conn_dir, config['dataset'], 'mdtb_sub_train_model_ses-s1.tsv')
+      filepath = os.path.join(gl.conn_dir, config['train_dataset'], f'{config["train_dataset"]}_sub_train_{config["cross_over"]}.tsv')
       df.to_csv(filepath, index = False, sep='\t')
 
       return df
@@ -97,7 +130,7 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
    return 
 
 if __name__ == "__main__":
-   train_models_all(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
+   train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], dataset="MDTB", cross_over="sess")
    # eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12])
    # for a in [0, 2, 4, 6, 8, 10, 12]:
    #    print(f"-Doing alpha = {a}")
