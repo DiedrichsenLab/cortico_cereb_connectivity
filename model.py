@@ -20,20 +20,48 @@ be easily used.
 
 @authors: Maedbh King, Ladan Shahshahani, Jörn Diedrichsen
 """
+class Model:
+    def __init__(self, name = None):
+        self.name = name
 
-
-class ModelMixin:
-    """
-    This is a class that can give use extra behaviors or functions that we want our connectivity models to have - over an above the basic functionality provided by the stanard SK-learn BaseEstimator classes
-    As an example here is a function that serializes the fitted model
-    Not used right now, but maybe potentially useful. Note that Mixin classes do not have Constructor!
-    """
-
+    def fit(self, X, Y):
+        """
+        NOT IMPLEMENTED YET
+        """
+        return
+    def predict(self, X):
+        Xs = X / self.scale_
+        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        return Xs @ self.coef_.T
     def to_dict(self):
         data = {"coef_": self.coef_}
         return data
+        
 
-class L2regression(Ridge, ModelMixin):
+class L2regression(Ridge, Model):
+    """
+    L2 regularized connectivity model
+    simple wrapper for Ridge. It performs scaling by stdev, but not by mean before fitting and prediction
+    """
+
+    def __init__(self, alpha=1):
+        """
+        Simply calls the superordinate construction - but does not fit intercept, as this is tightly controlled in Dataset.get_data()
+        """
+        super().__init__(alpha=alpha, fit_intercept=False)
+
+    def fit(self, X, Y):
+        self.scale_ = np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
+        Xs = X / self.scale_
+        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        return super().fit(Xs, Y)
+
+    def predict(self, X):
+        Xs = X / self.scale_
+        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
+
+class L1regression(Lasso, Model):
     """
     L2 regularized connectivity model
     simple wrapper for Ridge. It performs scaling by stdev, but not by mean before fitting and prediction
@@ -56,30 +84,7 @@ class L2regression(Ridge, ModelMixin):
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T  # weights need to be transposed (throws error otherwise)
 
-class L1regression(Lasso, ModelMixin):
-    """
-    L2 regularized connectivity model
-    simple wrapper for Ridge. It performs scaling by stdev, but not by mean before fitting and prediction
-    """
-
-    def __init__(self, alpha=1):
-        """
-        Simply calls the superordinate construction - but does not fit intercept, as this is tightly controlled in Dataset.get_data()
-        """
-        super().__init__(alpha=alpha, fit_intercept=False)
-
-    def fit(self, X, Y):
-        self.scale_ = np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
-        return super().fit(Xs, Y)
-
-    def predict(self, X):
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
-        return Xs @ self.coef_.T  # weights need to be transposed (throws error otherwise)
-
-class WTA(BaseEstimator, ModelMixin):
+class WTA(BaseEstimator, Model):
     """
     WTA model
     It performs scaling by stdev, but not by mean before fitting and prediction
@@ -109,7 +114,7 @@ class WTA(BaseEstimator, ModelMixin):
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T  # weights need to be transposed (throws error otherwise)
 
-class WINNERS(ModelMixin):
+class WINNERS(Model):
 
     def __init__(self, n_features_to_select = 1):
         self.n_featrues_to_select = n_features_to_select
@@ -203,7 +208,7 @@ class WINNERS(ModelMixin):
 
         return self.support_
 
-class WNTA(Ridge, ModelMixin):
+class WNTA(Ridge, Model):
 
     def __init__(self, winner_model = None, alpha = 0, n_features_to_select = 1):
         """
