@@ -9,7 +9,7 @@ from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 from scipy import stats
-import evaluation as ev 
+import cortico_cereb_connectivity.evaluation as ev 
 
 
 """
