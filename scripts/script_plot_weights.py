@@ -2,7 +2,7 @@
 script for getting group average weights
 @ Ladan Shahshahani Jan 30 2023 12:57
 """
-import os
+import os.path as op
 import numpy as np
 import deepdish as dd
 import pandas as pd
