@@ -69,7 +69,7 @@ def get_train_config(
    """
    train_config = {}
    train_config['dataset'] = dataset # name of the dataset to be used in training models
-   train_config['train_id'] = ses_id   
+   train_config['ses_id'] = ses_id   
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['log_alpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -82,6 +82,8 @@ def get_train_config(
    train_config["type"] = type 
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['name'] = f"{parcellation}_{ses_id}_{method}_logalpha_{log_alpha}"
+   train_config['subj_list'] = "all"
+   
    
    # get the cortical parcellation you want to use in modelling
    train_config['label_img'] = []
@@ -94,7 +96,6 @@ def get_train_config(
 # get evaluation config dictionary
 def get_eval_config(
    dataset = "MDTB", 
-   train_id = "ses-s1",
    eval_id = "ses-s2", 
    method = "L2Regression",
    log_alpha = 8, 
@@ -112,7 +113,6 @@ def get_eval_config(
    """
    eval_config = {}
    eval_config['dataset'] = dataset
-   eval_config['train_id'] = train_id
    eval_config['eval_id'] = eval_id
    eval_config['method'] = method
    eval_config['log_alpha'] = log_alpha #

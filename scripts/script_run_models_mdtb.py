@@ -22,6 +22,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12]):
       for a in logalpha_list:
          print(f"- Training model for loglapha {a}")
          config = rm.get_train_config(log_alpha = a)
+         
          _, df_tmp =rm.train_model(config, group = False)
          df_train_list.append(df_tmp)
       df = pd.concat(df_train_list, ignore_index=True)
