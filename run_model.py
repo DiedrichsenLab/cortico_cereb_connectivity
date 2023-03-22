@@ -69,8 +69,7 @@ def get_train_config(
        _type_: _description_
    """
    train_config = {}
-   train_config['train_dataset'] = train_dataset # name of the dataset to be used in training models
-   train_config['train_id'] = ses_id   
+   train_config['train_dataset'] = train_dataset # name of the dataset to be used in 	   	   train_config['train_id'] = ses_id   
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -82,10 +81,9 @@ def get_train_config(
    train_config["validate_model"] = validate_model
    train_config["type"] = type 
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
-   # some housekeeping
-   if cross_over == "sess":
-      train_config['train_id'] =  "all"
-   train_config['name'] = f"{parcellation}_{train_config['train_id']}_{method}_logalpha_{log_alpha}"
+   train_config['name'] = f"{parcellation}_{ses_id}_{method}_logalpha_{log_alpha}"
+   train_config['subj_list'] = "all"
+   
    
    # get the cortical parcellation you want to use in modelling
    train_config['label_img'] = []
