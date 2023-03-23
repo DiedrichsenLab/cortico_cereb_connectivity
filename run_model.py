@@ -210,8 +210,6 @@ def train_model(config):
    
    # load data tensor for cortex and cerebellum atlases
    ## loop over sessions chosen through train_id and concatenate data
-   tensor_X_list = []
-   tensor_Y_list = []
    info_list = []
    
    if config["subj_list"]=='all':
@@ -220,9 +218,20 @@ def train_model(config):
 
    # initialize training dict
    conn_model_list = []
+   train_info = pd.DataFrame()
 
+   # Generate model name and create directory
+   mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
+   save_path = os.path.join(gl.conn_dir,'train',
+                                  mname)
+   # check if the directory exists
+   try:
+      os.makedirs(save_path)
+   except OSError:
+      pass
+
+   # Loop over subjects 
    for i, sub in enumerate(config["subj_list"]):
-   
       YY, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["train_dataset"],
                                     atlas=config["cerebellum"],
@@ -259,17 +268,16 @@ def train_model(config):
          alpha = np.exp(la) # get alpha
          conn_model = getattr(model, config["method"])(alpha)
 
-
          # Fit model, get train and validate metrics
          conn_model.fit(X, Y)
          conn_model.rmse_train, conn_model.R_train = train_metrics(conn_model, X, Y)
          conn_model_list.append(conn_model)
 
+         mname_spec = f"{mname}_A{la}_{sub}"
          # collect train metrics (rmse and R)
-         mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}_A{la}_{sub}"
          model_info = {
                         "subj_id": sub,
-                        "mname": mname,
+                        "mname": mname_spec,
                         "rmse_train": conn_model.rmse_train,
                         "R_train": conn_model.R_train,
                         "num_regions": X.shape[1]
@@ -286,22 +294,15 @@ def train_model(config):
          for key, value in config.items():
             if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
                model_info.update({key: value})
-
-         # get directory to save the trained model
-         save_path = os.path.join(gl.conn_dir,'train',
-                                  config['train_dataset'],
-                                  mname)
-         # check if the directory exists
-         try:
-            os.makedirs(save_path)
-         except OSError:
-            pass
-
-         dd.io.save(save_path + ".h5", conn_model, compression=None)
-         with open(save_path + ".json", "w") as fp:
+         # Save the individuals info files 
+         dd.io.save(save_path + "/" + mname_spec + ".h5",
+                     conn_model, compression=None)
+         with open(save_path + "/" + mname_spec + ".json", "w") as fp:
             json.dump(model_info, fp, indent=4)
 
-   return config, conn_model_list, pd.DataFrame.from_dict(train_dict)
+         train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
+   train_info.to_csv(save_path + "/" + mname + ".tsv",sep='\t')
+   return config, conn_model_list, train_info
 
 def eval_model(config, avg = True, save = False):
    """
@@ -418,29 +419,47 @@ def eval_model(config, avg = True, save = False):
       
    return pd.DataFrame.from_dict(eval_dict), eval_voxels
 
-def get_avrg_model(config, fcn = np.nanmean, fold = "train"):
-   """
-   loop over the model for each subject, get weight and calculate group measure
+def calc_avrg_model(train_dataset,
+                    mname_base,
+                    mname_ext,
+                    parameters=['coef_','scale_']):
+   """Get the fitted models from all the subjects in the training data set 
+      and create group-averaged model 
+   Args:
+       train_dataset (str): _description_
+       mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression) 
+       mname_ext (str): Extension of name - typically logalpha
+       (A0)
+       parameters (list): List of parameters to average
    """
 
    # get the dataset class the model was trained on
-   Data = fdata.get_dataset_class(gl.base_dir, dataset=config["dataset"])  
-   # get the directory where models are saved
-   model_path = gl.conn_dir + f"/{config['dataset']}/{fold}/{config['name']}"
-
-   # get the list of subjects
-   T = Data.get_participants()
+   # To get the list of subjects 
+   tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)  
+   T = tdata.get_participants()
    subject_list = T.participant_id
+   
+   # get the directory where models are saved
+   model_path = gl.conn_dir + f"/train/{mname_base}/"
 
-   # loop over subjects and load the model
-   weight_list = []
+   # Collect the parameters in lists
+   param_lists={}
+   for p in parameters:
+      param_lists[p]=[]
+
+   # Loop over subjects 
    for sub in subject_list:
       print(f"- getting weights for {sub}")
       # load the model
-      fname = model_path + f"/{config['method']}_alpha{config['log_alpha']}_{sub}.h5"
+      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
       fitted_model = dd.io.load(fname)
+      for p in parameters:
+         param_lists[p].append(getattr(fitted_model,p))
 
-      # get the weights and append it to the list
-      ## a new axis is added to represent subject
-      weight_list.append(fitted_model.coef_[np.newaxis, ...])
-
+   avrg_model = fitted_model
+   for p in parameters:
+      P = np.stack(param_lists[p],axis=0)
+      setattr(avrg_model,p,P.mean(axis=0))
+   
+   dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
+      avrg_model, compression=None)

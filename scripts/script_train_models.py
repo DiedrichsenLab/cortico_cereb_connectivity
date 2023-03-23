@@ -33,7 +33,18 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
          # get the list of trained connectivity models and training summary
     config, conn_list, df_tmp =rm.train_model(config)
     
-    
+def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
+            train_data = "MDTB",
+            train_ses= "ses-s1",
+            parcellation = 'Icosahedron1002',
+            method='L2Regression'):
+    mname = f"{train_data}_{train_ses}_{parcellation}_{method}"
+
+    for la in logalpha_list: 
+        mname_ext = f"A{la}"
+        rm.calc_avrg_model(train_data,mname,mname_ext)
+
+
 def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
                 type = "CondHalf",
                 train_dataset = "MDTB", 
@@ -70,3 +81,4 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
 if __name__ == "__main__":
     train_models()
+    # avrg_model()
