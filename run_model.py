@@ -88,16 +88,14 @@ def get_train_config(
 
    return train_config
 
-def get_eval_config(
-   model_names,
-   eval_dataset = "MDTB",
-   eval_ses = "ses-s1", # or "all" if you have used the whole dataset
-   cerebellum = "SUIT3",
-   cortex = "fs32k",
-   parcellation = "Icosahedron1002",
-   crossed = "half", # or None
-   type = "CondHalf",
-   splitby = None):
+def get_eval_config(eval_dataset = 'MDTB',
+            eval_ses = 'ses-s2', 
+            cerebellum = 'SUIT3',
+            cortex = "fs32k",
+            parcellation = "Icosahedron1002",
+            crossed = "half", # or None
+            type = "CondHalf",
+            splitby = None):
    """
    create a config file for evaluation
    """
@@ -111,6 +109,12 @@ def get_eval_config(
    eval_config["splitby"] = splitby
    eval_config["type"] = type 
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
+   eval_config['subj_list'] = "all"
+
+   # get label images for left and right hemisphere
+   eval_config['label_img'] = []
+   for hemi in ['L', 'R']:
+      eval_config['label_img'].append(gl.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
 
    return eval_config
 
@@ -191,13 +195,10 @@ def eval_metrics(Y, Y_pred, info):
 
     return data
 
-
-#TODO: train on individual eval on individual from the same data set cross_over to "half". 
-#TODO: train on individual, get group weights, eval on indivuals from a different dataset set cross_over to "sess"
-
 def train_model(config):
    """
    training a specific model based on the config file created
+   model will be trained on cerebellar voxels and average within cortical tessels.
    Args: 
       config (dict)      - dictionary with configuration parameters
    Returns:
@@ -206,9 +207,9 @@ def train_model(config):
       train_df (pd.DataFrame)   - dataframe containing training information
    """
    # get dataset class 
-   dataset = fdata.get_dataset_class(gl.base_dir, dataset=config["train_dataset"])
+   dataset = fdata.get_dataset_class(gl.base_dir, 
+                                    dataset=config["train_dataset"])
    
-   # load data tensor for cortex and cerebellum atlases
    ## loop over sessions chosen through train_id and concatenate data
    info_list = []
    
@@ -244,14 +245,14 @@ def train_model(config):
                                     sess=config["train_ses"],
                                     type=config["type"],
                                     subj=sub)
-      
-      # NOTE: model will be trained on cerebellar voxels and average within cortical tessels.
+      # Average the cortical data over pacels   
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels
       X_atlas.get_parcel(config['label_img'], unite_struct = False)
-
       # get the mean across tessels for cortical data
       XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+
+      # Remove Nans 
       Y = np.nan_to_num(YY[0,:,:]) 
       X = np.nan_to_num(XX[0,:,:]) 
 
@@ -304,120 +305,121 @@ def train_model(config):
    train_info.to_csv(save_path + "/" + mname + ".tsv",sep='\t')
    return config, conn_model_list, train_info
 
-def eval_model(config, avg = True, save = False):
+def eval_model(model_dirs,model_names,config, avg = True):
    """
-   evaluate models
+   evaluate group model on a specific dataset and session
+   Args:
+      model_dirs (list)  - list of model directories 
+      model_names (list) - list of full model names (without .h5) to evaluate 
+      config (dict)      - dictionary with evaluation parameters
    """
-
    # initialize eval dictionary
-   eval_dict = defaultdict(list)
+   eval_df = pd.DataFrame()
    eval_voxels = defaultdict(list)
 
-   # get dataset class 
-   Data = fdata.get_dataset_class(gl.base_dir, dataset=config["eval_dataset"])
+   # get dataset class
+   dataset = fdata.get_dataset_class(gl.base_dir, 
+                                    dataset=config["eval_dataset"])
    
-   # load data tensor for cortex and cerebellum atlases
-   info_list = []
-   if config["cross_over"] == "sess": # if you want to train the model over the whole dataset
+   # get list of subjects
+   if config["subj_list"]=='all':
+      T = dataset.get_participants()
+      config["subj_list"] = T.participant_id
+
+   # Load all the models to evaluate:
+   fitted_model = []
+   train_info = []
+   if avg:
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,'train',d)
+         fname = model_path + f"/{m}_avg.h5"
+         json_name = model_path + f"/{m}_avg.json"
+         fitted_model.append(dd.io.load(fname))
       
-      # get the data over all the sessions
-      for ses, ses_id in enumerate(Data.sessions):
+         # Load json file
+         with open(json_name) as json_file:
+            train_info.append(json.load(json_file))
 
-         YY, info, _ = fdata.get_dataset(gl.base_dir,config["eval_dataset"],atlas="SUIT3",sess=ses_id,type=config["type"], info_only=False)
-         XX, info, _ = fdata.get_dataset(gl.base_dir,config["eval_dataset"],atlas="fs32k",sess=ses_id,type=config["type"], info_only=False)
-         tensor_X_list.append(XX)
-         tensor_Y_list.append(YY)
-         # add a number for session
-         info["ses_num"] = ses+1
-         info_list.append(info)
-   else: # you want to train the model on a specific session of the dataset
-      YY, info, _ = fdata.get_dataset(gl.base_dir,config["eval_dataset"],atlas="SUIT3",sess=config["eval_id"],type=config["type"], info_only=False)
-      XX, info, _ = fdata.get_dataset(gl.base_dir,config["eval_dataset"],atlas="fs32k",sess=config["eval_id"],type=config["type"], info_only=False)
-      tensor_X_list.append(XX)
-      tensor_Y_list.append(YY)
-      info["ses_num"] = info["half"]
-      info_list.append(info)
-      
-   # concatenate data across conditions over the selected sessions
-   tensor_X = np.concatenate(tensor_X_list, axis = 1) # axis 1 is the conditions
-   tensor_Y = np.concatenate(tensor_Y_list, axis = 1) # axis 1 is the conditions
-   
-   # concatenate the dataframes representing info
-   info = pd.concat(info_list, axis = 0)
-   # create a column to show unified condition numbers
-   info["cond_num_uni"] = np.arange(1, len(info.index)+1)
-   
-   # get cortical atlas object(will be used to aggregate data within tessellation)
-   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
-   # get the vector containing tessel labels
-   X_atlas.get_parcel(config['label_img'], unite_struct = False)
 
-   # get the mean across tessels for cortical data
-   tensor_X, labels = fdata.agg_parcels(tensor_X, X_atlas.label_vector,fcn=np.nanmean)
-
-   # get participants for the dataset
-   T = Data.get_participants()
-   subject_list = T.participant_id
 
    # loop over subjects
-   for i, sub in enumerate(subject_list):
-      print(f'- Evaluate {sub} {config["method"]} log alpha {config["log_alpha"]}')
+   for i, sub in enumerate(config["subj_list"]):
+      print(f'- Evaluate {sub}')
 
-      # get the slice of tensor corresponding to the current subject
-      X = tensor_X[i, :, :]
-      Y = tensor_Y[i, :, :]
+      YY, info, _ = fdata.get_dataset(gl.base_dir,
+                                    config["eval_dataset"],
+                                    atlas=config["cerebellum"],
+                                    sess=config["eval_ses"],
+                                    type=config["type"],
+                                    subj=sub)
+      XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                    config["eval_dataset"],
+                                    atlas=config["cortex"],
+                                    sess=config["eval_ses"],
+                                    type=config["type"],
+                                    subj=sub)
+      # Average the cortical data over parcels   
+      X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
+      # get the vector containing tessel labels
+      X_atlas.get_parcel(config['label_img'], unite_struct = False)
+      # get the mean across tessels for cortical data
+      XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-      Y = np.nan_to_num(Y) # replace nans first 
-      X = np.nan_to_num(X) # replace nans first
+      # Remove Nans 
+      Y = np.nan_to_num(YY[0,:,:]) 
+      X = np.nan_to_num(XX[0,:,:]) 
 
-      # get model name
-      model_path = gl.conn_dir + f"/{config['train_dataset']}/train/{config['name']}/"
-      # check if the directory exists
-      if avg: 
-         fname = model_path + f"/{config['method']}_{config['train_id']}_logalpha{config['log_alpha']}_avg.h5"
-      else:
-         fname = model_path + f"/{config['method']}_{config['train_id']}_logalpha{config['log_alpha']}_{sub}.h5"
-         
-      fitted_model = dd.io.load(fname)
-       
-      # Get model predictions
-      Y_pred = fitted_model.predict(X)
       # cross the sessions
-      if config["mode"] == "crossed":
-         Y = np.r_[Y[info["ses_num"] == 2, :], Y[info["ses_num"] == 1, :]]
+      if config["crossed"] is not None:
+         if config["crossed"]=='half':
+            Y = np.r_[Y[info["half"] == 2, :], Y[info["half"] == 1, :]]
+
+      # If not average, load the model for each subject
+      if not avg:
+         fitted_model = []
+         train_info = []
+         for d,m in zip(model_dirs,model_names):
+            model_path = os.path.join(gl.conn_dir,'train',d)
+            fname = model_path + f"/{m}_{sub}.h5"
+            json_name = model_path + f"/{m}_{sub}.json"
+            fitted_model.append(dd.io.load(fname))
       
-      # get rmse
-      rmse = mean_squared_error(Y, Y_pred, squared=False)
-      eval_sub = {"rmse_eval": rmse,
+            with open(json_name) as json_file:
+               train_info.append(json.load(json_file))
+      
+      # Loop over models
+      for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
+         # Get model predictions
+         Y_pred = fm.predict(X)
+      
+         # get rmse
+         rmse = mean_squared_error(Y, Y_pred, squared=False)
+         eval_sub = {"rmse_eval": rmse,
                   "subj_id": sub,
                   "num_regions": X.shape[1]}
 
-      # Copy over all scalars or strings to eval_all dataframe:
-      for key, value in config.items():
-         if type(value) is not list:
+         # Copy over all scalars or strings to eval_all dataframe:
+         for key, value in tinfo.items():
+            if not isinstance(value,(list,pd.Series,np.ndarray)):
+               eval_sub.update({key: value})
+         for key, value in config.items():
+            if not isinstance(value,(list,pd.Series,np.ndarray)):
                eval_sub.update({key: value})
 
-      # add evaluation (summary)
-      evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
-      eval_sub.update(evals)
+         # add evaluation (summary)
+         evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
 
-      # add evaluation (voxels)
-      for k, v in eval_sub.items():
+         # add evaluation (voxels)
+         for k, v in evals.items():
             if "vox" in k:
                eval_voxels[k].append(v)
+            else:
+               eval_sub[k]=v
 
-      # don't save voxel data to summary
-      eval_sub = {k: v for k, v in eval_sub.items() if "vox" not in k}
+         # don't save voxel data to summary
+         eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub)],ignore_index= True)
 
-      # append data for each subj
-      for k, v in eval_sub.items():
-         eval_dict[k].append(v)
-
-      # get eval name
-      eval_path = gl.conn_dir + config['eval_dataset']+ f'/{sub}/eval/'
-      # Save the maps
-      
-   return pd.DataFrame.from_dict(eval_dict), eval_voxels
+   return eval_df, eval_voxels
 
 def calc_avrg_model(train_dataset,
                     mname_base,
@@ -448,11 +450,19 @@ def calc_avrg_model(train_dataset,
       param_lists[p]=[]
 
    # Loop over subjects 
+   df = pd.DataFrame()
    for sub in subject_list:
       print(f"- getting weights for {sub}")
       # load the model
       fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
+      info_name = model_path + f"/{mname_base}_{mname_ext}_{sub}.json"
       fitted_model = dd.io.load(fname)
+      
+      # load the json file
+      with open(info_name) as json_file:
+         info = json.load(json_file)
+         df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
+         
       for p in parameters:
          param_lists[p].append(getattr(fitted_model,p))
 
@@ -463,3 +473,17 @@ def calc_avrg_model(train_dataset,
    
    dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
       avrg_model, compression=None)
+   # Assemble the summary
+   dict = {'R_train': df.R_train.mean(),
+           'rmse_train': df.rmse_train.mean(),
+           'R_cv': df.R_cv.mean(),
+           'rmse_cv': df.rmse_cv.mean(),
+           'train_dataset': df.train_dataset[0],
+           'train_ses': df.train_ses[0],
+           'train_type': df.type[0],
+           'cerebellum': df.cerebellum[0],
+           'cortex': df.cortex[0],
+           'method': df.method[0]}
+   # save dict as json
+   with open(model_path + f"/{mname_base}_{mname_ext}_avg.json", 'w') as fp:
+      json.dump(dict, fp, indent=4)

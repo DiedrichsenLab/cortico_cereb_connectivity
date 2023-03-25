@@ -47,38 +47,44 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
 def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
                 type = "CondHalf",
-                train_dataset = "MDTB", 
+                train_dataset = "MDTB",
+                train_ses = "ses-s1",
+                method = "L2Regression",
+                parcellation = "Icosahedron1002", 
                 eval_dataset = "Demand", 
-                train_id = "all", 
-                eval_id = "half"
+                eval_ses  = "all",
+                eval_id = 'Md_s1' 
                 ):
-   df_eval_list = []
-   df_eval_voxel_list = []
-   for a in logalpha_list:
-      config = rm.get_eval_config(log_alpha = a, 
-                                  train_dataset=train_dataset, 
-                                  eval_dataset=eval_dataset, 
-                                  cross_over=cross_over, 
-                                  type = type, 
-                                  train_id=train_id, 
-                                  eval_id=eval_id)
-      eval_tmp, eval_voxels_tmp = rm.eval_model(config, save = True, avg = True)
-      df_eval_list.append(eval_tmp)
-      df_eval_voxel_list.append(df_eval_voxel_list)
+   config = rm.get_eval_config(eval_dataset = eval_dataset,
+            eval_ses = eval_ses, 
+            parcellation = parcellation,
+            crossed = "half", # or None
+            type = "CondHalf",
+            splitby = None)
 
-   df = pd.concat(df_eval_list, ignore_index=True)
-   # save the dataframe
-   save_path = gl.conn_dir+ f"/{config['train_dataset']}/eval"
+   dirname=[]
+   mname=[]
+
+   for a in logalpha_list:
+      dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+   df, df_voxels = rm.eval_model(dirname,mname,config)
+   save_path = gl.conn_dir+ f"/eval"
 
    if not os.path.isdir(save_path):
       os.mkdir(save_path)
    else:
       pass
 
-   filepath = save_path + f"/{config['eval_dataset']}_sub_eval_model_{config['eval_id']}.tsv"
-   df.to_csv(filepath, index = False, sep='\t')
-   return
+   file_name = save_path + f"/{config['eval_dataset']}_eval_{eval_id}.tsv"
+   df.to_csv(file_name, index = False, sep='\t')
+   return df,df_voxels
 
 if __name__ == "__main__":
-    train_models()
-    # avrg_model()
+    # train_models()
+    # avrg_model()"WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"
+   eval_models(eval_dataset = "IBC")
+   eval_models(eval_dataset = "Nishimoto")
+   eval_models(eval_dataset = "Somatotopic")
+   eval_models(eval_dataset = "WMFS")
+   
