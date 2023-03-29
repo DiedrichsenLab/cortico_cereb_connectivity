@@ -238,13 +238,13 @@ def train_model(config):
                                     atlas=config["cerebellum"],
                                     sess=config["train_ses"],
                                     type=config["type"],
-                                    subj=sub)
+                                    subj=str(sub))
       XX, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["train_dataset"],
                                     atlas=config["cortex"],
                                     sess=config["train_ses"],
                                     type=config["type"],
-                                    subj=sub)
+                                    subj=str(sub))
       # Average the cortical data over pacels   
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels

@@ -84,18 +84,18 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 if __name__ == "__main__":
-   # train_models(train_ses = 'all',dataset = "MDTB")
+   train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
    # avrg_model(train_data = "MDTB",train_ses= "all")
-   ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
+   # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
-   eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
-   for ed in ED[1:]:
-      train_models(train_ses = 'all',dataset = ed)
-      avrg_model(train_data = ed,train_ses= "all")
-   eval_models(eval_dataset = ED, train_dataset="IBC", train_ses="all",eval_id = 'Ib')
-   eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
-   eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
-   eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
+   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
+   # for ed in ED[1:]:
+   #    train_models(train_ses = 'all',dataset = ed)
+   #    avrg_model(train_data = ed,train_ses= "all")
+   # eval_models(eval_dataset = ED, train_dataset="IBC", train_ses="all",eval_id = 'Ib')
+   # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
+   # eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
+   # eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
    
    # train_models(train_ses = 'all',dataset = "MDTB")
    # avrg_model(train_data = "MDTB",train_ses= "all")
