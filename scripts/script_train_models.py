@@ -32,7 +32,9 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
          
          # get the list of trained connectivity models and training summary
     config, conn_list, df_tmp =rm.train_model(config)
-    
+
+
+
 def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
             train_data = "MDTB",
             train_ses= "ses-s1",
@@ -51,40 +53,52 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 train_ses = "ses-s1",
                 method = "L2Regression",
                 parcellation = "Icosahedron1002", 
-                eval_dataset = "Demand", 
+                eval_dataset = ["Demand"], 
                 eval_ses  = "all",
                 eval_id = 'Md_s1' 
                 ):
-   config = rm.get_eval_config(eval_dataset = eval_dataset,
-            eval_ses = eval_ses, 
-            parcellation = parcellation,
-            crossed = "half", # or None
-            type = "CondHalf",
-            splitby = None)
+   for ed in eval_dataset:
+      config = rm.get_eval_config(eval_dataset = ed,
+               eval_ses = eval_ses, 
+               parcellation = parcellation,
+               crossed = "half", # or None
+               type = "CondHalf",
+               splitby = None)
 
-   dirname=[]
-   mname=[]
+      dirname=[]
+      mname=[]
 
-   for a in logalpha_list:
-      dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-      mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
-   df, df_voxels = rm.eval_model(dirname,mname,config)
-   save_path = gl.conn_dir+ f"/eval"
+      for a in logalpha_list:
+         dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+      df, df_voxels = rm.eval_model(dirname,mname,config)
+      save_path = gl.conn_dir+ f"/eval"
 
-   if not os.path.isdir(save_path):
-      os.mkdir(save_path)
-   else:
-      pass
+      if not os.path.isdir(save_path):
+         os.mkdir(save_path)
+      else:
+         pass
 
-   file_name = save_path + f"/{config['eval_dataset']}_eval_{eval_id}.tsv"
-   df.to_csv(file_name, index = False, sep='\t')
+      file_name = save_path + f"/{config['eval_dataset']}_eval_{eval_id}.tsv"
+      df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
 if __name__ == "__main__":
-    # train_models()
-    # avrg_model()"WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"
-   eval_models(eval_dataset = "IBC")
-   eval_models(eval_dataset = "Nishimoto")
-   eval_models(eval_dataset = "Somatotopic")
-   eval_models(eval_dataset = "WMFS")
+   # train_models(train_ses = 'all',dataset = "MDTB")
+   # avrg_model(train_data = "MDTB",train_ses= "all")
+   ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
+   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
+   eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
+   for ed in ED[1:]:
+      train_models(train_ses = 'all',dataset = ed)
+      avrg_model(train_data = ed,train_ses= "all")
+   eval_models(eval_dataset = ED, train_dataset="IBC", train_ses="all",eval_id = 'Ib')
+   eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
+   eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
+   eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
+   
+   # train_models(train_ses = 'all',dataset = "MDTB")
+   # avrg_model(train_data = "MDTB",train_ses= "all")
+   # train_models(train_ses = 'all',dataset = "MDTB")
+   # avrg_model(train_data = "MDTB",train_ses= "all")
    

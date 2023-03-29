@@ -171,7 +171,7 @@ def eval_metrics(Y, Y_pred, info):
     data["R_eval"], data["R_vox"] = ev.calculate_R(Y=Y, Y_pred=Y_pred)
 
     # R between predicted and observed
-    data["R2"], data["R2_vox"] = ev.calculate_R2(Y=Y, Y_pred=Y_pred)
+    data["R2_eval"], data["R2_vox"] = ev.calculate_R2(Y=Y, Y_pred=Y_pred)
 
     # R2 between predicted and observed
     (
@@ -281,7 +281,8 @@ def train_model(config):
                         "mname": mname_spec,
                         "rmse_train": conn_model.rmse_train,
                         "R_train": conn_model.R_train,
-                        "num_regions": X.shape[1]
+                        "num_regions": X.shape[1],
+                        "logalpha": la
                         }
 
          # run cross validation and collect metrics (rmse and R)
@@ -392,10 +393,8 @@ def eval_model(model_dirs,model_names,config, avg = True):
          # Get model predictions
          Y_pred = fm.predict(X)
       
-         # get rmse
-         rmse = mean_squared_error(Y, Y_pred, squared=False)
-         eval_sub = {"rmse_eval": rmse,
-                  "subj_id": sub,
+         # 
+         eval_sub = {"eval_subj": sub,
                   "num_regions": X.shape[1]}
 
          # Copy over all scalars or strings to eval_all dataframe:
@@ -474,16 +473,18 @@ def calc_avrg_model(train_dataset,
    dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
       avrg_model, compression=None)
    # Assemble the summary
-   dict = {'R_train': df.R_train.mean(),
-           'rmse_train': df.rmse_train.mean(),
-           'R_cv': df.R_cv.mean(),
-           'rmse_cv': df.rmse_cv.mean(),
-           'train_dataset': df.train_dataset[0],
+   dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],
            'cerebellum': df.cerebellum[0],
            'cortex': df.cortex[0],
-           'method': df.method[0]}
+           'method': df.method[0],
+           'logalpha': float(df.logalpha[0]),
+           'R_train': df.R_train.mean(),
+           'rmse_train': df.rmse_train.mean(),
+           'R_cv': df.R_cv.mean(),
+           'rmse_cv': df.rmse_cv.mean(),
+           }
    # save dict as json
    with open(model_path + f"/{mname_base}_{mname_ext}_avg.json", 'w') as fp:
       json.dump(dict, fp, indent=4)
