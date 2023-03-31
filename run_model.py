@@ -213,9 +213,10 @@ def train_model(config):
    ## loop over sessions chosen through train_id and concatenate data
    info_list = []
    
-   if config["subj_list"]=='all':
-      T = dataset.get_participants()
-      config["subj_list"] = T.participant_id
+   if not isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
+      if config["subj_list"]=='all':
+         T = dataset.get_participants()
+         config["subj_list"] = T.participant_id
 
    # initialize training dict
    conn_model_list = []
@@ -352,13 +353,13 @@ def eval_model(model_dirs,model_names,config, avg = True):
                                     atlas=config["cerebellum"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
-                                    subj=sub)
+                                    subj=str(sub))
       XX, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["eval_dataset"],
                                     atlas=config["cortex"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
-                                    subj=sub)
+                                    subj=str(sub))
       # Average the cortical data over parcels   
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels
