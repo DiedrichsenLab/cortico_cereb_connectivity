@@ -2,12 +2,7 @@
 
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
-# TODO: Change variables in the dictionary to accomodate cross dataset integration
-# TODO: for each alpha, get the group average weight across training subject (maybe if group option is selected)
-# TODO: For each alpha get the group average scale across training subjects (again if group option is selected)
 # TODO: implement the weighting option  
-# TODO: Reorganize the directory structure??
-# TODO: choose a better naming for the model. Current name is too long
 # TODO: Handling crossing sessions (half or ses) - right now it only uses half
 
 from audioop import cross
@@ -32,7 +27,7 @@ import cortico_cereb_connectivity.evaluation as ev
 
 import warnings
 
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 
 def get_train_config(
                      train_dataset = "MDTB", 

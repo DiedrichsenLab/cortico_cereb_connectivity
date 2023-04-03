@@ -81,7 +81,7 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
          dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
          mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
       df, df_voxels = rm.eval_model(dirname,mname,config)
-      save_path = gl.conn_dir+ f"/eval"
+      save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
       if not os.path.isdir(save_path):
          os.mkdir(save_path)
@@ -96,17 +96,18 @@ if __name__ == "__main__":
    # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
    # avrg_model(train_data = "HCP",train_ses= "all")
    # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
-   ED=["Demand", "Somatotopic", "IBC"]
+   ED=["Somatotopic"]
    # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
-   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
-   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
-   for ed in ED:
-      train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
+   # 
+
+      # train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
       # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   # eval_models(eval_dataset = ED, eval_type = ET,train_dataset="HCP", train_ses="all",eval_id = 'Hc')
-   # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
-   # eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
-   # eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
+   eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
+   eval_models(eval_dataset = ED, train_dataset="HCP", train_ses="all",eval_id = 'Hc')
+   eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
+   eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
+   eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
+   eval_models(eval_dataset = ED, train_dataset="Somatotopic", train_ses="all",eval_id = 'So')
    
    # train_models(train_ses = 'all',dataset = "MDTB")
    # avrg_model(train_data = "MDTB",train_ses= "all")
