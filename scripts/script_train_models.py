@@ -22,11 +22,13 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half", 
                  type = "CondHalf",
                  train_ses = 'ses-s1',
-                 dataset = "MDTB"):
+                 dataset = "MDTB",
+                 cerebellum='SUIT3'):
       
    config = rm.get_train_config(log_alpha = logalpha_list, 
                                 crossed = crossed,
-                                type = type, 
+                                type = type,
+                                cerebellum=cerebellum,
                                 train_dataset = dataset,
                                 train_ses=train_ses)
    dataset = fdata.get_dataset_class(gl.base_dir, 
@@ -42,12 +44,13 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
             train_data = "MDTB",
             train_ses= "ses-s1",
             parcellation = 'Icosahedron1002',
-            method='L2Regression'):
+            method='L2Regression',
+            cerebellum='SUIT3'):
     mname = f"{train_data}_{train_ses}_{parcellation}_{method}"
 
     for la in logalpha_list: 
         mname_ext = f"A{la}"
-        rm.calc_avrg_model(train_data,mname,mname_ext)
+        rm.calc_avrg_model(train_data,mname,mname_ext,cerebellum=cerebellum)
 
 
 def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
@@ -56,10 +59,11 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 train_ses = "ses-s1",
                 method = "L2Regression",
                 parcellation = "Icosahedron1002", 
+                cerebellum='SUIT3', 
                 eval_dataset = ["Demand"],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
-                eval_id = 'Md_s1' 
+                eval_id = 'Md_s1',
                 ):
    for i,ed in enumerate(eval_dataset):
       config = rm.get_eval_config(eval_dataset = ed,
@@ -67,6 +71,7 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                parcellation = parcellation,
                crossed = "half", # or None
                type = eval_type[i],
+               cerebellum=cerebellum,
                splitby = None)
 
       dirname=[]
@@ -91,13 +96,13 @@ if __name__ == "__main__":
    # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
    # avrg_model(train_data = "HCP",train_ses= "all")
    ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
+   # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
-   # for ed in ED[1:]:
-   #    train_models(train_ses = 'all',dataset = ed)
-   #    avrg_model(train_data = ed,train_ses= "all")
-   eval_models(eval_dataset = ED, eval_type = ET,train_dataset="HCP", train_ses="all",eval_id = 'Hc')
+   for ed in ED:
+      train_models(train_ses = 'all',dataset = ed,cerebellum='MNISym2')
+      avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISym2')
+   # eval_models(eval_dataset = ED, eval_type = ET,train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
    # eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
    # eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')

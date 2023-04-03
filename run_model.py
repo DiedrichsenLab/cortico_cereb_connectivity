@@ -224,7 +224,7 @@ def train_model(config):
 
    # Generate model name and create directory
    mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
-   save_path = os.path.join(gl.conn_dir,'train',
+   save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',
                                   mname)
    # check if the directory exists
    try:
@@ -333,7 +333,7 @@ def eval_model(model_dirs,model_names,config, avg = True):
    train_info = []
    if avg:
       for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,'train',d)
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fname = model_path + f"/{m}_avg.h5"
          json_name = model_path + f"/{m}_avg.json"
          fitted_model.append(dd.io.load(fname))
@@ -381,7 +381,7 @@ def eval_model(model_dirs,model_names,config, avg = True):
          fitted_model = []
          train_info = []
          for d,m in zip(model_dirs,model_names):
-            model_path = os.path.join(gl.conn_dir,'train',d)
+            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
             fname = model_path + f"/{m}_{sub}.h5"
             json_name = model_path + f"/{m}_{sub}.json"
             fitted_model.append(dd.io.load(fname))
@@ -424,6 +424,7 @@ def eval_model(model_dirs,model_names,config, avg = True):
 def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
+                    cerebellum='SUIT3',
                     parameters=['coef_','scale_']):
    """Get the fitted models from all the subjects in the training data set 
       and create group-averaged model 
@@ -442,7 +443,7 @@ def calc_avrg_model(train_dataset,
    subject_list = T.participant_id
    
    # get the directory where models are saved
-   model_path = gl.conn_dir + f"/train/{mname_base}/"
+   model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
    # Collect the parameters in lists
    param_lists={}
