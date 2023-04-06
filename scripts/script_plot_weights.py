@@ -16,15 +16,15 @@ import nitools as nt
 import json
 from pathlib import Path
 
-
-def plot_weights(method = "L2Regression", 
-                 cortex_roi = "Icosahedron1002", 
-                 cerebellum_roi = "NettekovenSym68c32",
-                 cerebellum_atlas = "SUIT3", 
-                 log_alpha = 8, 
-                 dataset_name = "MDTB", 
-                 ses_id = "ses-s1", 
-                 ):
+def get_weight_map(method = "L2Regression", 
+                    cortex_roi = "Icosahedron1002", 
+                    cerebellum_roi = "NettekovenSym68c32",
+                    cerebellum_atlas = "SUIT3", 
+                    log_alpha = 8, 
+                    dataset_name = "MDTB", 
+                    ses_id = "ses-s1", 
+                    type = "pscalar"
+                    ):
 
     """ make cifti image for the connectivity weights
     Uses the avg model to get the weights, average the weights for voxels within a cerebellar parcel
@@ -37,7 +37,7 @@ def plot_weights(method = "L2Regression",
         log_alpha (float) - log of the regularization parameter used in estimating weights
         dataset_name (str) - name of the dataset as in functional_fusion framework
         ses_id (str) - session id used when training the model. "all" for aggregated model over sessions
-
+        type(str) - type of the cifti you want to create ("pscalar" or "dscalar")
     Returns:
         cifti_img (nibabel.Cifti2Image) pscalar cifti image for the cortical maps. ready to be saved!
     """
@@ -60,7 +60,7 @@ def plot_weights(method = "L2Regression",
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
     # get parcels for the neocortex
-    atlas_fs.get_parcel(label_fs, unite_struct = False)
+    _, label_fs = atlas_fs.get_parcel(label_fs, unite_struct = False)
 
     # getting parcel info for the cerebellum 
     atlas_suit, _ = am.get_atlas(cerebellum_atlas, gl.atlas_dir)
@@ -78,25 +78,40 @@ def plot_weights(method = "L2Regression",
     ## load the lookup table for the cerebellar parcellation to get the names of the parcels
     index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
 
-    # create parcel axis for the cortex (will be used as column axis in pscalar file)
-    p_axis = atlas_fs.get_parcel_axis()
+    # make cifti
+    if type == "pscalar":
+        # create parcel axis for the cortex (will be used as column axis in pscalar file)
+        p_axis = atlas_fs.get_parcel_axis()
 
-    # make a parcel cifti and pass the p_axis 
-    row_axis = nb.cifti2.ScalarAxis(labels[1:]) # rows are maps for each cerebellar parcel
-    # make header
-    ## rows are maps corresponding to cerebellar parcels
-    ## columns are cortical tessels
-    header = nb.Cifti2Header.from_axes((row_axis, p_axis)) 
-    cifti_img = nb.Cifti2Image(weights_parcel.T, header=header)
+        # make a parcel cifti and pass the p_axis 
+        row_axis = nb.cifti2.ScalarAxis(labels[1:]) # rows are maps for each cerebellar parcel
+        # make header
+        ## rows are maps corresponding to cerebellar parcels
+        ## columns are cortical tessels
+        header = nb.Cifti2Header.from_axes((row_axis, p_axis)) 
+        cifti_img = nb.Cifti2Image(weights_parcel.T, header=header)
+    elif type == "dscalar":
+        # get the maps for left and right hemispheres
+        surf_map = []
+        for label in atlas_fs.label_list:
+            # loop over regions within the hemisphere
+            label_arr = np.zeros([weights_parcel.T.shape[0], label.shape[0]])
+            for p in np.arange(1, weights_parcel.T.shape[0]):
+                for i in np.unique(label):            
+                    np.put_along_axis(label_arr[p-1, :], np.where(label==i)[0], weights_parcel.T[p-1,i-1], axis=0)
+            surf_map.append(label_arr)
+
+        cifti_img = atlas_fs.data_to_cifti(surf_map, row_axis=labels[1:])
 
     return cifti_img
 
 if __name__ == "__main__":
-    plot_weights(method = "L2Regression", 
-                 cortex_roi = "Icosahedron1002", 
-                 cerebellum_roi = "NettekovenSym68c32",
-                 cerebellum_atlas = "SUIT3", 
-                 log_alpha = 8, 
-                 dataset_name = "MDTB", 
-                 ses_id = "ses-s1", 
-                 )
+    cifti_img = get_weight_map(method = "L2Regression", 
+                                cortex_roi = "Icosahedron1002", 
+                                cerebellum_roi = "NettekovenSym68c32",
+                                cerebellum_atlas = "SUIT3", 
+                                log_alpha = 8, 
+                                dataset_name = "MDTB", 
+                                ses_id = "ses-s1",
+                                type = "dscalar" 
+                                )
