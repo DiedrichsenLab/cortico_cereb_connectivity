@@ -93,15 +93,15 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 if __name__ == "__main__":
-   # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
+   train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None,cerebellum='MNISymC2')
    # avrg_model(train_data = "HCP",train_ses= "all")
    # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
    ED=["Demand", "Somatotopic", "IBC"]
    # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
-   for ed in ED:
-      train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
+   # for ed in ED:
+   #    train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
       # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
    # eval_models(eval_dataset = ED, eval_type = ET,train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
