@@ -83,13 +83,18 @@ def get_weight_map(method = "L2Regression",
         # create parcel axis for the cortex (will be used as column axis in pscalar file)
         p_axis = atlas_fs.get_parcel_axis()
 
-        # make a parcel cifti and pass the p_axis 
-        row_axis = nb.cifti2.ScalarAxis(labels[1:]) # rows are maps for each cerebellar parcel
+        # generate row axis with the last rowi being the scale
+        row_axis = nb.cifti2.ScalarAxis(labels[1:]) 
+        data = weights_parcel.T
+        
         # make header
         ## rows are maps corresponding to cerebellar parcels
         ## columns are cortical tessels
         header = nb.Cifti2Header.from_axes((row_axis, p_axis)) 
-        cifti_img = nb.Cifti2Image(weights_parcel.T, header=header)
+        cifti_img = nb.Cifti2Image(data, header=header)
+    
+    # BUG HERE: the last row is empty...
+    # overall, probbaly best to rely on parcel axes, and have a separate function that projects parcel maps to full cifti maps in nitools. 
     elif type == "dscalar":
         # get the maps for left and right hemispheres
         surf_map = []
@@ -105,13 +110,79 @@ def get_weight_map(method = "L2Regression",
 
     return cifti_img
 
+def get_scale_map(method = "L2Regression", 
+                    cortex_roi = "Icosahedron1002", 
+                    cerebellum_roi = "NettekovenSym68c32",
+                    cerebellum_atlas = "SUIT3", 
+                    log_alpha = 4, 
+                    dataset_names = ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"], 
+                    ses_id = "all",
+                    type = "pscalar"
+                    ):
+
+    """ make cifti image for the scale factor across datasets
+    Args: 
+        method (str) - connectivity method used to estimate weights
+        cortex_roi (str) - cortical tessellation/roi used when training connectivity weights
+        cerebellum_atlas (str) - cerebellar atlas used in training connectivity model. "SUIT3" or "MNISym2"
+        log_alpha (float) - log of the regularization parameter used in estimating weights (doesn't matter)
+        dataset_name (str) - name of the dataset as in functional_fusion framework
+        ses_id (str) - session id used when training the model. "all" for aggregated model over sessions
+        type(str) - type of the cifti you want to create ("pscalar" or "dscalar")
+    Returns:
+        cifti_img (nibabel.Cifti2Image) pscalar cifti image for the cortical maps. ready to be saved!
+    """
+    scale_maps = []
+    for dn in dataset_names:
+        # make model name
+        m_basename = f"{dn}_{ses_id}_{cortex_roi}_{method}"
+        # load in the connectivity average connectivity model
+        fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
+
+        # load the avg model
+        model = dd.io.load(fpath + f"/{m_basename}_A{log_alpha}_avg.h5")
+
+        # get the weights
+        scale_maps.append(model.scale_/model.scale_.max())
+
+    # prepping the parcel axis file
+    atlas_fs, _ = am.get_atlas("fs32k", gl.atlas_dir)
+
+    # load the label file for the cortex
+    label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+
+    # get parcels for the neocortex
+    _, label_fs = atlas_fs.get_parcel(label_fs, unite_struct = False)
+
+    # create parcel axis for the cortex (will be used as column axis in pscalar file)
+    p_axis = atlas_fs.get_parcel_axis()
+
+    # generate row axis with the last rowi being the scale
+    row_axis = nb.cifti2.ScalarAxis(dataset_names) 
+    data = np.r_[scale_maps]
+    
+    # make header
+    ## rows are maps corresponding to cerebellar parcels
+    ## columns are cortical tessels
+    header = nb.Cifti2Header.from_axes((row_axis, p_axis)) 
+    cifti_img = nb.Cifti2Image(data, header=header)
+    return cifti_img
+
+
 if __name__ == "__main__":
+    dataset= "HCP"
     cifti_img = get_weight_map(method = "L2Regression", 
                                 cortex_roi = "Icosahedron1002", 
                                 cerebellum_roi = "NettekovenSym68c32",
                                 cerebellum_atlas = "SUIT3", 
-                                log_alpha = 8, 
-                                dataset_name = "MDTB", 
-                                ses_id = "ses-s1",
-                                type = "dscalar" 
+                                log_alpha = 0, 
+                                dataset_name = dataset, 
+                                ses_id = "all",
+                                type = "pscalar" 
                                 )
+    nb.save(cifti_img,gl.conn_dir + f'/maps/{dataset}_L2.pscalar.nii')
+
+    #cifti_img = get_scale_map(method = "L2Regression")
+    # nb.save(cifti_img,gl.conn_dir + '/maps/scale_factors.pscalar.nii')
+
+    pass

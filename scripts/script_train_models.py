@@ -95,19 +95,19 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 if __name__ == "__main__":
    # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
    # avrg_model(train_data = "HCP",train_ses= "all")
-   ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
+   # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
    # ED=["Somatotopic"]
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
+   # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
    # 
 
-      # train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
-      # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
+   train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
+   # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
    # eval_models(eval_dataset = ED, train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
    # eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
    # eval_models(eval_dataset = ED, train_dataset="WMFS", train_ses="all",eval_id = 'Wm')
-   eval_models(eval_dataset = ED, train_dataset="Somatotopic", train_ses="all",eval_id = 'So',eval_type=ET)
+   # eval_models(eval_dataset = ED, train_dataset="Somatotopic", train_ses="all",eval_id = 'So',eval_type=ET)
    
    # train_models(train_ses = 'all',dataset = "MDTB")
    # avrg_model(train_data = "MDTB",train_ses= "all")
