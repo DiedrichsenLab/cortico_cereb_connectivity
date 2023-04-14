@@ -2,7 +2,7 @@
 
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
-# TODO: implement the weighting option  
+# TODO: implement the weighting option
 # TODO: Handling crossing sessions (half or ses) - right now it only uses half
 
 from audioop import cross
@@ -30,16 +30,16 @@ import warnings
 # warnings.filterwarnings("ignore")
 
 def get_train_config(
-                     train_dataset = "MDTB", 
-                     train_ses = "ses-s1", 
+                     train_dataset = "MDTB",
+                     train_ses = "ses-s1",
                      method = "L2regression",
-                     log_alpha = 8, 
+                     log_alpha = 8,
                      cerebellum = "SUIT3",
                      cortex = "fs32k",
                      parcellation = "Icosahedron1002",
                      type = "CondHalf",
                      cv_fold = 4,
-                     crossed = "half", # or None 
+                     crossed = "half", # or None
                      validate_model = True,
                      ):
    """get_train_config
@@ -62,8 +62,8 @@ def get_train_config(
        _type_: _description_
    """
    train_config = {}
-   train_config['train_dataset'] = train_dataset # name of the dataset to be used in 	   	   
-   train_config['train_ses'] = train_ses   
+   train_config['train_dataset'] = train_dataset # name of the dataset to be used in
+   train_config['train_ses'] = train_ses
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -72,10 +72,10 @@ def get_train_config(
    train_config['crossed'] = crossed
    # train_config['weighting'] = weighting
    train_config["validate_model"] = validate_model
-   train_config["type"] = type 
+   train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['subj_list'] = "all"
-      
+
    # get label images for left and right hemisphere
    train_config['label_img'] = []
    for hemi in ['L', 'R']:
@@ -84,7 +84,7 @@ def get_train_config(
    return train_config
 
 def get_eval_config(eval_dataset = 'MDTB',
-            eval_ses = 'ses-s2', 
+            eval_ses = 'ses-s2',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -102,7 +102,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['parcellation'] = parcellation
    eval_config['crossed'] = crossed
    eval_config["splitby"] = splitby
-   eval_config["type"] = type 
+   eval_config["type"] = type
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
    eval_config['subj_list'] = "all"
 
@@ -176,7 +176,7 @@ def eval_metrics(Y, Y_pred, info):
         data["noise_Y_R2_vox"],
     ) = ev.calculate_reliability(Y=Y, dataframe = info)
 
-    # Noise ceiling for cerebellum (squared)
+    # Noise ceiling for predicted cerebellum (squared)
     (
         data["noise_X_R"],
         data["noise_X_R_vox"],
@@ -194,20 +194,20 @@ def train_model(config):
    """
    training a specific model based on the config file created
    model will be trained on cerebellar voxels and average within cortical tessels.
-   Args: 
+   Args:
       config (dict)      - dictionary with configuration parameters
    Returns:
       conn_model_list (list)    - list of trained models on the list of subjects / log-alphas
       config (dict)             - dictionary containing info for training. Can be saved as json
       train_df (pd.DataFrame)   - dataframe containing training information
    """
-   # get dataset class 
-   dataset = fdata.get_dataset_class(gl.base_dir, 
+   # get dataset class
+   dataset = fdata.get_dataset_class(gl.base_dir,
                                     dataset=config["train_dataset"])
-   
+
    ## loop over sessions chosen through train_id and concatenate data
    info_list = []
-   
+
    if not isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
       if config["subj_list"]=='all':
          T = dataset.get_participants()
@@ -227,7 +227,7 @@ def train_model(config):
    except OSError:
       pass
 
-   # Loop over subjects 
+   # Loop over subjects
    for i, sub in enumerate(config["subj_list"]):
       YY, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["train_dataset"],
@@ -241,16 +241,16 @@ def train_model(config):
                                     sess=config["train_ses"],
                                     type=config["type"],
                                     subj=str(sub))
-      # Average the cortical data over pacels   
+      # Average the cortical data over pacels
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels
       X_atlas.get_parcel(config['label_img'], unite_struct = False)
       # get the mean across tessels for cortical data
       XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-      # Remove Nans 
-      Y = np.nan_to_num(YY[0,:,:]) 
-      X = np.nan_to_num(XX[0,:,:]) 
+      # Remove Nans
+      Y = np.nan_to_num(YY[0,:,:])
+      X = np.nan_to_num(XX[0,:,:])
 
       # cross the sessions
       if config["crossed"] is not None:
@@ -292,7 +292,7 @@ def train_model(config):
          for key, value in config.items():
             if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
                model_info.update({key: value})
-         # Save the individuals info files 
+         # Save the individuals info files
          dd.io.save(save_path + "/" + mname_spec + ".h5",
                      conn_model, compression=None)
          with open(save_path + "/" + mname_spec + ".json", "w") as fp:
@@ -306,8 +306,8 @@ def eval_model(model_dirs,model_names,config, avg = True):
    """
    evaluate group model on a specific dataset and session
    Args:
-      model_dirs (list)  - list of model directories 
-      model_names (list) - list of full model names (without .h5) to evaluate 
+      model_dirs (list)  - list of model directories
+      model_names (list) - list of full model names (without .h5) to evaluate
       config (dict)      - dictionary with evaluation parameters
    """
    # initialize eval dictionary
@@ -315,9 +315,9 @@ def eval_model(model_dirs,model_names,config, avg = True):
    eval_voxels = defaultdict(list)
 
    # get dataset class
-   dataset = fdata.get_dataset_class(gl.base_dir, 
+   dataset = fdata.get_dataset_class(gl.base_dir,
                                     dataset=config["eval_dataset"])
-   
+
    # get list of subjects
    if config["subj_list"]=='all':
       T = dataset.get_participants()
@@ -332,7 +332,7 @@ def eval_model(model_dirs,model_names,config, avg = True):
          fname = model_path + f"/{m}_avg.h5"
          json_name = model_path + f"/{m}_avg.json"
          fitted_model.append(dd.io.load(fname))
-      
+
          # Load json file
          with open(json_name) as json_file:
             train_info.append(json.load(json_file))
@@ -355,16 +355,16 @@ def eval_model(model_dirs,model_names,config, avg = True):
                                     sess=config["eval_ses"],
                                     type=config["type"],
                                     subj=str(sub))
-      # Average the cortical data over parcels   
+      # Average the cortical data over parcels
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels
       X_atlas.get_parcel(config['label_img'], unite_struct = False)
       # get the mean across tessels for cortical data
       XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-      # Remove Nans 
-      Y = np.nan_to_num(YY[0,:,:]) 
-      X = np.nan_to_num(XX[0,:,:]) 
+      # Remove Nans
+      Y = np.nan_to_num(YY[0,:,:])
+      X = np.nan_to_num(XX[0,:,:])
 
       # cross the sessions
       if config["crossed"] is not None:
@@ -380,16 +380,16 @@ def eval_model(model_dirs,model_names,config, avg = True):
             fname = model_path + f"/{m}_{sub}.h5"
             json_name = model_path + f"/{m}_{sub}.json"
             fitted_model.append(dd.io.load(fname))
-      
+
             with open(json_name) as json_file:
                train_info.append(json.load(json_file))
-      
+
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
          # Get model predictions
          Y_pred = fm.predict(X)
-      
-         # 
+
+         #
          eval_sub = {"eval_subj": sub,
                   "num_regions": X.shape[1]}
 
@@ -421,22 +421,22 @@ def calc_avrg_model(train_dataset,
                     mname_ext,
                     cerebellum='SUIT3',
                     parameters=['coef_','scale_']):
-   """Get the fitted models from all the subjects in the training data set 
-      and create group-averaged model 
+   """Get the fitted models from all the subjects in the training data set
+      and create group-averaged model
    Args:
        train_dataset (str): _description_
-       mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression) 
+       mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression)
        mname_ext (str): Extension of name - typically logalpha
        (A0)
        parameters (list): List of parameters to average
    """
 
    # get the dataset class the model was trained on
-   # To get the list of subjects 
-   tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)  
+   # To get the list of subjects
+   tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
    T = tdata.get_participants()
    subject_list = T.participant_id
-   
+
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
@@ -445,7 +445,7 @@ def calc_avrg_model(train_dataset,
    for p in parameters:
       param_lists[p]=[]
 
-   # Loop over subjects 
+   # Loop over subjects
    df = pd.DataFrame()
    for sub in subject_list:
       print(f"- getting weights for {sub}")
@@ -453,12 +453,12 @@ def calc_avrg_model(train_dataset,
       fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
       info_name = model_path + f"/{mname_base}_{mname_ext}_{sub}.json"
       fitted_model = dd.io.load(fname)
-      
+
       # load the json file
       with open(info_name) as json_file:
          info = json.load(json_file)
          df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
-         
+
       for p in parameters:
          param_lists[p].append(getattr(fitted_model,p))
 
@@ -466,7 +466,7 @@ def calc_avrg_model(train_dataset,
    for p in parameters:
       P = np.stack(param_lists[p],axis=0)
       setattr(avrg_model,p,P.mean(axis=0))
-   
+
    dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
       avrg_model, compression=None)
    # Assemble the summary
