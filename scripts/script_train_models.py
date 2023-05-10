@@ -114,41 +114,16 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 if __name__ == "__main__":
-   # train_models(logalpha_list = [None], 
-   #               crossed = "half", 
-   #               type = "CondHalf",
-   #               train_ses = 'ses-s1',
-   #               dataset = "MDTB",
-   #               parcellation="glasser", 
-   #               cerebellum='SUIT3', 
-   #               method = "WTA")
-
-
-   avrg_model(logalpha_list = [None], train_data = "MDTB",train_ses= "ses-s1", method = "WTA", parcellation="glasser")
-   
-   # train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
-   #               crossed = "half", 
-   #               type = "CondHalf",
-   #               train_ses = 'all',
-   #               dataset = "MDTB",
-   #               parcellation="glasser", 
-   #               cerebellum='SUIT3', 
-   #               method = "L2regression")
-
-
-   # avrg_model(train_data = "MDTB",train_ses= "all", method = "L2regression", type = "CondHalf", crossed = "half", parcellation="glasser")
-   
-   
-   # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None)
+   train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None,cerebellum='MNISymC2')
    # avrg_model(train_data = "HCP",train_ses= "all")
    # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
-   # # ED=["Demand", "Somatotopic", "IBC"]
-   # # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
-   # # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
-   # # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
+   ED=["Demand", "Somatotopic", "IBC"]
+   # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
+   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="all",eval_id = 'Md')
+   # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
    # for ed in ED:
-   #    train_models(train_ses = 'all',dataset = ed,cerebellum='SUIT3', method = "L1regression", type = "CondHalf", crossed = "half")
-   #    avrg_model(train_data = ed,train_ses= "all",cerebellum='SUIT3', method = "L1regression", type = "CondHald", crossed = "half")
+   #    train_models(train_ses = 'all',dataset = ed,cerebellum='MNISymC2')
+      # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
    # eval_models(eval_dataset = ED, eval_type = ET,train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="Demand", train_ses="all",eval_id = 'De')
    # eval_models(eval_dataset = ED, train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni')
