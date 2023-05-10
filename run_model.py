@@ -88,7 +88,8 @@ def get_eval_config(eval_dataset = 'MDTB',
             parcellation = "Icosahedron1002",
             crossed = "half", # or None
             type = "CondHalf",
-            splitby = None):
+            splitby = None,
+            model = 'avg'):
    """
    create a config file for evaluation
    """
@@ -103,6 +104,8 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config["type"] = type
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
    eval_config['subj_list'] = "all"
+   eval_config['model'] = model
+   
 
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
@@ -305,7 +308,7 @@ def train_model(config):
    train_info.to_csv(save_path + "/" + mname + ".tsv",sep='\t')
    return config, conn_model_list, train_info
 
-def eval_model(model_dirs,model_names,config, avg = True):
+def eval_model(model_dirs,model_names,config):
    """
    evaluate group model on a specific dataset and session
    Args:
@@ -329,7 +332,9 @@ def eval_model(model_dirs,model_names,config, avg = True):
    # Load all the models to evaluate:
    fitted_model = []
    train_info = []
-   if avg:
+
+   
+   if config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fname = model_path + f"/{m}_avg.h5"
@@ -339,8 +344,6 @@ def eval_model(model_dirs,model_names,config, avg = True):
          # Load json file
          with open(json_name) as json_file:
             train_info.append(json.load(json_file))
-
-
 
    # loop over subjects
    for i, sub in enumerate(config["subj_list"]):
@@ -375,7 +378,7 @@ def eval_model(model_dirs,model_names,config, avg = True):
             Y = np.r_[Y[info["half"] == 2, :], Y[info["half"] == 1, :]]
 
       # If not average, load the model for each subject
-      if not avg:
+      if config['model']=='ind':
          fitted_model = []
          train_info = []
          for d,m in zip(model_dirs,model_names):
@@ -386,6 +389,12 @@ def eval_model(model_dirs,model_names,config, avg = True):
 
             with open(json_name) as json_file:
                train_info.append(json.load(json_file))
+      elif config['model']=='loo':
+         fitted_model = []
+         train_info = []
+         for d,m in zip(model_dirs,model_names):
+            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+            pass 
 
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
@@ -419,11 +428,46 @@ def eval_model(model_dirs,model_names,config, avg = True):
 
    return eval_df, eval_voxels
 
+def comb_eval(models=['Md_s1'],
+              eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
+              cerebellum='SUIT3'):
+   """Combine different tsv files from different datasets into one dataframe
+
+   Args:
+       models (list, optional): _description_. Defaults to ['Md_s1'].
+       eval_data (list, optional): _description_. Defaults to ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
+       cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
+
+   Returns:
+       _type_: _description_
+   """
+   T = []
+   for dataset in eval_data:
+      for m in models:
+         f = gl.conn_dir + f'/{cerebellum}/eval/{dataset}_eval_{m}.tsv'
+         # get the dataframe
+         dd = pd.read_csv(f, sep='\t')
+         # add a column for the name of the dataset
+         # get the noise ceilings
+         
+         # Remove negative values from dd.noise_X_R
+         dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
+         dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
+         dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
+         dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
+         dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
+         T.append(dd)
+   df = pd.concat(T,ignore_index=True)
+   return df
+
+
 def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
                     cerebellum='SUIT3',
-                    parameters=['coef_','scale_']):
+                    parameters=['coef_','scale_'],
+                    subj='all',
+                    save=True):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
    Args:
@@ -438,7 +482,13 @@ def calc_avrg_model(train_dataset,
    # To get the list of subjects
    tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
    T = tdata.get_participants()
-   subject_list = T.participant_id
+   
+   if subj=='all':
+      subject_list = T.participant_id
+   elif isinstance(subj,list):
+      subject_list = subj
+   elif isinstance(subj,np.ndarray):
+      subject_list = T.participant_id.iloc[subj]
 
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
@@ -470,8 +520,6 @@ def calc_avrg_model(train_dataset,
       P = np.stack(param_lists[p],axis=0)
       setattr(avrg_model,p,P.mean(axis=0))
 
-   dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
-      avrg_model, compression=None)
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=pd.np.nan, inplace=True)
@@ -488,5 +536,10 @@ def calc_avrg_model(train_dataset,
            'rmse_cv': df.rmse_cv.mean(),
            }
    # save dict as json
-   with open(model_path + f"/{mname_base}_{mname_ext}_avg.json", 'w') as fp:
-      json.dump(dict, fp, indent=4)
+   if save:
+      dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
+         avrg_model, compression=None)
+      with open(model_path + f"/{mname_base}_{mname_ext}_avg.json", 'w') as fp:
+         json.dump(dict, fp, indent=4)
+   else:
+      return avrg_model, dict
