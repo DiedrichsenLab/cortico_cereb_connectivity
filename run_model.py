@@ -3,7 +3,6 @@
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
 # TODO: implement the weighting option
-# TODO: Handling crossing sessions (half or ses) - right now it only uses half
 
 from audioop import cross
 import os
@@ -29,9 +28,8 @@ import warnings
 
 # warnings.filterwarnings("ignore")
 
-def get_train_config(
-                     train_dataset = "MDTB",
-                     train_ses = "ses-s1",
+def get_train_config(train_dataset = "MDTB", 
+                     train_ses = "ses-s1", 
                      method = "L2regression",
                      log_alpha = 8,
                      cerebellum = "SUIT3",
@@ -261,16 +259,21 @@ def train_model(config):
       # loop over subjects and train models
          print(f'- Train {sub} {config["method"]} logalpha {la}')
 
-         # Generate new model
-         alpha = np.exp(la) # get alpha
-         conn_model = getattr(model, config["method"])(alpha)
+         if la is not None:
+            # Generate new model
+            alpha = np.exp(la) # get alpha
+            conn_model = getattr(model, config["method"])(alpha)
+            mname_spec = f"{mname}_A{la}_{sub}"
+         else:
+            conn_model = getattr(model, config["method"])()
+            mname_spec = f"{mname}_{sub}"
 
          # Fit model, get train and validate metrics
          conn_model.fit(X, Y)
          conn_model.rmse_train, conn_model.R_train = train_metrics(conn_model, X, Y)
          conn_model_list.append(conn_model)
 
-         mname_spec = f"{mname}_A{la}_{sub}"
+         
          # collect train metrics (rmse and R)
          model_info = {
                         "subj_id": sub,
@@ -450,8 +453,8 @@ def calc_avrg_model(train_dataset,
    for sub in subject_list:
       print(f"- getting weights for {sub}")
       # load the model
-      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
-      info_name = model_path + f"/{mname_base}_{mname_ext}_{sub}.json"
+      fname = model_path + f"/{mname_base}_{mname_ext}{sub}.h5"
+      info_name = model_path + f"/{mname_base}_{mname_ext}{sub}.json"
       fitted_model = dd.io.load(fname)
 
       # load the json file
@@ -470,6 +473,8 @@ def calc_avrg_model(train_dataset,
    dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
       avrg_model, compression=None)
    # Assemble the summary
+   ## first fill in NoneTypes with Nans. This is a specific case for WTA
+   df.logalpha.fillna(value=pd.np.nan, inplace=True)
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],
