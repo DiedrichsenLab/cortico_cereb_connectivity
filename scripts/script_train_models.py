@@ -84,6 +84,7 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
                 eval_id = 'Md_s1',
+                model = 'avg'
                 ):
    for i,ed in enumerate(eval_dataset):
       config = rm.get_eval_config(eval_dataset = ed,
@@ -92,8 +93,8 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                  crossed = "half", # or None
                                  type = eval_type[i],
                                  cerebellum=cerebellum,
-                                 method = method, 
-                                 splitby = None)
+                                 splitby = None,
+                                 model=model)
 
       dirname=[]
       mname=[]
@@ -123,7 +124,7 @@ if __name__ == "__main__":
 
    # train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
    # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   eval_models(eval_dataset = ['MDTB'], train_dataset="MDTB", train_ses="all",eval_id = 'Md')
+   eval_models(eval_dataset = ['MDTB'], train_dataset="MDTB", train_ses="all",eval_id = 'Md_loo',model='loo')
    # eval_models(eval_dataset = ED, train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
    # for ed in ED:
