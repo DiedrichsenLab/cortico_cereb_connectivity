@@ -216,7 +216,7 @@ def train_model(config):
 
    # initialize training dict
    conn_model_list = []
-   train_info = pd.DataFrame()
+
 
    # Generate model name and create directory
    mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
@@ -227,6 +227,13 @@ def train_model(config):
       os.makedirs(save_path)
    except OSError:
       pass
+
+   # Check if training file already exists:
+   train_info_name = save_path + "/" + mname + ".tsv"
+   if os.path.isfile(train_info_name):
+      train_info = pd.read_csv(train_info_name, sep="\t")
+   else: 
+      train_info = pd.DataFrame()
 
    # Loop over subjects
    for i, sub in enumerate(config["subj_list"]):
@@ -305,7 +312,7 @@ def train_model(config):
             json.dump(model_info, fp, indent=4)
 
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
-   train_info.to_csv(save_path + "/" + mname + ".tsv",sep='\t')
+   train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
 def eval_model(model_dirs,model_names,config):
@@ -442,8 +449,8 @@ def comb_eval(models=['Md_s1'],
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
-       models (list, optional): _description_. Defaults to ['Md_s1'].
-       eval_data (list, optional): _description_. Defaults to ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
+       models (list): Strings of eval_ids to include. Defaults to ['Md_s1'].
+       eval_data (list): Evaldatasets _description_. Defaults to ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
        cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
 
    Returns:
@@ -454,17 +461,18 @@ def comb_eval(models=['Md_s1'],
       for m in models:
          f = gl.conn_dir + f'/{cerebellum}/eval/{dataset}_eval_{m}.tsv'
          # get the dataframe
-         dd = pd.read_csv(f, sep='\t')
-         # add a column for the name of the dataset
-         # get the noise ceilings
-         
-         # Remove negative values from dd.noise_X_R
-         dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
-         dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
-         dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
-         dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
-         dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
-         T.append(dd)
+         if os.path.exists(f):
+            dd = pd.read_csv(f, sep='\t')
+            # add a column for the name of the dataset
+            # get the noise ceilings
+            
+            # Remove negative values from dd.noise_X_R
+            dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
+            dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
+            dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
+            dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
+            dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
+            T.append(dd)
    df = pd.concat(T,ignore_index=True)
    return df
 
@@ -533,6 +541,10 @@ def calc_avrg_model(train_dataset,
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=pd.np.nan, inplace=True)
+   # Add fields if they don't exist
+   if 'R_cv' not in df.columns:
+      df['R_cv']=np.nan
+      df['rmse_cv']=np.nan
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],

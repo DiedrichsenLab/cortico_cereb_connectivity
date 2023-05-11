@@ -21,12 +21,13 @@ import cortico_cereb_connectivity.model as cm
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
                  crossed = "half", 
                  type = "CondHalf",
-                 train_ses = 'ses-s1',
+                 train_ses = 'all',
                  dataset = "MDTB",
-                 parcellation = "glasser",
+                 parcellation = "Icosahedron1002",
                  subj_list = "all", 
                  cerebellum='SUIT3', 
-                 method = "L2Regression"):
+                 method = "L2regression",
+                 validate_model = True):
       
    config = rm.get_train_config(log_alpha = logalpha_list, 
                                 crossed = crossed,
@@ -35,7 +36,8 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                 parcellation=parcellation, 
                                 train_dataset = dataset,
                                 method = method, 
-                                train_ses=train_ses)
+                                train_ses=train_ses,
+                                validate_model=validate_model)
    dataset = fdata.get_dataset_class(gl.base_dir, 
                                     dataset=config["train_dataset"]) 
    # get the list of trained connectivity models and training summary
@@ -58,14 +60,10 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                cerebellum='SUIT3'):
 
    mname = f"{train_data}_{train_ses}_{parcellation}_{method}"
-
-    
-
    for la in logalpha_list: 
-        
       if la is not None:
          # Generate new model
-         mname_ext = f"A{la}_"
+         mname_ext = f"A{la}"
       else:
          mname_ext = f""
 
@@ -77,7 +75,7 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 type = "CondHalf",
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
-                method = "L2Regression",
+                method = "L2regression",
                 parcellation = "Icosahedron1002", 
                 cerebellum='SUIT3', 
                 eval_dataset = ["Demand"],
@@ -111,25 +109,31 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
          pass
 
       file_name = save_path + f"/{config['eval_dataset']}_eval_{eval_id}.tsv"
+      if os.path.isfile(file_name):
+         dd = pd.read_csv(file_name, sep='\t')
+         df = df.append(dd,ignore_index=True)
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
 if __name__ == "__main__":
-   # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None,cerebellum='MNISymC2')
-   # avrg_model(train_data = "HCP",train_ses= "all")
-   # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
+   # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None,cerebellum='SUIT3',validate_model=False,logalpha_list = [-4,-2])
+   # avrg_model(train_data = "HCP",train_ses= "all",logalpha_list = [-2])
+   ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
    # ED=["Somatotopic"]
-   # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
    # 
 
    # train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
    # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   eval_models(eval_dataset = ['MDTB'], train_dataset="MDTB", train_ses="all",eval_id = 'Md_loo',model='loo')
-   eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
-   eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
-   eval_models(eval_dataset = ['Demand'], train_dataset="Demand", train_ses="all",eval_id = 'De_loo',model='loo')
-   eval_models(eval_dataset = ['IBC'], train_dataset="IBC", train_ses="all",eval_id = 'Ib_loo',model='loo')
-   eval_models(eval_dataset = ['Somatotopic'], train_dataset="Somatotopic", train_ses="all",eval_id = 'So_loo',model='loo')
+   eval_models(eval_dataset = ED, eval_type = ET,
+               train_dataset="HCP", train_ses="all",
+               eval_id = 'Hc',model='avg',
+               logalpha_list=[-4,-2])
+   # eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
+   # eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
+   # eval_models(eval_dataset = ['Demand'], train_dataset="Demand", train_ses="all",eval_id = 'De_loo',model='loo')
+   # eval_models(eval_dataset = ['IBC'], train_dataset="IBC", train_ses="all",eval_id = 'Ib_loo',model='loo')
+   # eval_models(eval_dataset = ['Somatotopic'], train_dataset="Somatotopic", train_ses="all",eval_id = 'So_loo',model='loo')
    # eval_models(eval_dataset = ED, train_dataset="HCP", train_ses="all",eval_id = 'Hc')
    # eval_models(eval_dataset = ED, train_dataset="MDTB", train_ses="ses-s1",eval_id = 'Mds1')
    # for ed in ED:
