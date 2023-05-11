@@ -311,6 +311,10 @@ def train_model(config):
 def eval_model(model_dirs,model_names,config):
    """
    evaluate group model on a specific dataset and session
+   if config['model']=='avg' it will average the models across subjects
+   if config['model']=='ind' it will evaluate each subejct individually
+   if config['model']=='loo' it will average all other subjects
+   For 'ind' and 'loo' training and evaluation dataset must be the same 
    Args:
       model_dirs (list)  - list of model directories
       model_names (list) - list of full model names (without .h5) to evaluate
@@ -392,10 +396,14 @@ def eval_model(model_dirs,model_names,config):
       elif config['model']=='loo':
          fitted_model = []
          train_info = []
+         subj_list = T.participant_id[T.participant_id!=sub]
          for d,m in zip(model_dirs,model_names):
             model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-            pass 
-
+            ext = m.split('_')[-1]
+            fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
+                                    subj=subj_list,save=False)
+            fitted_model.append(fm)
+            train_info.append(fi)
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
          # Get model predictions
@@ -483,13 +491,15 @@ def calc_avrg_model(train_dataset,
    tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
    T = tdata.get_participants()
    
-   if subj=='all':
-      subject_list = T.participant_id
-   elif isinstance(subj,list):
+   if isinstance(subj,(list,pd.Series)):
       subject_list = subj
    elif isinstance(subj,np.ndarray):
       subject_list = T.participant_id.iloc[subj]
-
+   elif isinstance(subj,str):
+      if subj=='all':
+         subject_list = T.participant_id
+      else:
+         subject_list = [subj]
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
@@ -503,8 +513,8 @@ def calc_avrg_model(train_dataset,
    for sub in subject_list:
       print(f"- getting weights for {sub}")
       # load the model
-      fname = model_path + f"/{mname_base}_{mname_ext}{sub}.h5"
-      info_name = model_path + f"/{mname_base}_{mname_ext}{sub}.json"
+      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
+      info_name = model_path + f"/{mname_base}_{mname_ext}_{sub}.json"
       fitted_model = dd.io.load(fname)
 
       # load the json file
