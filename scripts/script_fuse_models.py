@@ -55,17 +55,26 @@ def fuse_models(logalpha = [6, -2, 10, 8, 6, 10, 10],
     setattr(fused_model,'coef_',np.nansum(wCoef,axis=0))
     setattr(fused_model,'scale_',np.ones((Scale.shape[1],)))
     fused_info = train_info[0].copy()
-    fused_info['train_data'] = 'Fusion' + fuse_id
-
+    fused_info['train_dataset'] = 'Fusion' 
+    fused_info['extension'] = fuse_id
+    fused_info['logalpha'] = logalpha
+    fused_info['weight'] = weight
     if save:
-        mname = f"{outname}_{parcellation}_{method}"
+        mname = f"Fusion_{train_ses}_{parcellation}_{method}"
         model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+        if os.path.exists(model_path) == False:
+            os.makedirs(model_path)
 
-        dd.io.save(model_path + f"/{mname}_avg.h5",
+        dd.io.save(model_path + f"/{mname}_{fuse_id}_avg.h5",
                    fused_model, compression=None)
-        with open(model_path + f"/{mname}_avg.json", 'w') as fp:
+        with open(model_path + f"/{mname}_{fuse_id}_avg.json", 'w') as fp:
             json.dump(fused_info, fp, indent=4)
 
 if __name__ == "__main__":
-   fuse_models(weight=[0,1,0,1,0,0,0],outname='Fuse01')
+   fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
+   fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
+   fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
+   fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
+   fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
+   fuse_models(weight=[1,1,0,1,0,1,1],fuse_id='06')
 

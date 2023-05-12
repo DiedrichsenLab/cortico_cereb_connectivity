@@ -71,7 +71,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
 
 
-def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
+def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 type = "CondHalf",
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
@@ -97,9 +97,15 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       dirname=[]
       mname=[]
 
-      for a in logalpha_list:
+      for a in ext_list:
          dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+         if a is None:
+            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+         if isinstance(a,int):
+            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+         elif isinstance(a,str):
+            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
+         
       df, df_voxels = rm.eval_model(dirname,mname,config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
@@ -125,12 +131,13 @@ if __name__ == "__main__":
 
    # train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
    # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   eval_models(eval_dataset = ED, eval_type = ET,
-               train_dataset="HCP", train_ses="all",
-               eval_id = 'Hc',model='avg',
-               logalpha_list=[-4,-2])
+   # eval_models(eval_dataset = ED, eval_type = ET,
+   #             train_dataset="Fusion", train_ses="all",
+   #             eval_id = 'Fu',model='avg',
+   #             ext_list=['01'])
+   # eval_models(eval_dataset = ['MDTB'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
-   # eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
+   eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
    # eval_models(eval_dataset = ['Demand'], train_dataset="Demand", train_ses="all",eval_id = 'De_loo',model='loo')
    # eval_models(eval_dataset = ['IBC'], train_dataset="IBC", train_ses="all",eval_id = 'Ib_loo',model='loo')
    # eval_models(eval_dataset = ['Somatotopic'], train_dataset="Somatotopic", train_ses="all",eval_id = 'So_loo',model='loo')
