@@ -344,8 +344,18 @@ def eval_model(model_dirs,model_names,config):
    fitted_model = []
    train_info = []
 
-   
-   if config['model']=='avg':
+   if isinstance(config['model'],list):
+      for ind in config['model']:
+         for d,m in zip(model_dirs,model_names):
+            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+            fname = model_path + f"/{m}_{ind}.h5"
+            json_name = model_path + f"/{m}_{ind}.json"
+            fitted_model.append(dd.io.load(fname))
+
+            # Load json file
+            with open(json_name) as json_file:
+               train_info.append(json.load(json_file))
+   elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fname = model_path + f"/{m}_avg.h5"

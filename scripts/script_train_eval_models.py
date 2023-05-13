@@ -72,7 +72,6 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
 
 def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
-                type = "CondHalf",
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
                 method = "L2regression",
@@ -145,17 +144,26 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
 if __name__ == "__main__":
    # train_models(train_ses = 'all',dataset = "HCP",type='Tseries',crossed=None,cerebellum='SUIT3',validate_model=False,logalpha_list = [-4,-2])
    # avrg_model(train_data = "HCP",train_ses= "all",logalpha_list = [-2])
-   ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
+   # ED=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"]
    # ED=["Somatotopic"]
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
+   # ET=["CondHalf","CondHalf", "CondHalf", "CondHalf", "CondHalf", "CondHalf"]
    # 
 
    # train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
    # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   eval_models(eval_dataset = ED, eval_type = ET,
-                train_dataset="Fusion", train_ses="all",
-                eval_id = 'Fu',model='avg',
-                ext_list=['01','02','03','04','05','06'])
+   # eval_models(eval_dataset = ED, eval_type = ET,
+   #              train_dataset="Fusion", train_ses="all",
+   #              eval_id = 'Fu',model='avg',
+   #              ext_list=['01','02','03','04','05','06'])
+   # Individual
+   D = fdata.get_dataset_class(gl.base_dir,'MDTB')
+   # Get participants info
+   T = D.get_participants()
+   subj_name = list(T['participant_id'])
+   eval_models(train_dataset="MDTB", train_ses="ses-s1",
+               eval_dataset = ['MDTB'], eval_ses="ses-s2",
+               eval_id = 'Mds1-ind',model=subj_name,ext_list=[8])
+
    # eval_models(eval_dataset = ['MDTB'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
