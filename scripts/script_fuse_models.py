@@ -71,10 +71,11 @@ def fuse_models(logalpha = [6, -2, 10, 8, 6, 10, 10],
             json.dump(fused_info, fp, indent=4)
 
 if __name__ == "__main__":
-   fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
-   fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
-   fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
-   fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
-   fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
-   fuse_models(weight=[1,1,0,1,0,1,1],fuse_id='06')
-
+   #fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
+   # fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
+   # fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
+   # fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
+   # fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
+   # fuse_models(weight=[1,1,0,1,0,1,1],fuse_id='06')
+    dff=rm.comb_eval(models=['Fu'])
+    pass

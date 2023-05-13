@@ -82,8 +82,29 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
                 eval_id = 'Md_s1',
-                model = 'avg'
+                model = 'avg',
+                append = False
                 ):
+   """_summary_
+
+   Args:
+       ext_list (list): logalpha or other extension 
+       type (str): _description_. Defaults to "CondHalf".
+       train_dataset (str): _description_. Defaults to "MDTB".
+       train_ses (str): _description_. Defaults to "ses-s1".
+       method (str): _description_. Defaults to "L2regression".
+       parcellation (str): _description_. Defaults to "Icosahedron1002".
+       cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
+       eval_dataset (list): _description_. Defaults to ["Demand"].
+       eval_type (list): _description_. Defaults to ["CondHalf"].
+       eval_ses (str): _description_. Defaults to "all".
+       eval_id (str): _description_. Defaults to 'Md_s1'.
+       model (str): _description_. Defaults to 'avg'.
+       append (bool): Append to existing tsv file? Defaults to False.
+
+   Returns:
+       _type_: _description_
+   """
    for i,ed in enumerate(eval_dataset):
       config = rm.get_eval_config(eval_dataset = ed,
                                  eval_ses = eval_ses, 
@@ -115,7 +136,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
          pass
 
       file_name = save_path + f"/{config['eval_dataset']}_eval_{eval_id}.tsv"
-      if os.path.isfile(file_name):
+      if os.path.isfile(file_name) & append:
          dd = pd.read_csv(file_name, sep='\t')
          df = df.append(dd,ignore_index=True)
       df.to_csv(file_name, index = False, sep='\t')
@@ -131,13 +152,13 @@ if __name__ == "__main__":
 
    # train_models(train_ses = 'all',dataset = 'Somatotopic',cerebellum='SUIT3')
    # avrg_model(train_data = ed,train_ses= "all",cerebellum='MNISymC2')
-   # eval_models(eval_dataset = ED, eval_type = ET,
-   #             train_dataset="Fusion", train_ses="all",
-   #             eval_id = 'Fu',model='avg',
-   #             ext_list=['01'])
+   eval_models(eval_dataset = ED, eval_type = ET,
+                train_dataset="Fusion", train_ses="all",
+                eval_id = 'Fu',model='avg',
+                ext_list=['01','02','03','04','05','06'])
    # eval_models(eval_dataset = ['MDTB'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
-   eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
+   # eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
    # eval_models(eval_dataset = ['Demand'], train_dataset="Demand", train_ses="all",eval_id = 'De_loo',model='loo')
    # eval_models(eval_dataset = ['IBC'], train_dataset="IBC", train_ses="all",eval_id = 'Ib_loo',model='loo')
    # eval_models(eval_dataset = ['Somatotopic'], train_dataset="Somatotopic", train_ses="all",eval_id = 'So_loo',model='loo')

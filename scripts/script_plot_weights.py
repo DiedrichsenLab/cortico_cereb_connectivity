@@ -15,6 +15,7 @@ import Functional_Fusion.atlas_map as am
 import nitools as nt
 import json
 from pathlib import Path
+import warnings
 
 def sort_roi_rows(cifti_img):
     row_axis = cifti_img.header.get_axis(0)
@@ -26,14 +27,11 @@ def sort_roi_rows(cifti_img):
     cifti_img_new = nb.Cifti2Image(data, header=header)
     return cifti_img_new
 
-
-
-
 def get_weight_map(method = "L2Regression", 
                     cortex_roi = "Icosahedron1002", 
                     cerebellum_roi = "NettekovenSym68c32",
                     cerebellum_atlas = "SUIT3", 
-                    log_alpha = 8, 
+                    extension = 'A8', 
                     dataset_name = "MDTB", 
                     ses_id = "ses-s1"
                     ):
@@ -46,7 +44,7 @@ def get_weight_map(method = "L2Regression",
         cortex_roi (str) - cortical tessellation/roi used when training connectivity weights
         cerebellum_roi (str) - name of the cerebellar roi file you want to get the connectivity weights for
         cerebellum_atlas (str) - cerebellar atlas used in training connectivity model. "SUIT3" or "MNISym2"
-        log_alpha (float) - log of the regularization parameter used in estimating weights
+        extension (str) - String indicating regularization parameter ('A0')
         dataset_name (str) - name of the dataset as in functional_fusion framework
         ses_id (str) - session id used when training the model. "all" for aggregated model over sessions
     Returns:
@@ -58,10 +56,12 @@ def get_weight_map(method = "L2Regression",
     fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
 
     # load the avg model
-    model = dd.io.load(fpath + f"/{m_basename}_A{log_alpha}_avg.h5")
+    model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
 
     # get the weights
-    weights = model.coef_
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore",category=RuntimeWarning)
+        weights = model.coef_/model.scale_
 
     # prepping the parcel axis file
     ## make atlas object first
@@ -108,7 +108,7 @@ def get_scale_map(method = "L2Regression",
                     cortex_roi = "Icosahedron1002", 
                     cerebellum_roi = "NettekovenSym68c32",
                     cerebellum_atlas = "SUIT3", 
-                    log_alpha = 4, 
+                    extension = 'A4', 
                     dataset_names = ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"], 
                     ses_id = "all",
                     type = "pscalar"
@@ -134,7 +134,7 @@ def get_scale_map(method = "L2Regression",
         fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
 
         # load the avg model
-        model = dd.io.load(fpath + f"/{m_basename}_A{log_alpha}_avg.h5")
+        model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
 
         # get the weights
         scale_maps.append(model.scale_/model.scale_.max())
@@ -162,26 +162,29 @@ def get_scale_map(method = "L2Regression",
     cifti_img = nb.Cifti2Image(data, header=header)
     return cifti_img
 
-def make_weight_map(dataset= "HCP",log_alpha = 0):
+def make_weight_map(dataset= "HCP",extension = 'A0'):
     cifti_img = get_weight_map(method = "L2Regression", 
                                 cortex_roi = "Icosahedron1002", 
                                 cerebellum_roi = "NettekovenSym68c32",
                                 cerebellum_atlas = "SUIT3", 
-                                log_alpha = log_alpha, 
+                                extension = extension, 
                                 dataset_name = dataset, 
                                 ses_id = "all",
                                 )
-    fname = gl.conn_dir + f'/maps/{dataset}_L2_A{log_alpha}.pscalar.nii'
+    fname = gl.conn_dir + f'/maps/{dataset}_L2_{extension}.pscalar.nii'
     cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
 
 if __name__ == "__main__":
-    # make_weight_map('Demand',6)
-    # make_weight_map('IBC',10)
-    # make_weight_map('MDTB',8)
-    make_weight_map('HCP',-4)
-    make_weight_map('HCP',-2)
+    make_weight_map('Demand','A6')
+    make_weight_map('HCP','A-2')
+    make_weight_map('IBC','A10')
+    make_weight_map('MDTB','A8')
+    make_weight_map('Somatotopic','A6')
+    make_weight_map('WMFS','A10')
+    make_weight_map('Nishimoto','A10')
+    make_weight_map('Fusion','05')
 
     #cifti_img = get_scale_map(method = "L2Regression")
     # nb.save(cifti_img,gl.conn_dir + '/maps/scale_factors.pscalar.nii')
