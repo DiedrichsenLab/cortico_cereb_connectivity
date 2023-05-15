@@ -155,15 +155,12 @@ if __name__ == "__main__":
    #              train_dataset="Fusion", train_ses="all",
    #              eval_id = 'Fu',model='avg',
    #              ext_list=['01','02','03','04','05','06'])
-   # Individual
-   D = fdata.get_dataset_class(gl.base_dir,'MDTB')
-   # Get participants info
-   T = D.get_participants()
-   subj_name = list(T['participant_id'])
    eval_models(train_dataset="MDTB", train_ses="ses-s1",
-               eval_dataset = ['MDTB'], eval_ses="ses-s2",
-               eval_id = 'Mds1-ind',model=subj_name,ext_list=[8])
-
+            eval_dataset = ['MDTB'], eval_ses="ses-s2",
+            eval_id = 'Mds1-avg',model='avg',ext_list=[8])
+   eval_models(train_dataset="MDTB", train_ses="ses-s1",
+            eval_dataset = ['MDTB'], eval_ses="ses-s2",
+            eval_id = 'Mds1-loo',model='loo',ext_list=[8])
    # eval_models(eval_dataset = ['MDTB'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['WMFS'], train_dataset="WMFS", train_ses="all",eval_id = 'Wm_loo',model='loo')
    # eval_models(eval_dataset = ['Nishimoto'], train_dataset="Nishimoto", train_ses="all",eval_id = 'Ni_loo',model='loo')
