@@ -169,7 +169,7 @@ if __name__ == "__main__":
    #                 logalpha_list = [-4,-2,0,2,4,6,8,10,12],
    #                 subj_list=np.arange(63,100))
    eval_models(train_dataset="MDTB", train_ses="all",
-             eval_dataset = ['MDTB'], eval_ses="ses-s1",
+             eval_dataset = ['MDTB'], eval_ses="ses-s2",
              eval_id = 'Md-avg',model='avg',ext_list=[8])
    # eval_models(train_dataset="MDTB", train_ses="all",
    #           eval_dataset = ['MDTB'], eval_ses="ses-s2",
