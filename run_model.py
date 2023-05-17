@@ -440,7 +440,10 @@ def eval_model(model_dirs,model_names,config):
 
          # add evaluation (summary)
          evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
-
+         ind = (info.study==1)
+         eval1 = eval_metrics(Y=Y[ind,:], Y_pred=Y_pred[ind,:], info = info[ind])
+         ind = (info.study==2)
+         eval2 = eval_metrics(Y=Y[ind,:], Y_pred=Y_pred[ind,:], info = info[ind])
          # add evaluation (voxels)
          for k, v in evals.items():
             if "vox" in k:
@@ -455,7 +458,9 @@ def eval_model(model_dirs,model_names,config):
 
 def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
-              cerebellum='SUIT3'):
+              methods =['L2regression'],
+              cerebellum='SUIT3',
+):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
@@ -469,20 +474,21 @@ def comb_eval(models=['Md_s1'],
    T = []
    for dataset in eval_data:
       for m in models:
-         f = gl.conn_dir + f'/{cerebellum}/eval/{dataset}_eval_{m}.tsv'
-         # get the dataframe
-         if os.path.exists(f):
-            dd = pd.read_csv(f, sep='\t')
-            # add a column for the name of the dataset
-            # get the noise ceilings
-            
-            # Remove negative values from dd.noise_X_R
-            dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
-            dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
-            dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
-            dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
-            dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
-            T.append(dd)
+         for meth in methods: 
+            f = gl.conn_dir + f'/{cerebellum}/eval/{dataset}_{meth}_{m}.tsv'
+            # get the dataframe
+            if os.path.exists(f):
+               dd = pd.read_csv(f, sep='\t')
+               # add a column for the name of the dataset
+               # get the noise ceilings
+               
+               # Remove negative values from dd.noise_X_R
+               dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
+               dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
+               dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
+               dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
+               dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
+               T.append(dd)
    df = pd.concat(T,ignore_index=True)
    return df
 

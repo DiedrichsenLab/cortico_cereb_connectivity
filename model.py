@@ -61,6 +61,33 @@ class L2regression(Ridge, Model):
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
 
+class L2noscale(Ridge, Model):
+    """
+    L2 regularized connectivity model
+    simple wrapper for Ridge. Scaling before estimation is applied globally to cortical and cerebellar data. 
+    """
+
+    def __init__(self, alpha=1):
+        """
+        Simply calls the superordinate construction - but does not fit intercept, as this is tightly controlled in Dataset.get_data()
+        """
+        super().__init__(alpha=alpha, fit_intercept=False)
+
+    def fit(self, X, Y):
+        self.scalex_ = np.sqrt(np.nanmean(X ** 2)) # Use RMS 
+        self.scaley_ = np.sqrt(np.nanmean(Y ** 2)) # Use RMS 
+
+        Xs = X / self.scalex_
+        Ys = Y / self.scaley_
+        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        return super().fit(Xs, Ys)
+
+    def predict(self, X):
+        scalex_ = np.sqrt(np.nanmean(X ** 2)) # Use RMS 
+        Xs = X / scalex_
+        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        return Xs @ self.coef_.T # weights need to be transposed 
+
 class L1regression(Lasso, Model):
     """
     L2 regularized connectivity model
