@@ -46,7 +46,9 @@ def calculate_R2(Y, Y_pred):
     SST = np.nansum(Y ** 2, axis=0)  
 
     R2 = 1 - (np.nansum(SSR) / np.nansum(SST))
-    R2_vox = 1 - (SSR / SST)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", category=RuntimeWarning)
+        R2_vox = 1 - (SSR / SST)
 
     return R2, R2_vox
 

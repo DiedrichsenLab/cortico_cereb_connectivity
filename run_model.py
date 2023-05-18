@@ -73,6 +73,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['subj_list'] = "all"
+   train_config['append'] = False
 
    # get label images for left and right hemisphere
    train_config['label_img'] = []
@@ -230,7 +231,7 @@ def train_model(config):
 
    # Check if training file already exists:
    train_info_name = save_path + "/" + mname + ".tsv"
-   if os.path.isfile(train_info_name):
+   if os.path.isfile(train_info_name) and config["append"]:
       train_info = pd.read_csv(train_info_name, sep="\t")
    else: 
       train_info = pd.DataFrame()
@@ -260,10 +261,14 @@ def train_model(config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
-      # cross the sessions
+      # cross the halves within each session
       if config["crossed"] is not None:
          if config["crossed"]=='half':
-            Y = np.r_[Y[info["half"] == 2, :], Y[info["half"] == 1, :]]
+            Y_list = []
+            for s in np.unique(info.sess):
+               Y_list.append(Y[(info.sess==s) & (info.half==2),:])
+               Y_list.append(Y[(info.sess==s) & (info.half==1),:])
+            Y = np.concatenate(Y_list,axis=0)
 
       for la in config["logalpha"]:
       # loop over subjects and train models
@@ -393,10 +398,14 @@ def eval_model(model_dirs,model_names,config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
-      # cross the sessions
+      # cross the halves within each session
       if config["crossed"] is not None:
          if config["crossed"]=='half':
-            Y = np.r_[Y[info["half"] == 2, :], Y[info["half"] == 1, :]]
+            Y_list = []
+            for s in np.unique(info.sess):
+               Y_list.append(Y[(info.sess==s) & (info.half==2),:])
+               Y_list.append(Y[(info.sess==s) & (info.half==1),:])
+            Y = np.concatenate(Y_list,axis=0)
 
       # If not average, load the model for each subject
       if config['model']=='ind':
@@ -440,10 +449,7 @@ def eval_model(model_dirs,model_names,config):
 
          # add evaluation (summary)
          evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
-         ind = (info.study==1)
-         eval1 = eval_metrics(Y=Y[ind,:], Y_pred=Y_pred[ind,:], info = info[ind])
-         ind = (info.study==2)
-         eval2 = eval_metrics(Y=Y[ind,:], Y_pred=Y_pred[ind,:], info = info[ind])
+
          # add evaluation (voxels)
          for k, v in evals.items():
             if "vox" in k:
