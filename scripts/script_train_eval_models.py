@@ -169,6 +169,17 @@ def eval_all():
                   crossed='half',
                   train_dataset=ed, train_ses="all",eval_id = eid)
 
+def eval_all_loo(): 
+   ED=["MDTB","WMFS", "Nishimoto", "IBC"]
+   eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo']
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
+   for ed,et,eid in zip(ED,ET,eID):
+      eval_models(eval_dataset = [ed], eval_type = [et],
+                  crossed='half',
+                  train_dataset=ed, 
+                  train_ses="all",
+                  eval_id = eid,
+                  model='loo')
+
 if __name__ == "__main__":
-   train_all()
-   eval_all()
+   eval_all_loo()
