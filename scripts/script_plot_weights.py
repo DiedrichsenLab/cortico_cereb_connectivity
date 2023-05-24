@@ -179,12 +179,13 @@ def make_weight_map(dataset= "HCP",extension = 'A0'):
 if __name__ == "__main__":
     make_weight_map('Demand','A6')
     make_weight_map('HCP','A-2')
-    make_weight_map('IBC','A10')
+    make_weight_map('IBC','A6')
     make_weight_map('MDTB','A8')
     make_weight_map('Somatotopic','A6')
-    make_weight_map('WMFS','A10')
+    make_weight_map('WMFS','A6')
     make_weight_map('Nishimoto','A10')
     make_weight_map('Fusion','05')
+    make_weight_map('Fusion','06')
 
     #cifti_img = get_scale_map(method = "L2Regression")
     # nb.save(cifti_img,gl.conn_dir + '/maps/scale_factors.pscalar.nii')

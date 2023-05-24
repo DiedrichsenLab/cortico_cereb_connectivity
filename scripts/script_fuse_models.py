@@ -15,10 +15,11 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
+from cortico_cereb_connectivity.scripts.script_train_eval_models import eval_models
 import json 
 from copy import deepcopy, copy
 
-def fuse_models(logalpha = [6, -2, 10, 8, 6, 10, 10],
+def fuse_models(logalpha = [6, -2, 6, 8, 6, 6, 10],
                train_data = ['Demand','HCP','IBC','MDTB','Somatotopic','WMFS','Nishimoto'],
                weight = [1,1,1,1,1,1,1], 
                train_ses= "all",
@@ -70,12 +71,27 @@ def fuse_models(logalpha = [6, -2, 10, 8, 6, 10, 10],
         with open(model_path + f"/{mname}_{fuse_id}_avg.json", 'w') as fp:
             json.dump(fused_info, fp, indent=4)
 
+def eval_fusion(): 
+    ED=["MDTB","WMFS", "Nishimoto", "IBC","Demand","Somatotopic"]
+    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
+    eval_models(eval_dataset = ED, eval_type = ET,
+                  crossed='half',
+                  train_dataset='Fusion', 
+                  train_ses="all",
+                  ext_list = ['01','02','03','04','05','06','07'],
+                  eval_id = 'Fu',
+                  model='avg')
+
+
+
 if __name__ == "__main__":
-   #fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
-   # fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
-   # fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
-   # fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
-   # fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
-   # fuse_models(weight=[1,1,0,1,0,1,1],fuse_id='06')
+    # fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
+    # fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
+    # fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
+    # fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
+    # fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
+    # fuse_models(weight=[1,0,1,1,1,1,1],fuse_id='06')
+    # fuse_models(weight=[1,0,1,1,0,1,1],fuse_id='07')
+    eval_fusion()
     dff=rm.comb_eval(models=['Fu'])
     pass

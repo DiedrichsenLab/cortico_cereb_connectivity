@@ -15,6 +15,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
+import json
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
                  crossed = "half", 
@@ -59,9 +60,13 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                train_ses= "ses-s1",
                parcellation = 'Icosahedron1002',
                method='L2Regression',
-               cerebellum='SUIT3'):
+               cerebellum='SUIT3',
+               parameters=['scale_','coef_'],
+               avrg_mode = 'avrg_sep',
+               avg_id = 'avg'):
 
-   mname = f"{train_data}_{train_ses}_{parcellation}_{method}"
+   mname_base = f"{train_data}_{train_ses}_{parcellation}_{method}"
+   model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
    for la in logalpha_list: 
       if la is not None:
          # Generate new model
@@ -69,8 +74,28 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       else:
          mname_ext = f""
 
-      rm.calc_avrg_model(train_data,mname,mname_ext,cerebellum=cerebellum)
+      avrg_model,info = rm.calc_avrg_model(train_data,
+                         mname_base,
+                         mname_ext,
+                         cerebellum=cerebellum,
+                         parameters=parameters,
+                         avrg_mode=avrg_mode)
+      dd.io.save(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.h5",
+         avrg_model, compression=None)
+      with open(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.json", 'w') as fp:
+         json.dump(dict, fp, indent=4)
 
+   # Collect the parameters in lists
+   param_lists={}
+   for p in parameters:
+      param_lists[p]=[]
+
+   # Loop over subjects
+   df = pd.DataFrame()
+   for sub in subject_list:
+      print(f"- getting weights for {sub}")
+      # load the model
+      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
 
 
 def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
@@ -155,6 +180,11 @@ def train_all():
                   train_ses = 'all',cerebellum='SUIT3',validate_model=False,
                   type = et,crossed='half',
                   logalpha_list = [-4,-2,0,2,4,6,8,10,12])
+
+def avrg_all():
+   ED=["MDTB","WMFS", "Nishimoto", "IBC"]
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf"]
+   for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
                  train_ses= "all",
                  cerebellum='SUIT3',
@@ -167,7 +197,9 @@ def eval_all():
    for ed,eid in zip(ED,eID):
       eval_models(eval_dataset = ED, eval_type = ET,
                   crossed='half',
-                  train_dataset=ed, train_ses="all",eval_id = eid)
+                  train_dataset=ed, 
+                  ext_list = [-4,-2,0,2,4,6,8,10,12],
+                  train_ses="all",eval_id = eid)
 
 def eval_all_loo(): 
    ED=["MDTB","WMFS", "Nishimoto", "IBC"]
@@ -178,8 +210,9 @@ def eval_all_loo():
                   crossed='half',
                   train_dataset=ed, 
                   train_ses="all",
+                  ext_list = [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
                   model='loo')
 
 if __name__ == "__main__":
-   eval_all_loo()
+   eval_all()

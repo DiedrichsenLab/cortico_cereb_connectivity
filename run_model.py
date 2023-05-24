@@ -503,9 +503,9 @@ def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
                     cerebellum='SUIT3',
-                    parameters=['coef_','scale_'],
-                    subj='all',
-                    save=True):
+                    parameters=['scale_','coef_'],
+                    avrg_mode='avrg_scalecoef',
+                    subj='all'):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
    Args:
@@ -556,8 +556,14 @@ def calc_avrg_model(train_dataset,
          param_lists[p].append(getattr(fitted_model,p))
 
    avrg_model = fitted_model
-   for p in parameters:
-      P = np.stack(param_lists[p],axis=0)
+   if avrg_mode=='avrg_sep':
+      for p in parameters:
+         P = np.stack(param_lists[p],axis=0)
+         setattr(avrg_model,p,P.mean(axis=0))
+   if avrg_mode=='avrg_scalecoef':
+      scale = np.stack(param_lists[0],axis=0)
+      weight = np.stack(param_lists[1],axis=0)
+      
       setattr(avrg_model,p,P.mean(axis=0))
 
    # Assemble the summary
@@ -580,10 +586,4 @@ def calc_avrg_model(train_dataset,
            'rmse_cv': df.rmse_cv.mean(),
            }
    # save dict as json
-   if save:
-      dd.io.save(model_path + f"/{mname_base}_{mname_ext}_avg.h5",
-         avrg_model, compression=None)
-      with open(model_path + f"/{mname_base}_{mname_ext}_avg.json", 'w') as fp:
-         json.dump(dict, fp, indent=4)
-   else:
-      return avrg_model, dict
+   return avrg_model, dict
