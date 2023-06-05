@@ -202,17 +202,17 @@ def eval_all():
                   train_ses="all",eval_id = eid)
 
 def eval_all_loo(): 
-   ED=["MDTB","WMFS", "Nishimoto", "IBC"]
-   eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo']
+   ED=["WMFS"] # ["MDTB","WMFS", "Nishimoto", "IBC"]
+   eID = ["Wm-loo"] # ['Md-loo'] # ,'Wm-loo','Ni-loo','Ib-loo']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
    for ed,et,eid in zip(ED,ET,eID):
       eval_models(eval_dataset = [ed], eval_type = [et],
                   crossed='half',
                   train_dataset=ed, 
                   train_ses="all",
-                  ext_list = [-4,-2,0,2,4,6,8,10,12],
+                  ext_list = [6,8], # [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
                   model='loo')
 
 if __name__ == "__main__":
-   eval_all()
+   eval_all_loo()

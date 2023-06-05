@@ -23,7 +23,7 @@ import cortico_cereb_connectivity.globals as gl
 
 import cortico_cereb_connectivity.model as model
 import cortico_cereb_connectivity.evaluation as ev
-
+from copy import copy, deepcopy
 import warnings
 
 # warnings.filterwarnings("ignore")
@@ -320,6 +320,70 @@ def train_model(config):
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
+
+def get_fitted_models(model_dirs,model_names,config):
+   """Builds a list of fitted models from the saved files
+   In case of individual-specific models, it builds a list of lists. 
+
+   Args:
+       model_dirs (_type_): _description_
+       model_names (_type_): _description_
+       config (dict): _description_
+
+   Returns:
+       fitted_models (list): _description_
+       train_info (list): information on each trained model 
+   """
+   # Load all the models to evaluate:
+   fitted_model = []
+   train_info = []
+   num_subj = len(config['subj_list'])
+
+   if isinstance(config['model'],list):
+      for ind in config['model']:
+         for d,m in zip(model_dirs,model_names):
+            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+            fname = model_path + f"/{m}_{ind}.h5"
+            json_name = model_path + f"/{m}_{ind}.json"
+            fitted_model.append(dd.io.load(fname))
+            with open(json_name) as json_file:
+               train_info.append(json.load(json_file))
+   elif config['model']=='avg':
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         fname = model_path + f"/{m}_avg.h5"
+         json_name = model_path + f"/{m}_avg.json"
+         fitted_model.append(dd.io.load(fname))
+         with open(json_name) as json_file:
+            train_info.append(json.load(json_file))
+   elif config['model']=='ind':
+      fitted_model = []
+      train_info = []
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         fm=[]
+         for sub in config['subj_list']:
+            fname = model_path + f"/{m}_{sub}.h5"
+            json_name = model_path + f"/{m}_{sub}.json"
+            fm.append(dd.io.load(fname))
+         
+         fitted_model.append(fm)
+         with open(json_name) as json_file:
+            train_info.append(json.load(json_file))
+   elif config['model']=='loo':
+      fitted_model = []
+      train_info = []
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         ext = m.split('_')[-1]
+         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
+                                 subj=config['subj_list'],
+                                 avrg_mode='loo_sep')
+         fitted_model.append(fm)
+         train_info.append(fi)
+   
+   return fitted_model, train_info
+
 def eval_model(model_dirs,model_names,config):
    """
    evaluate group model on a specific dataset and session
@@ -345,31 +409,8 @@ def eval_model(model_dirs,model_names,config):
       T = dataset.get_participants()
       config["subj_list"] = T.participant_id
 
-   # Load all the models to evaluate:
-   fitted_model = []
-   train_info = []
-
-   if isinstance(config['model'],list):
-      for ind in config['model']:
-         for d,m in zip(model_dirs,model_names):
-            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-            fname = model_path + f"/{m}_{ind}.h5"
-            json_name = model_path + f"/{m}_{ind}.json"
-            fitted_model.append(dd.io.load(fname))
-
-            # Load json file
-            with open(json_name) as json_file:
-               train_info.append(json.load(json_file))
-   elif config['model']=='avg':
-      for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_avg.h5"
-         json_name = model_path + f"/{m}_avg.json"
-         fitted_model.append(dd.io.load(fname))
-
-         # Load json file
-         with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
+   # Get the list of fitted models  
+   fitted_model,train_info = get_fitted_models(model_dirs,model_names,config)
 
    # loop over subjects
    for i, sub in enumerate(config["subj_list"]):
@@ -407,35 +448,18 @@ def eval_model(model_dirs,model_names,config):
                Y_list.append(Y[(info.sess==s) & (info.half==1),:])
             Y = np.concatenate(Y_list,axis=0)
 
-      # If not average, load the model for each subject
-      if config['model']=='ind':
-         fitted_model = []
-         train_info = []
-         for d,m in zip(model_dirs,model_names):
-            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-            fname = model_path + f"/{m}_{sub}.h5"
-            json_name = model_path + f"/{m}_{sub}.json"
-            fitted_model.append(dd.io.load(fname))
-
-            with open(json_name) as json_file:
-               train_info.append(json.load(json_file))
-      elif config['model']=='loo':
-         fitted_model = []
-         train_info = []
-         subj_list = T.participant_id[T.participant_id!=sub]
-         for d,m in zip(model_dirs,model_names):
-            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-            ext = m.split('_')[-1]
-            fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
-                                    subj=subj_list,save=False)
-            fitted_model.append(fm)
-            train_info.append(fi)
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
-         # Get model predictions
-         Y_pred = fm.predict(X)
 
-         #
+         # Use subject-specific model? (indiv or loo)
+         if (isinstance(fm,list)): 
+            fitM = fm[i]
+         else:
+            fitM = fm
+
+         # Get model predictions
+         Y_pred = fitM.predict(X)
+
          eval_sub = {"eval_subj": sub,
                   "num_regions": X.shape[1]}
 
@@ -465,8 +489,7 @@ def eval_model(model_dirs,model_names,config):
 def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
-              cerebellum='SUIT3',
-):
+              cerebellum='SUIT3'):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
@@ -504,7 +527,7 @@ def calc_avrg_model(train_dataset,
                     mname_ext,
                     cerebellum='SUIT3',
                     parameters=['scale_','coef_'],
-                    avrg_mode='avrg_scalecoef',
+                    avrg_mode='avrg_sep',
                     subj='all'):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
@@ -560,12 +583,19 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          setattr(avrg_model,p,P.mean(axis=0))
-   if avrg_mode=='avrg_scalecoef':
+   elif avrg_mode=='avrg_scalecoef':
       scale = np.stack(param_lists[0],axis=0)
       weight = np.stack(param_lists[1],axis=0)
-      
       setattr(avrg_model,p,P.mean(axis=0))
-
+   elif avrg_mode=='loo_sep':
+      avrg_model = []
+      for s,sub in enumerate(subject_list):
+         avrg_model.append(copy(fitted_model))
+      for p in parameters:
+         P = np.stack(param_lists[p],axis=0)
+         for s,sub in enumerate(subject_list):
+            setattr(avrg_model[s],p,P[subject_list!=sub].mean(axis=0))
+         
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=pd.np.nan, inplace=True)
