@@ -589,12 +589,13 @@ def calc_avrg_model(train_dataset,
       setattr(avrg_model,p,P.mean(axis=0))
    elif avrg_mode=='loo_sep':
       avrg_model = []
+      subj_ind = np.arange(len(subject_list))
       for s,sub in enumerate(subject_list):
          avrg_model.append(copy(fitted_model))
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          for s,sub in enumerate(subject_list):
-            setattr(avrg_model[s],p,P[subject_list!=sub].mean(axis=0))
+            setattr(avrg_model[s],p,P[subj_ind!=s].mean(axis=0))
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA

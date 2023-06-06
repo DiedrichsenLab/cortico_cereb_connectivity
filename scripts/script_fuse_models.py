@@ -90,13 +90,13 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
             method='L2Regression',
             cerebellum='SUIT3',
             crossed='half',
-            fuse_id = '01'): 
-    ED=["MDTB","WMFS", "Nishimoto", "IBC","Demand","Somatotopic"]
-    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
+            fuse_id = '01',
+            eval_data = "MDTB",
+            eval_type = "CondHalf"
+            ): 
 
     # First load all basic models
     coef_list = []
-    models = []
     train_info = [] 
     for i,(la,tdata) in enumerate(zip(logalpha,train_data)):
         mname = f"{tdata}_{train_ses}_{parcellation}_{method}"
@@ -105,53 +105,53 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
         fname = model_path + f"/{m}.h5"
         json_name = model_path + f"/{m}.json"
         m = dd.io.load(fname)
-        models.append(m)
         coef_list.append(m.coef_/m.scale_) # Adjust for scaling
 
-    for ed,et in zip(ED,ET):
-        dataset = fdata.get_dataset_class(gl.base_dir,
-                                    dataset=ed)
+    indx = train_data.index(eval_data)
+    idx = np.where(np.array(train_data) == eval_data)[0]
+    dataset = fdata.get_dataset_class(gl.base_dir,
+                                    dataset=eval_data)
 
-        T = dataset.get_participants()
-   
-   
-        mname = f"{ed}_{train_ses}_{parcellation}_{method}"
-        mext = f"_A{la}"
-        config = rm.get_eval_config(eval_dataset = ed,
-            eval_ses = 'all', 
-            parcellation = parcellation,
-            crossed = crossed, # "half", # or None
-            type = et,
-            cerebellum=cerebellum)
-        config["subj_list"] = list(T.participant_id)
-        config["model"] = 'loo'
-     
-        # Get individual models for the individual dataset
-        models,info = rm.get_fitted_models([mname],[mext],config)
-        loo_fuse_models = []
-        for s,m in enumerate(models):
-            Coef = np.stack(coef_list,axis=0)
-            # Find where train_data is equal to ed
-            idx = np.where(np.array(train_data) == ed)[0]
-            Coef[idx,:,:]=models[s].coef_/models[s].scale_
-            weight_norm = np.sqrt(np.nansum((Coef**2),axis=(1,2),keepdims=True))
+    T = dataset.get_participants()
+    mname = f"{eval_data}_{train_ses}_{parcellation}_{method}"
+    mext = f"_A{logalpha[indx]}"
+    config = rm.get_eval_config(eval_dataset = eval_data,
+        eval_ses = 'all', 
+        parcellation = parcellation,
+        crossed = crossed, # "half", # or None
+        type = eval_type,
+        cerebellum=cerebellum)
+    config["subj_list"] = list(T.participant_id)
+    config["model"] = 'loo'
+    
+    # Get individual models for the individual dataset
+    ind_models,info = rm.get_fitted_models([mname],[mext],config)
+    ind_models = ind_models[0]
+    # Get the model for the fused dataset
+    loo_fuse_models = []
+    for s,m in enumerate(ind_models):
+        print('Fuse model for subject',s)
+        Coef = np.stack(coef_list,axis=0)
+        # Find where train_data is equal to ed
+        Coef[idx,:,:]=m.coef_/m.scale_
+    
+        weight_norm = np.sqrt(np.nansum((Coef**2),axis=(1,2),keepdims=True))
         wCoef = Coef/weight_norm
         wCoef = wCoef * np.array(weight).reshape(-1,1,1)
-        fused_model = deepcopy(models[0])
-        setattr(fused_model,'coef_',np.nansum(wCoef,axis=0))
-        setattr(fused_model,'scale_',np.ones((Scale.shape[1],)))
-        loo_fuse_models.append(fused_model)
+        setattr(m,'coef_',np.nansum(wCoef,axis=0))
+        setattr(m,'scale_',np.ones((wCoef.shape[1],)))
+        loo_fuse_models.append(m)
 
-        config['model'] = loo_fuse_models
-        df, df_voxels = rm.eval_model(model_dirs,model_names,config)
-        save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+    config['model'] = loo_fuse_models
+    df, df_voxels = rm.eval_model(model_dirs,model_names,config)
+    save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
-        ename = config['eval_dataset']
-        if config['eval_ses'] != 'all':
-            ses_code = config['eval_ses'].split('-')[1]
-            ename = config['eval_dataset'] + ses_code
-        file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
-        df.to_csv(file_name, index = False, sep='\t')
+    ename = config['eval_dataset']
+    if config['eval_ses'] != 'all':
+        ses_code = config['eval_ses'].split('-')[1]
+        ename = config['eval_dataset'] + ses_code
+    file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
+    df.to_csv(file_name, index = False, sep='\t')
 
 
 if __name__ == "__main__":
