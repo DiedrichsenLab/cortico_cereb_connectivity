@@ -90,7 +90,7 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
             method='L2Regression',
             cerebellum='SUIT3',
             crossed='half',
-            fuse_id = '01',
+            eval_id = '01',
             eval_data = "MDTB",
             eval_type = "CondHalf"
             ): 
@@ -107,6 +107,7 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
         m = dd.io.load(fname)
         coef_list.append(m.coef_/m.scale_) # Adjust for scaling
 
+    # Next get all individual models from the evaluation dataset  
     indx = train_data.index(eval_data)
     idx = np.where(np.array(train_data) == eval_data)[0]
     dataset = fdata.get_dataset_class(gl.base_dir,
@@ -123,14 +124,16 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
         cerebellum=cerebellum)
     config["subj_list"] = list(T.participant_id)
     config["model"] = 'loo'
-    
     # Get individual models for the individual dataset
     ind_models,info = rm.get_fitted_models([mname],[mext],config)
+
+    # Get the first (and only) model
     ind_models = ind_models[0]
+    info = info[0]
     # Get the model for the fused dataset
     loo_fuse_models = []
     for s,m in enumerate(ind_models):
-        print('Fuse model for subject',s)
+        print('Fuse model for subject',T.participant_id.iloc[s])
         Coef = np.stack(coef_list,axis=0)
         # Find where train_data is equal to ed
         Coef[idx,:,:]=m.coef_/m.scale_
@@ -139,11 +142,18 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
         wCoef = Coef/weight_norm
         wCoef = wCoef * np.array(weight).reshape(-1,1,1)
         setattr(m,'coef_',np.nansum(wCoef,axis=0))
-        setattr(m,'scale_',np.ones((wCoef.shape[1],)))
+        setattr(m,'scale_',np.ones((wCoef.shape[2],)))
         loo_fuse_models.append(m)
 
-    config['model'] = loo_fuse_models
-    df, df_voxels = rm.eval_model(model_dirs,model_names,config)
+    # Needs to be wrapped in a list, as it is one model with a specific model per subject
+    config['model'] = [loo_fuse_models]
+    info['train_dataset'] = 'Fusion' 
+    info['extension'] = int(eval_id[2:4])
+    info['logalpha'] = logalpha
+    info['weight'] = weight
+
+    config['train_info'] = [info]
+    df, df_voxels = rm.eval_model(None,None,config)
     save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
     ename = config['eval_dataset']
@@ -151,6 +161,7 @@ def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
         ses_code = config['eval_ses'].split('-')[1]
         ename = config['eval_dataset'] + ses_code
     file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
+    df['model']=['loo']*df.shape[0]
     df.to_csv(file_name, index = False, sep='\t')
 
 
@@ -164,5 +175,5 @@ if __name__ == "__main__":
     # fuse_models(weight=[1,0,1,1,0,1,1],fuse_id='07')
     # eval_fusion()
     # dff=rm.comb_eval(models=['Fu'])
-    eval_fusion_loo(weight=[1,0,1,1,1,1,1],fuse_id='06')
+    eval_fusion_loo(eval_data='Nishimoto',weight=[1,0,1,1,1,1,1],eval_id='Fu06-loo')
     pass

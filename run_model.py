@@ -340,14 +340,23 @@ def get_fitted_models(model_dirs,model_names,config):
    num_subj = len(config['subj_list'])
 
    if isinstance(config['model'],list):
-      for ind in config['model']:
-         for d,m in zip(model_dirs,model_names):
-            model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-            fname = model_path + f"/{m}_{ind}.h5"
-            json_name = model_path + f"/{m}_{ind}.json"
-            fitted_model.append(dd.io.load(fname))
-            with open(json_name) as json_file:
-               train_info.append(json.load(json_file))
+      if isinstance(config['model'][0],str):
+         for ind in config['model']:
+            for d,m in zip(model_dirs,model_names):
+               model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+               fname = model_path + f"/{m}_{ind}.h5"
+               json_name = model_path + f"/{m}_{ind}.json"
+               fitted_model.append(dd.io.load(fname))
+               with open(json_name) as json_file:
+                  train_info.append(json.load(json_file))
+      elif isinstance(config['model'][0],model.Model):
+         fitted_model = config['model']
+         train_info = config['train_info']
+      elif isinstance(config['model'][0][0],model.Model):
+         fitted_model = config['model']
+         train_info = config['train_info']
+      else:
+         raise ValueError('config["model"] must be a list of strings or a list of models')
    elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
