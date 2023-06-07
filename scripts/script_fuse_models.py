@@ -177,5 +177,8 @@ if __name__ == "__main__":
     # dff=rm.comb_eval(models=['Fu'])
     ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
     for ed in ED:
+        eval_fusion_loo(eval_data=ed,weight=[1,1,0,1,0,0,0],eval_id='Fu04-loo')
+        eval_fusion_loo(eval_data=ed,weight=[1,1,1,1,1,1,1],eval_id='Fu05-loo')
         eval_fusion_loo(eval_data=ed,weight=[1,0,1,1,1,1,1],eval_id='Fu06-loo')
+        eval_fusion_loo(eval_data=ed,weight=[1,0,1,1,0,1,1],eval_id='Fu07-loo')
     pass
