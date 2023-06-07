@@ -175,5 +175,7 @@ if __name__ == "__main__":
     # fuse_models(weight=[1,0,1,1,0,1,1],fuse_id='07')
     # eval_fusion()
     # dff=rm.comb_eval(models=['Fu'])
-    eval_fusion_loo(eval_data='Nishimoto',weight=[1,0,1,1,1,1,1],eval_id='Fu06-loo')
+    ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
+    for ed in ED:
+        eval_fusion_loo(eval_data=ed,weight=[1,0,1,1,1,1,1],eval_id='Fu06-loo')
     pass
