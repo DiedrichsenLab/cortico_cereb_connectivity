@@ -608,7 +608,7 @@ def calc_avrg_model(train_dataset,
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
-   df.logalpha.fillna(value=pd.np.nan, inplace=True)
+   df.logalpha.fillna(value=np.nan, inplace=True)
    # Add fields if they don't exist
    if 'R_cv' not in df.columns:
       df['R_cv']=np.nan
