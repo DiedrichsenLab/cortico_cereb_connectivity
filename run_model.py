@@ -548,7 +548,8 @@ def eval_model(model_dirs,model_names,config):
 def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
-              cerebellum='SUIT3'):
+              cerebellum='SUIT3',
+              eval_t = 'eval_noint'):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
@@ -560,10 +561,11 @@ def comb_eval(models=['Md_s1'],
        _type_: _description_
    """
    T = []
+
    for dataset in eval_data:
       for m in models:
          for meth in methods: 
-            f = gl.conn_dir + f'/{cerebellum}/eval/{dataset}_{meth}_{m}.tsv'
+            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
