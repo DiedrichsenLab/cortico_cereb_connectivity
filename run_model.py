@@ -39,6 +39,7 @@ def get_train_config(train_dataset = "MDTB",
                      cv_fold = 4,
                      crossed = "half", # or None
                      validate_model = True,
+                     add_rest = False
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
@@ -73,6 +74,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['subj_list'] = "all"
+   train_config['add_rest'] = add_rest
    train_config['append'] = False
 
    # get label images for left and right hemisphere
@@ -90,6 +92,7 @@ def get_eval_config(eval_dataset = 'MDTB',
             crossed = "half", # or None
             type = "CondHalf",
             splitby = None,
+            add_rest = False,
             model = 'avg'):
    """
    create a config file for evaluation
@@ -101,6 +104,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
    eval_config['crossed'] = crossed
+   eval_config['add_rest'] = add_rest
    eval_config["splitby"] = splitby
    eval_config["type"] = type
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
@@ -187,10 +191,56 @@ def eval_metrics(Y, Y_pred, info):
     ) = ev.calculate_reliability(Y=Y_pred, dataframe = info)
 
     # calculate noise ceiling
-    data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
-    data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"] * np.sqrt(data["noise_X_R_vox"]))
+    with warnings.catch_warnings():
+      warnings.simplefilter("ignore", category=RuntimeWarning)
 
+      data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
+      data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"] * np.sqrt(data["noise_X_R_vox"]))
     return data
+
+def cross_data(Y,info,mode):
+   """Cross data across halves
+   """
+   if mode=='half':
+      Y_list = []
+      for s in np.unique(info.sess):
+         Y_list.append(Y[(info.sess==s) & (info.half==2),:])
+         Y_list.append(Y[(info.sess==s) & (info.half==1),:])
+      Ys = np.concatenate(Y_list,axis=0)
+   return Ys
+
+def add_rest(Y,info):
+   """Add rest to each session and half
+   Subtract the mean across all conditions
+   Args:
+       Y (_type_): _description_
+       info (_type_): _description_
+
+   Returns:
+       _type_: _description_
+   """
+   Y_list = []
+   info_list = []
+   for s in np.unique(info.sess):
+      for h in np.unique(info.half):
+         indx = (info.sess==s) & (info.half==h)
+         if any([i.startswith('rest') for i in info[indx].cond_name]):
+            Y_list.append(Y[indx,:])
+            info_list.append(info[indx])
+         else:
+            Yp = np.zeros((indx.sum()+1,Y.shape[1]))
+            Yp[0:-1,:] = Y[indx,:]
+            Yp = Yp - Yp.mean(axis=0)
+            Y_list.append(Yp)
+            inf = info[indx]
+            newD = {'cond_name':['rest'],
+                    'sess':[inf.sess.iloc[0]],
+                    'half':[inf.half.iloc[0]]}
+            inf = pd.concat([inf,pd.DataFrame(newD)],ignore_index=True)
+            info_list.append(inf)
+   Ys = np.concatenate(Y_list,axis=0)
+   infos = pd.concat(info_list,ignore_index=True)
+   return Ys,infos
 
 def train_model(config):
    """
@@ -261,14 +311,14 @@ def train_model(config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
+      # Add rest condition? 
+      if config["add_rest"]:
+         Y,_ = add_rest(Y,info)
+         X,info = add_rest(X,info)
+
       # cross the halves within each session
       if config["crossed"] is not None:
-         if config["crossed"]=='half':
-            Y_list = []
-            for s in np.unique(info.sess):
-               Y_list.append(Y[(info.sess==s) & (info.half==2),:])
-               Y_list.append(Y[(info.sess==s) & (info.half==1),:])
-            Y = np.concatenate(Y_list,axis=0)
+         Y = cross_data(Y,info,config["crossed"])
 
       for la in config["logalpha"]:
       # loop over subjects and train models
@@ -448,14 +498,14 @@ def eval_model(model_dirs,model_names,config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
+      # Add explicit rest to sessions 
+      if config["add_rest"]:
+         Y,_ = add_rest(Y,info)
+         X,info = add_rest(X,info)
+
       # cross the halves within each session
       if config["crossed"] is not None:
-         if config["crossed"]=='half':
-            Y_list = []
-            for s in np.unique(info.sess):
-               Y_list.append(Y[(info.sess==s) & (info.half==2),:])
-               Y_list.append(Y[(info.sess==s) & (info.half==1),:])
-            Y = np.concatenate(Y_list,axis=0)
+         Y = cross_data(Y,info,config["crossed"])
 
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
