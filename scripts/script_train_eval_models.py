@@ -22,6 +22,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  type = "CondHalf",
                  train_ses = 'all',
                  dataset = "MDTB",
+                 add_rest = False,
                  parcellation = "Icosahedron1002",
                  subj_list = "all", 
                  cerebellum='SUIT3', 
@@ -36,6 +37,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                 train_dataset = dataset,
                                 method = method, 
                                 train_ses=train_ses,
+                                add_rest=add_rest,
                                 validate_model=validate_model)
    dataset = fdata.get_dataset_class(gl.base_dir, 
                                     dataset=config["train_dataset"]) 
@@ -52,8 +54,6 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
    config, conn_list, df_tmp =rm.train_model(config)
    return df_tmp
-
-
 
 def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                train_data = "MDTB",
@@ -109,6 +109,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 eval_ses  = "all",
                 eval_id = 'Md_s1',
                 crossed = 'half',
+                add_rest= False,
                 model = 'avg',
                 append = False
                 ):
@@ -140,6 +141,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                                  type = eval_type[i],
                                  cerebellum=cerebellum,
                                  splitby = None,
+                                 add_rest = add_rest,
                                  model=model)
 
       dirname=[]
@@ -173,17 +175,21 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 def train_all():
-   ED=["MDTB","WMFS", "Nishimoto", "IBC"]
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf"]
+   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
-                  train_ses = 'all',cerebellum='SUIT3',validate_model=False,
-                  type = et,crossed='half',
+                  train_ses = 'all',
+                  cerebellum='SUIT3',
+                  validate_model=False,
+                  type = et,
+                  crossed='half',
+                  add_rest=True,
                   logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
 def avrg_all():
-   ED=["MDTB","WMFS", "Nishimoto", "IBC"]
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf"]
+   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
                  train_ses= "all",
@@ -197,13 +203,14 @@ def eval_all():
    for ed,eid in zip(ED,eID):
       eval_models(eval_dataset = ED, eval_type = ET,
                   crossed='half',
-                  train_dataset=ed, 
+                  train_dataset=ed,
+                  add_rest=True,
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   train_ses="all",eval_id = eid)
 
 def eval_all_loo(): 
-   ED=["WMFS","MDTB"] # ["MDTB","WMFS", "Nishimoto", "IBC"]
-   eID = ["Wm-loo",'Md-loo'] # ,'Wm-loo','Ni-loo','Ib-loo']
+   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo','So-loo','De-loo']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
    for ed,et,eid in zip(ED,ET,eID):
       eval_models(eval_dataset = [ed], eval_type = [et],
@@ -215,4 +222,20 @@ def eval_all_loo():
                   model='loo')
 
 if __name__ == "__main__":
+   """
+   TD=["MDTB"] # ["MDTB","WMFS", "Nishimoto", "IBC"]
+   tID = ['Md-rest']
+   ED=["Demand","WMFS"]
+   ET=["CondHalf","CondHalf"]
+   for et,tid in zip(TD,tID):
+      eval_models(eval_dataset = ED, eval_type = ET,
+                  crossed='half',
+                  train_dataset=et, 
+                  ext_list = [8],
+                  add_rest=True,
+                  train_ses="all",eval_id = tid)
+   """
+   train_all()
+   avrg_all()
+   eval_all()
    eval_all_loo()
