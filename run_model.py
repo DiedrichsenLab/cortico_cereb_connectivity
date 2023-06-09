@@ -221,6 +221,8 @@ def add_rest(Y,info):
    """
    Y_list = []
    info_list = []
+   if not('cond_name' in info.columns):
+      info['cond_name']=info.task_name
    for s in np.unique(info.sess):
       for h in np.unique(info.half):
          indx = (info.sess==s) & (info.half==h)

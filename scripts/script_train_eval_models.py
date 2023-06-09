@@ -83,19 +83,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       dd.io.save(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.h5",
          avrg_model, compression=None)
       with open(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.json", 'w') as fp:
-         json.dump(dict, fp, indent=4)
-
-   # Collect the parameters in lists
-   param_lists={}
-   for p in parameters:
-      param_lists[p]=[]
-
-   # Loop over subjects
-   df = pd.DataFrame()
-   for sub in subject_list:
-      print(f"- getting weights for {sub}")
-      # load the model
-      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
+         json.dump(info, fp, indent=4)
 
 
 def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
@@ -175,7 +163,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 def train_all():
-   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   ED=["Nishimoto","IBC",'Somatotopic','Demand'] # 
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
@@ -235,7 +223,7 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_all()
+   # train_all()
    avrg_all()
    eval_all()
    eval_all_loo()
