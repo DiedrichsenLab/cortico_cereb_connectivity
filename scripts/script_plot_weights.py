@@ -33,7 +33,8 @@ def get_weight_map(method = "L2Regression",
                     cerebellum_atlas = "SUIT3", 
                     extension = 'A8', 
                     dataset_name = "MDTB", 
-                    ses_id = "ses-s1"
+                    ses_id = "ses-s1",
+                    train_t = 'train'
                     ):
 
     """ make cifti image for the connectivity weights
@@ -162,7 +163,7 @@ def get_scale_map(method = "L2Regression",
     cifti_img = nb.Cifti2Image(data, header=header)
     return cifti_img
 
-def make_weight_map(dataset= "HCP",extension = 'A0'):
+def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
     cifti_img = get_weight_map(method = "L2Regression", 
                                 cortex_roi = "Icosahedron1002", 
                                 cerebellum_roi = "NettekovenSym68c32",
@@ -170,8 +171,9 @@ def make_weight_map(dataset= "HCP",extension = 'A0'):
                                 extension = extension, 
                                 dataset_name = dataset, 
                                 ses_id = "all",
+                                train_t = "train"+ext
                                 )
-    fname = gl.conn_dir + f'/maps/{dataset}_L2_{extension}.pscalar.nii'
+    fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_L2_{extension}.pscalar.nii'
     cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
