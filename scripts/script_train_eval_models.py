@@ -185,16 +185,17 @@ def avrg_all():
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
 def eval_all(): 
+   TD = ["HCP"]
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
-   eID = ['Md','Wm','Ni','Ib','So','De']
+   tID = ["Hc"] # ['Md','Wm','Ni','Ib','So','De']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
-   for ed,eid in zip(ED,eID):
+   for td,tid in zip(TD,tID):
       eval_models(eval_dataset = ED, eval_type = ET,
                   crossed='half',
-                  train_dataset=ed,
+                  train_dataset=td,
                   add_rest=True,
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
-                  train_ses="all",eval_id = eid)
+                  train_ses="all",eval_id = tid)
 
 def eval_all_loo(): 
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
@@ -207,6 +208,7 @@ def eval_all_loo():
                   train_ses="all",
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
+                  add_rest=True,
                   model='loo')
 
 if __name__ == "__main__":
@@ -224,6 +226,6 @@ if __name__ == "__main__":
                   train_ses="all",eval_id = tid)
    """
    # train_all()
-   avrg_all()
-   eval_all()
+   # avrg_all()
+   # 
    eval_all_loo()
