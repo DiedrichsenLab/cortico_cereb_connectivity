@@ -19,7 +19,11 @@ from cortico_cereb_connectivity.scripts.script_train_eval_models import eval_mod
 import json 
 from copy import deepcopy, copy
 
-def fuse_models(logalpha = [6, -2, 6, 8, 6, 6, 10],
+# For no_int the optimal alpha parameters are : 
+#  [6, -2, 6, 8, 6, 6, 10]
+# For fitting with intercept, the optimal alpha parameters are :
+# [8, -2, 6, 8,  8, 8, 10] 
+def fuse_models(logalpha = [8, -2, 6, 8,  8, 8, 10],
                train_data = ['Demand','HCP','IBC','MDTB','Somatotopic','WMFS','Nishimoto'],
                weight = [1,1,1,1,1,1,1], 
                train_ses= "all",
@@ -78,11 +82,11 @@ def eval_fusion():
                   crossed='half',
                   train_dataset='Fusion', 
                   train_ses="all",
-                  ext_list = ['01','02','03','04','05','06','07'],
+                  ext_list = ['04','05','06','07'],
                   eval_id = 'Fu',
                   model='avg')
 
-def eval_fusion_loo(logalpha = [6, -2, 6, 8, 6, 6, 10],
+def eval_fusion_loo(logalpha = [8, -2, 6, 8,  8, 8, 10],
             train_data = ['Demand','HCP','IBC','MDTB','Somatotopic','WMFS','Nishimoto'],
             weight = [1,1,1,1,1,1,1], 
             train_ses= "all",
@@ -169,11 +173,11 @@ if __name__ == "__main__":
     # fuse_models(weight=[1,0,0,0,0,0,0],fuse_id='01')
     # fuse_models(weight=[0,1,0,0,0,0,0],fuse_id='02')
     # fuse_models(weight=[0,0,0,1,0,0,0],fuse_id='03')
-    # fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
-    # fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
-    # fuse_models(weight=[1,0,1,1,1,1,1],fuse_id='06')
-    # fuse_models(weight=[1,0,1,1,0,1,1],fuse_id='07')
-    # eval_fusion()
+    fuse_models(weight=[1,1,0,1,0,0,0],fuse_id='04')
+    fuse_models(weight=[1,1,1,1,1,1,1],fuse_id='05')
+    fuse_models(weight=[1,0,1,1,1,1,1],fuse_id='06')
+    fuse_models(weight=[1,0,1,1,0,1,1],fuse_id='07')
+    eval_fusion()
     # dff=rm.comb_eval(models=['Fu'])
     ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
     for ed in ED:
