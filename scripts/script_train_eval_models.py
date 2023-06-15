@@ -228,4 +228,4 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    # 
-   eval_all_loo()
+   eval_all()
