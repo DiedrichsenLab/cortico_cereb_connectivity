@@ -551,7 +551,7 @@ def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
               cerebellum='SUIT3',
-              eval_t = 'eval_noint'):
+              eval_t = 'eval'):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
