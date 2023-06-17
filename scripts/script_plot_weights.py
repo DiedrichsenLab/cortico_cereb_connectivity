@@ -29,7 +29,7 @@ def sort_roi_rows(cifti_img):
 
 def get_weight_map(method = "L2Regression", 
                     cortex_roi = "Icosahedron1002", 
-                    cerebellum_roi = "NettekovenSym68c32",
+                    cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "SUIT3", 
                     extension = 'A8', 
                     dataset_name = "MDTB", 
@@ -166,7 +166,7 @@ def get_scale_map(method = "L2Regression",
 def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
     cifti_img = get_weight_map(method = "L2Regression", 
                                 cortex_roi = "Icosahedron1002", 
-                                cerebellum_roi = "NettekovenSym68c32",
+                                cerebellum_roi = "NettekovenSym32",
                                 cerebellum_atlas = "SUIT3", 
                                 extension = extension, 
                                 dataset_name = dataset, 
@@ -174,22 +174,18 @@ def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
                                 train_t = "train"+ext
                                 )
     fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_L2_{extension}.pscalar.nii'
-    cifti_img = sort_roi_rows(cifti_img)
+    # cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
 
 if __name__ == "__main__":
-    make_weight_map('Demand','A6')
+    make_weight_map('Demand','A8')
     make_weight_map('HCP','A-2')
     make_weight_map('IBC','A6')
     make_weight_map('MDTB','A8')
-    make_weight_map('Somatotopic','A6')
-    make_weight_map('WMFS','A6')
+    make_weight_map('Somatotopic','A8')
+    make_weight_map('WMFS','A8')
     make_weight_map('Nishimoto','A10')
     make_weight_map('Fusion','05')
     make_weight_map('Fusion','06')
-
-    #cifti_img = get_scale_map(method = "L2Regression")
-    # nb.save(cifti_img,gl.conn_dir + '/maps/scale_factors.pscalar.nii')
-
     pass
