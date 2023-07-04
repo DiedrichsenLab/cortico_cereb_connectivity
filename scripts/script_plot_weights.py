@@ -179,13 +179,15 @@ def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
 
 
 if __name__ == "__main__":
-    make_weight_map('Demand','A8')
-    make_weight_map('HCP','A-2')
-    make_weight_map('IBC','A6')
-    make_weight_map('MDTB','A8')
-    make_weight_map('Somatotopic','A8')
-    make_weight_map('WMFS','A8')
-    make_weight_map('Nishimoto','A10')
-    make_weight_map('Fusion','05')
+    # make_weight_map('Demand','A8')
+    # make_weight_map('HCP','A-2')
+    # make_weight_map('IBC','A6')
+    # make_weight_map('MDTB','A8')
+    # make_weight_map('Somatotopic','A8')
+    # make_weight_map('WMFS','A8')
+    # make_weight_map('Nishimoto','A10')
+    # make_weight_map('Fusion','05')
+    # make_weight_map('Fusion','06')
+
     make_weight_map('Fusion','06')
     pass

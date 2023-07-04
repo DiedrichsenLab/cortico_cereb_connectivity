@@ -1,2 +1,3 @@
 globals.py
 *.pyc
+env/
