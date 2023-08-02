@@ -194,17 +194,28 @@ def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
 
     T = []
     for i,h in enumerate(["L","R"]):
+        A=surf_data[i].copy()
+        A[A<0]=0
         for k in range(max(label[i])):
             m=np.nanmean(surf_data[i][:,label[i]==k+1],axis=1)
             t={'cereb_region':clabel_names,
                'fs_region':label_names[k+1],
                'hemisphere':h,
-               'weight':m}
+               'weight':m,
+               'sizeR':np.sum(label[i]==k+1),
+               'totalW':np.nansum(A[:,label[i]==k+1])}
             T.append(pd.DataFrame(t))
     T = pd.concat(T,ignore_index=True)
     return T 
 
 
+import matplotlib.pyplot as plt
+import seaborn as sb
 if __name__ == "__main__":
     T= make_weight_table('Fusion','06')
+    D=pd.pivot_table(T,index='fs_region',values=['sizeR','totalW'])
+    sb.scatterplot(D,x='sizeR',y='totalW')
+    # add labels to all points
+    for (xi, yi,name,) in zip(D.sizeR, D.totalW,D.index):
+        plt.text(xi, yi, name, va='bottom', ha='center')
     pass
