@@ -1,6 +1,6 @@
 """
-script for getting group average weights
-@ Ladan Shahshahani Jan 30 2023 12:57
+Script to summarize the group average weights based on 
+ROIs 
 """
 import os
 import numpy as np
@@ -18,6 +18,7 @@ from pathlib import Path
 import warnings
 
 def sort_roi_rows(cifti_img):
+    """ sort the rows of a cifti image alphabetically by the name of the cerebellar parcel"""
     row_axis = cifti_img.header.get_axis(0)
     p_axis = cifti_img.header.get_axis(1)
     indx = row_axis.name.argsort()
@@ -36,7 +37,6 @@ def get_weight_map(method = "L2Regression",
                     ses_id = "ses-s1",
                     train_t = 'train'
                     ):
-
     """ make cifti image for the connectivity weights
     Uses the avg model to get the weights, average the weights for voxels within a cerebellar parcel
     creates cortical maps of average connectivity weights.
@@ -114,7 +114,6 @@ def get_scale_map(method = "L2Regression",
                     ses_id = "all",
                     type = "pscalar"
                     ):
-
     """ make cifti image for the scale factor across datasets
     Args: 
         method (str) - connectivity method used to estimate weights
@@ -164,6 +163,7 @@ def get_scale_map(method = "L2Regression",
     return cifti_img
 
 def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
+    """Convenience functions to generate the weight maps for the Nettekoven dataset"""
     cifti_img = get_weight_map(method = "L2Regression", 
                                 cortex_roi = "Icosahedron1002", 
                                 cerebellum_roi = "NettekovenSym32",
@@ -177,15 +177,34 @@ def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
     # cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
+def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"): 
+    """ Generate a from the cifti-files summarizing the input based on the Yeo parcellation"""
+    fname = gl.conn_dir + f'/{"maps"}/{dataset}_L2_{extension}.pscalar.nii'
+    # cifti_img = sort_roi_rows(cifti_img)
+    data = nb.load(fname)
+    surf_data = nt.surf_from_cifti(data)
+    
+    label = []
+    for i,h in enumerate(["L","R"]):
+        lname = gl.atlas_dir + f"/tpl-fs32k/{cortical_roi}.{h}.label.gii"
+        gii = nb.load(lname)
+        label.append(gii.agg_data())
+    label_names = nt.get_gifti_labels(gii)
+    clabel_names = data.header.get_axis(0).name    
+
+    T = []
+    for i,h in enumerate(["L","R"]):
+        for k in range(max(label[i])):
+            m=np.nanmean(surf_data[i][:,label[i]==k+1],axis=1)
+            t={'cereb_region':clabel_names,
+               'fs_region':label_names[k+1],
+               'hemisphere':h,
+               'weight':m}
+            T.append(pd.DataFrame(t))
+    T = pd.concat(T,ignore_index=True)
+    return T 
+
 
 if __name__ == "__main__":
-    make_weight_map('Demand','A8')
-    make_weight_map('HCP','A-2')
-    make_weight_map('IBC','A6')
-    make_weight_map('MDTB','A8')
-    make_weight_map('Somatotopic','A8')
-    make_weight_map('WMFS','A8')
-    make_weight_map('Nishimoto','A10')
-    make_weight_map('Fusion','05')
-    make_weight_map('Fusion','06')
+    T= make_weight_table('Fusion','06')
     pass
