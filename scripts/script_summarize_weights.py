@@ -34,7 +34,7 @@ def get_weight_map(method = "L2Regression",
                     cerebellum_atlas = "SUIT3", 
                     extension = 'A8', 
                     dataset_name = "MDTB", 
-                    ses_id = "ses-s1",
+                    ses_id = "all",
                     train_t = 'train'
                     ):
     """ make cifti image for the connectivity weights
@@ -190,8 +190,7 @@ def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
         gii = nb.load(lname)
         label.append(gii.agg_data())
     label_names = nt.get_gifti_labels(gii)
-    clabel_names = data.header.get_axis(0).name    
-
+    clabel_names = data.header.get_axis(0).name
     T = []
     for i,h in enumerate(["L","R"]):
         A=surf_data[i].copy()
@@ -208,14 +207,75 @@ def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
     T = pd.concat(T,ignore_index=True)
     return T 
 
+def get_weight_by_cortex(method = "L2Regression", 
+                    cortex_roi = "Icosahedron1002", 
+                    cerebellum_atlas = "SUIT3", 
+                    extension = 'A8', 
+                    dataset_name = "MDTB", 
+                    ses_id = "all",
+                    train_t = 'train',
+                    sum_cortex = 'yeo17',
+                    sum_method = 'positive'
+                    ):
+    """ Make table of the connectivity weights for each cortical parcel, 
+    averaged across the entire cerebellum. 
+    """
+    # make model name
+    m_basename = f"{dataset_name}_{ses_id}_{cortex_roi}_{method}"
+    # load in the connectivity average connectivity model
+    fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
+
+    # load the avg model
+    model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
+
+    # get the weights
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore",category=RuntimeWarning)
+        weights = model.coef_/model.scale_
+
+    # prepping the parcel axis file
+    ## make atlas object first
+    atlas_fs, _ = am.get_atlas("fs32k", gl.atlas_dir)
+
+    # load the label file for the cortex
+    label_conn_fname = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+
+    # get parcels for the neocortex
+    label_conn, l_conn = atlas_fs.get_parcel(label_conn_fname, unite_struct = False)
+
+    # load the label file for summarizing the cortex
+    label_sum_fname = [gl.atlas_dir + f"/tpl-fs32k/{sum_cortex}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    label_sum, l_sum = atlas_fs.get_parcel(label_sum_fname, unite_struct = True)
+
+    # Expand data, threshold, and then summarize
+    ex_weights = weights[:,label_conn-1]
+    if sum_method == 'positive':
+        ex_weights[ex_weights<0]=0
+
+    # Get region names and colors
+    gii = nb.load(label_sum_fname[0])
+    label_names = nt.get_gifti_labels(gii)
+    colors,_ = nt.get_gifti_colortable(gii)
+
+    # Summarize the data
+    N = l_sum.shape[0]
+    cort_size = np.zeros(N,)
+    weight_sum = np.zeros((N,))
+    for l in l_sum:
+        cort_size[l-1] = np.sum(label_sum==l)
+        weight_sum[l-1] = np.nansum(ex_weights[:,label_sum==l])
+    cort_size = cort_size/cort_size.sum()*100
+    weight_sum = weight_sum/weight_sum.sum()*100    
+    
+    T = pd.DataFrame({'cort_size':cort_size,
+                        'cereb_size':weight_sum,
+                        'name':label_names[1:]})
+    return T,colors[1:,:]
+
+
 
 import matplotlib.pyplot as plt
 import seaborn as sb
 if __name__ == "__main__":
-    T= make_weight_table('Fusion','06')
-    D=pd.pivot_table(T,index='fs_region',values=['sizeR','totalW'])
-    sb.scatterplot(D,x='sizeR',y='totalW')
-    # add labels to all points
-    for (xi, yi,name,) in zip(D.sizeR, D.totalW,D.index):
-        plt.text(xi, yi, name, va='bottom', ha='center')
+    T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
     pass
