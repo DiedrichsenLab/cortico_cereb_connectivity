@@ -22,7 +22,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  type = "CondHalf",
                  train_ses = 'all',
                  dataset = "MDTB",
-                 add_rest = False,
+                 add_rest = True,
                  parcellation = "Icosahedron1002",
                  subj_list = "all", 
                  cerebellum='SUIT3', 
@@ -163,8 +163,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 def train_all():
-   ED=["Nishimoto","IBC",'Somatotopic','Demand'] # 
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
+   ED=["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
                   train_ses = 'all',
@@ -175,11 +175,30 @@ def train_all():
                   add_rest=True,
                   logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
+def train_all_wta():
+   ED=['HCP'] # ["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ET=['Tseries'] # ["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
+   for ed,et in zip(ED,ET):
+      if et=='Tseries':
+         ar= False
+      else: 
+         ar= True 
+      train_models(dataset = ed,method='WTA',
+                  train_ses = 'all',
+                  cerebellum='SUIT3',
+                  parcellation = "Icosahedron1002",
+                  validate_model=False,
+                  type = et,
+                  crossed='half',
+                  add_rest=ar,
+                  logalpha_list = [None])
+
 def avrg_all():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
+                  
                  train_ses= "all",
                  cerebellum='SUIT3',
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
@@ -228,4 +247,4 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    # 
-   eval_all()
+   train_all_wta()
