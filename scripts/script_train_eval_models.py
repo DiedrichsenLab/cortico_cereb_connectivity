@@ -181,15 +181,17 @@ def train_all_wta():
    for ed,et in zip(ED,ET):
       if et=='Tseries':
          ar= False
+         cr=None
       else: 
-         ar= True 
+         ar= True
+         cr= 'half' 
       train_models(dataset = ed,method='WTA',
                   train_ses = 'all',
                   cerebellum='SUIT3',
                   parcellation = "Icosahedron1002",
                   validate_model=False,
                   type = et,
-                  crossed='half',
+                  crossed=cr,
                   add_rest=ar,
                   logalpha_list = [None])
 
