@@ -57,7 +57,9 @@ def get_weight_map(method = "L2Regression",
     fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
 
     # load the avg model
-    model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
+    if (len(extension) > 0) and extension[0] != "_":
+        extension = "_" + extension
+    model = dd.io.load(fpath + f"/{m_basename}{extension}_avg.h5")
 
     # get the weights
     with warnings.catch_warnings():
@@ -162,9 +164,9 @@ def get_scale_map(method = "L2Regression",
     cifti_img = nb.Cifti2Image(data, header=header)
     return cifti_img
 
-def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
+def make_weight_map(dataset= "HCP",extension = '_A0',ext="",method="L2Regression"):
     """Convenience functions to generate the weight maps for the Nettekoven dataset"""
-    cifti_img = get_weight_map(method = "L2Regression", 
+    cifti_img = get_weight_map(method = method, 
                                 cortex_roi = "Icosahedron1002", 
                                 cerebellum_roi = "NettekovenSym32",
                                 cerebellum_atlas = "SUIT3", 
@@ -173,7 +175,7 @@ def make_weight_map(dataset= "HCP",extension = 'A0',ext=""):
                                 ses_id = "all",
                                 train_t = "train"+ext
                                 )
-    fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_L2_{extension}.pscalar.nii'
+    fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_{method[:2]}{extension}.pscalar.nii'
     # cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
@@ -277,5 +279,13 @@ def get_weight_by_cortex(method = "L2Regression",
 import matplotlib.pyplot as plt
 import seaborn as sb
 if __name__ == "__main__":
-    T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
+    make_weight_map(dataset= "MDTB",extension = '',method="WTA")
+    make_weight_map(dataset= "Demand",extension = '',method="WTA")
+    make_weight_map(dataset= "WMFS",extension = '',method="WTA")
+    make_weight_map(dataset= "Nishimoto",extension = '',method="WTA")
+    make_weight_map(dataset= "Somatotopic",extension = '',method="WTA")
+    make_weight_map(dataset= "IBC",extension = '',method="WTA")
+    make_weight_map(dataset= "HCP",extension = '',method="WTA")
+    # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
     pass
+    # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"], 
