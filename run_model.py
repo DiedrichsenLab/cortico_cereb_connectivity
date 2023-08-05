@@ -436,7 +436,7 @@ def get_fitted_models(model_dirs,model_names,config):
       train_info = []
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         ext = m.split('_')[-1]
+         ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
                                  subj=config['subj_list'],
                                  avrg_mode='loo_sep')
@@ -598,7 +598,7 @@ def calc_avrg_model(train_dataset,
        train_dataset (str): _description_
        mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression)
        mname_ext (str): Extension of name - typically logalpha
-       (A0)
+       (_A0)
        parameters (list): List of parameters to average
    """
 
@@ -629,8 +629,8 @@ def calc_avrg_model(train_dataset,
    for sub in subject_list:
       print(f"- getting weights for {sub}")
       # load the model
-      fname = model_path + f"/{mname_base}_{mname_ext}_{sub}.h5"
-      info_name = model_path + f"/{mname_base}_{mname_ext}_{sub}.json"
+      fname = model_path + f"/{mname_base}{mname_ext}_{sub}.h5"
+      info_name = model_path + f"/{mname_base}{mname_ext}_{sub}.json"
       fitted_model = dd.io.load(fname)
 
       # load the json file

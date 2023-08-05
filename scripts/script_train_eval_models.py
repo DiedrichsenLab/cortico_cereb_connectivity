@@ -70,7 +70,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    for la in logalpha_list: 
       if la is not None:
          # Generate new model
-         mname_ext = f"A{la}"
+         mname_ext = f"_A{la}"
       else:
          mname_ext = f""
 
@@ -80,9 +80,9 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                          cerebellum=cerebellum,
                          parameters=parameters,
                          avrg_mode=avrg_mode)
-      dd.io.save(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.h5",
+      dd.io.save(model_path + f"/{mname_base}{mname_ext}_{avg_id}.h5",
          avrg_model, compression=None)
-      with open(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.json", 'w') as fp:
+      with open(model_path + f"/{mname_base}{mname_ext}_{avg_id}.json", 'w') as fp:
          json.dump(info, fp, indent=4)
 
 
@@ -205,6 +205,16 @@ def avrg_all():
                  cerebellum='SUIT3',
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
+def avrg_all_wta():
+   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
+   for ed,et in zip(ED,ET):
+      avrg_model(train_data = ed,
+               method='WTA',                  
+                 train_ses= "all",
+                 cerebellum='SUIT3',
+                 logalpha_list = [None])
+
 def eval_all(): 
    TD = ["HCP"]
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
@@ -249,4 +259,9 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    # 
-   train_all_wta()
+   avrg_model(train_data = 'HCP',
+               method='WTA',                  
+                 train_ses= "all",
+                 cerebellum='SUIT3',
+                 logalpha_list = [None])
+   # avrg_all_wta()
