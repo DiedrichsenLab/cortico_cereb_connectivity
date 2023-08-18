@@ -22,7 +22,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  type = "CondHalf",
                  train_ses = 'all',
                  dataset = "MDTB",
-                 add_rest = False,
+                 add_rest = True,
                  parcellation = "Icosahedron1002",
                  subj_list = "all", 
                  cerebellum='SUIT3', 
@@ -70,7 +70,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    for la in logalpha_list: 
       if la is not None:
          # Generate new model
-         mname_ext = f"A{la}"
+         mname_ext = f"_A{la}"
       else:
          mname_ext = f""
 
@@ -80,9 +80,9 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                          cerebellum=cerebellum,
                          parameters=parameters,
                          avrg_mode=avrg_mode)
-      dd.io.save(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.h5",
+      dd.io.save(model_path + f"/{mname_base}{mname_ext}_{avg_id}.h5",
          avrg_model, compression=None)
-      with open(model_path + f"/{mname_base}_{mname_ext}_{avg_id}.json", 'w') as fp:
+      with open(model_path + f"/{mname_base}{mname_ext}_{avg_id}.json", 'w') as fp:
          json.dump(info, fp, indent=4)
 
 
@@ -163,8 +163,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 def train_all():
-   ED=["Nishimoto","IBC",'Somatotopic','Demand'] # 
-   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
+   ED=["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
                   train_ses = 'all',
@@ -175,14 +175,45 @@ def train_all():
                   add_rest=True,
                   logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
+def train_all_wta():
+   ED=['HCP'] # ["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ET=['Tseries'] # ["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
+   for ed,et in zip(ED,ET):
+      if et=='Tseries':
+         ar= False
+         cr=None
+      else: 
+         ar= True
+         cr= 'half' 
+      train_models(dataset = ed,method='WTA',
+                  train_ses = 'all',
+                  cerebellum='SUIT3',
+                  parcellation = "Icosahedron1002",
+                  validate_model=False,
+                  type = et,
+                  crossed=cr,
+                  add_rest=ar,
+                  logalpha_list = [None])
+
 def avrg_all():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
+                  
                  train_ses= "all",
                  cerebellum='SUIT3',
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
+
+def avrg_all_wta():
+   ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
+   ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
+   for ed,et in zip(ED,ET):
+      avrg_model(train_data = ed,
+               method='WTA',                  
+                 train_ses= "all",
+                 cerebellum='SUIT3',
+                 logalpha_list = [None])
 
 def eval_all(): 
    TD = ["HCP"]
@@ -228,4 +259,9 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    # 
-   eval_all()
+   avrg_model(train_data = 'HCP',
+               method='WTA',                  
+                 train_ses= "all",
+                 cerebellum='SUIT3',
+                 logalpha_list = [None])
+   # avrg_all_wta()
