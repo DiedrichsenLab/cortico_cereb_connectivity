@@ -124,6 +124,11 @@ class WTA(BaseEstimator, Model):
         super().__init__()
 
     def fit(self, X, Y):
+        """ Coefficients are the Y'T X between cortical and cerebellar data
+        self.scale_: standard deviation of cortical data
+        self.coef_: regression coefficient between cortical and cerebellar data for best cortical parcel
+        self.labels: 1-based index for the best cortical parcel
+        """
         self.scale_ = np.sqrt(np.sum(X ** 2, 0) / X.shape[0])
         Xs = X / self.scale_
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
