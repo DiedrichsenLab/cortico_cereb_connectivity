@@ -11,6 +11,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.data as cdata
+import cortico_cereb_connectivity.cio as cio
 import Functional_Fusion.atlas_map as am
 import nitools as nt
 import json
@@ -28,7 +29,7 @@ def sort_roi_rows(cifti_img):
     cifti_img_new = nb.Cifti2Image(data, header=header)
     return cifti_img_new
 
-def get_weight_map(method = "L2Regression",
+def avrg_weight_map(method = "L2Regression",
                     cortex_roi = "Icosahedron1002",
                     cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "SUIT3",
@@ -67,48 +68,29 @@ def get_weight_map(method = "L2Regression",
         warnings.simplefilter("ignore",category=RuntimeWarning)
         weights = model.coef_/model.scale_
 
-    # prepping the parcel axis file
-    ## make atlas object first
-    atlas_fs, _ = am.get_atlas("fs32k", gl.atlas_dir)
-
-    # load the label file for the cortex
+    # label file for the cortex
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
-    # get parcels for the neocortex
-    _, label_fs = atlas_fs.get_parcel(label_fs, unite_struct = False)
-
-    # getting parcel info for the cerebellum
-    atlas_suit, _ = am.get_atlas(cerebellum_atlas, gl.atlas_dir)
-
-    # load the label file for the cerebellum
+    # label file for the cerebellum
     label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-SUIT_dseg.nii"
 
-    # getting parcels for the cerebellum
-    atlas_suit.get_parcel(label_suit)
-
     # get the average cortical weights for each cerebellar parcel
+    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
+    atlas_suit.get_parcel(label_suit)
     weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_suit.label_vector, fcn=np.nanmean)
 
-    # preping the parcel axis
-    ## load the lookup table for the cerebellar parcellation to get the names of the parcels
+    # load the lookup table for the cerebellar parcellation to get the names of the parcels
     index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
 
-    # create parcel axis for the cortex (will be used as column axis in pscalar file)
-    p_axis = atlas_fs.get_parcel_axis()
-
-    # generate row axis with the last rowi being the scale
-    row_axis = nb.cifti2.ScalarAxis(labels[1:])
-    data = weights_parcel.T
-
-    # make header
-    ## rows are maps corresponding to cerebellar parcels
-    ## columns are cortical tessels
-    header = nb.Cifti2Header.from_axes((row_axis, p_axis))
-    cifti_img = nb.Cifti2Image(data, header=header)
-
+    cifti_img = cio.model_to_cifti(weights_parcel.T,
+                                   src_atlas = "fs32k",
+                                   trg_atlas = cerebellum_atlas,
+                                   src_roi = label_fs,
+                                   trg_roi = labels[1:],
+                                   type = 'scalar')
     return cifti_img
 
-def get_scale_map(method = "L2Regression",
+def avrg_scale_map(method = "L2Regression",
                     cortex_roi = "Icosahedron1002",
                     cerebellum_roi = "NettekovenSym68c32",
                     cerebellum_atlas = "SUIT3",
@@ -165,9 +147,9 @@ def get_scale_map(method = "L2Regression",
     cifti_img = nb.Cifti2Image(data, header=header)
     return cifti_img
 
-def make_weight_map(dataset= "HCP",extension = '_A0',ext="",method="L2Regression"):
+def make_avrg_weight_map(dataset= "HCP",extension = 'A0',ext="",method="L2Regression"):
     """Convenience functions to generate the weight maps for the Nettekoven dataset"""
-    cifti_img = get_weight_map(method = method,
+    cifti_img = avrg_weight_map(method = method,
                                 cortex_roi = "Icosahedron1002",
                                 cerebellum_roi = "NettekovenSym32",
                                 cerebellum_atlas = "SUIT3",
@@ -176,6 +158,8 @@ def make_weight_map(dataset= "HCP",extension = '_A0',ext="",method="L2Regression
                                 ses_id = "all",
                                 train_t = "train"+ext
                                 )
+    if (len(extension) > 0) and extension[0] != "_":
+        extension = "_" + extension
     fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_{method[:2]}{extension}.pscalar.nii'
     # cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
@@ -275,18 +259,69 @@ def get_weight_by_cortex(method = "L2Regression",
                         'name':label_names[1:]})
     return T,colors[1:,:]
 
+def export_model_as_cifti(method = "L2Regression",
+                    cortex_roi = "Icosahedron1002",
+                    cerebellum_atlas = "SUIT3",
+                    extension = 'A8',
+                    dataset_name = "MDTB",
+                    ses_id = "all",
+                    ):
+    # make model name
+    m_basename = f"{dataset_name}_{ses_id}_{cortex_roi}_{method}"
+    # load in the connectivity average connectivity model
+    fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
+
+    # load the avg model
+    if (len(extension) > 0) and extension[0] != "_":
+        extension = "_" + extension
+    model = dd.io.load(fpath + f"/{m_basename}{extension}_avg.h5")
+
+    # get the weights
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore",category=RuntimeWarning)
+        weights = model.coef_/model.scale_
+
+    # label file for the cortex
+    label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+
+    cifti_img = cio.model_to_cifti(weights,
+                                   src_atlas = "fs32k",
+                                   trg_atlas = cerebellum_atlas,
+                                   src_roi = label_fs,
+                                   trg_roi = None,
+                                   type = 'conn')
+    
+    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.pdconn.nii'
+    nb.save(cifti_img,fname)
 
 
-import matplotlib.pyplot as plt
-import seaborn as sb
+    cifti_img = cio.model_to_cifti(weights,
+                                   src_atlas = "fs32k",
+                                   trg_atlas = cerebellum_atlas,
+                                   src_roi = label_fs,
+                                   trg_roi = None,
+                                   type = 'scalar')
+    
+    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.pscalar.nii'
+    nb.save(cifti_img,fname)
+
+    return 
+
+
+    
+
+
+
 if __name__ == "__main__":
-    make_weight_map(dataset= "MDTB",extension = '',method="WTA")
-    make_weight_map(dataset= "Demand",extension = '',method="WTA")
-    make_weight_map(dataset= "WMFS",extension = '',method="WTA")
-    make_weight_map(dataset= "Nishimoto",extension = '',method="WTA")
-    make_weight_map(dataset= "Somatotopic",extension = '',method="WTA")
-    make_weight_map(dataset= "IBC",extension = '',method="WTA")
-    make_weight_map(dataset= "HCP",extension = '',method="WTA")
+    export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
+    # make_avrg_weight_map(dataset= "Fusion",extension = '06',method="L2Regression")
+    # make_avrg_weight_map(dataset= "MDTB",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "Demand",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "WMFS",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "Nishimoto",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "Somatotopic",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "IBC",extension = '',method="WTA")
+    # make_avrg_weight_map(dataset= "HCP",extension = '',method="WTA")
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
     pass
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
