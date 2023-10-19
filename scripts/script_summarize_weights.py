@@ -290,25 +290,25 @@ def export_model_as_cifti(method = "L2Regression",
                                    src_roi = label_fs,
                                    trg_roi = None,
                                    type = 'conn')
-    
+
     fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.pdconn.nii'
     nb.save(cifti_img,fname)
 
 
-    cifti_img = cio.model_to_cifti(weights,
-                                   src_atlas = "fs32k",
-                                   trg_atlas = cerebellum_atlas,
-                                   src_roi = label_fs,
-                                   trg_roi = None,
-                                   type = 'scalar')
-    
-    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.pscalar.nii'
+    cifti_img = cio.model_to_cifti(weights.T,
+                                   src_atlas = cerebellum_atlas,
+                                   trg_atlas = "fs32k",
+                                   src_roi = None,
+                                   trg_roi = label_fs,
+                                   type = 'conn')
+
+    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.dpconn.nii'
     nb.save(cifti_img,fname)
 
-    return 
+    return
 
 
-    
+
 
 
 
