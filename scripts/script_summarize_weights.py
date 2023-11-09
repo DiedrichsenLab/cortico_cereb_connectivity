@@ -38,9 +38,7 @@ def avrg_weight_map(method = "L2Regression",
                     ses_id = "all",
                     train_t = 'train'
                     ):
-    """ make cifti image for the connectivity weights
-    Uses the avg model to get the weights, average the weights for voxels within a cerebellar parcel
-    creates cortical maps of average connectivity weights.
+    """ makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
 
     Args:
         method (str) - connectivity method used to estimate weights
@@ -259,69 +257,35 @@ def get_weight_by_cortex(method = "L2Regression",
                         'name':label_names[1:]})
     return T,colors[1:,:]
 
-def export_model_as_cifti(method = "L2Regression",
-                    cortex_roi = "Icosahedron1002",
-                    cerebellum_atlas = "SUIT3",
-                    extension = 'A8',
-                    dataset_name = "MDTB",
-                    ses_id = "all",
-                    ):
-    # make model name
-    m_basename = f"{dataset_name}_{ses_id}_{cortex_roi}_{method}"
-    # load in the connectivity average connectivity model
-    fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
+def make_all_weight_maps_WTA():
+    make_avrg_weight_map(dataset= "MDTB",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "Demand",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "WMFS",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "Nishimoto",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "Somatotopic",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "IBC",extension = '',method="WTA")
+    make_avrg_weight_map(dataset= "HCP",extension = '',method="WTA")
 
-    # load the avg model
-    if (len(extension) > 0) and extension[0] != "_":
-        extension = "_" + extension
-    model = dd.io.load(fpath + f"/{m_basename}{extension}_avg.h5")
-
-    # get the weights
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore",category=RuntimeWarning)
-        weights = model.coef_/model.scale_
-
-    # label file for the cortex
-    label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
-
-    cifti_img = cio.model_to_cifti(weights,
-                                   src_atlas = "fs32k",
-                                   trg_atlas = cerebellum_atlas,
-                                   src_roi = label_fs,
-                                   trg_roi = None,
-                                   type = 'conn')
-
-    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.pdconn.nii'
-    nb.save(cifti_img,fname)
-
-
-    cifti_img = cio.model_to_cifti(weights.T,
-                                   src_atlas = cerebellum_atlas,
-                                   trg_atlas = "fs32k",
-                                   src_roi = None,
-                                   trg_roi = label_fs,
-                                   type = 'conn')
-
-    fname = gl.conn_dir + f'/{"maps"}/{dataset_name}_{method[:2]}_{cerebellum_atlas}_{cortex_roi}.dpconn.nii'
-    nb.save(cifti_img,fname)
-
-    return
-
+def make_all_weight_maps_L2():
+    make_avrg_weight_map(dataset= "Fusion",extension = '06',method="L2Regression")
+    make_avrg_weight_map(dataset= "Fusion",extension = '05',method="L2Regression")
+    make_avrg_weight_map(dataset= "MDTB",extension = 'A8',method="L2Regression")
+    make_avrg_weight_map(dataset= "Demand",extension = 'A8',method="L2Regression")
+    make_avrg_weight_map(dataset= "WMFS",extension = 'A8',method="L2Regression")
+    make_avrg_weight_map(dataset= "Nishimoto",extension = 'A10',method="L2Regression")
+    make_avrg_weight_map(dataset= "Somatotopic",extension = 'A8',method="L2Regression")
+    make_avrg_weight_map(dataset= "IBC",extension = 'A6',method="L2Regression")
+    make_avrg_weight_map(dataset= "HCP",extension = 'A-2',method="L2Regression")
 
 
 
 
 
 if __name__ == "__main__":
-    export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-    # make_avrg_weight_map(dataset= "Fusion",extension = '06',method="L2Regression")
-    # make_avrg_weight_map(dataset= "MDTB",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "Demand",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "WMFS",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "Nishimoto",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "Somatotopic",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "IBC",extension = '',method="WTA")
-    # make_avrg_weight_map(dataset= "HCP",extension = '',method="WTA")
+    # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
+
+    make_all_weight_maps_L2()
+    make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
     pass
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
