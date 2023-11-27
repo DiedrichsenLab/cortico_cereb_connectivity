@@ -164,6 +164,7 @@ def make_avrg_weight_map(dataset= "HCP",extension = 'A0',ext="",method="L2Regres
 
 def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
     """ Generate a from the cifti-files summarizing the input based on the Yeo parcellation"""
+    # Expand the data from the parcellation of the cortex to full surface
     fname = gl.conn_dir + f'/{"maps"}/{dataset}_L2_{extension}.pscalar.nii'
     # cifti_img = sort_roi_rows(cifti_img)
     data = nb.load(fname)
@@ -181,13 +182,12 @@ def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
         A=surf_data[i].copy()
         A[A<0]=0
         for k in range(max(label[i])):
-            m=np.nanmean(surf_data[i][:,label[i]==k+1],axis=1)
             t={'cereb_region':clabel_names,
                'fs_region':label_names[k+1],
                'hemisphere':h,
-               'weight':m,
                'sizeR':np.sum(label[i]==k+1),
-               'totalW':np.nansum(A[:,label[i]==k+1])}
+               'totalW':np.nansum(A[:,label[i]==k+1],axis=1),
+               'weight':np.nanmean(A[:,label[i]==k+1],axis=1)}
             T.append(pd.DataFrame(t))
     T = pd.concat(T,ignore_index=True)
     return T
