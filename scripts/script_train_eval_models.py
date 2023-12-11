@@ -25,14 +25,14 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  add_rest = True,
                  parcellation = "Icosahedron1002",
                  subj_list = "all", 
-                 cerebellum='SUIT3', 
+                 subcortex='SUIT3', 
                  method = "L2regression",
                  validate_model = True):
       
    config = rm.get_train_config(log_alpha = logalpha_list, 
                                 crossed = crossed,
                                 type = type,
-                                cerebellum=cerebellum,
+                                subcortex=subcortex,
                                 parcellation=parcellation, 
                                 train_dataset = dataset,
                                 method = method, 
@@ -60,13 +60,13 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                train_ses= "ses-s1",
                parcellation = 'Icosahedron1002',
                method='L2Regression',
-               cerebellum='SUIT3',
+               subcortex='SUIT3',
                parameters=['scale_','coef_'],
                avrg_mode = 'avrg_sep',
                avg_id = 'avg'):
 
    mname_base = f"{train_data}_{train_ses}_{parcellation}_{method}"
-   model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
+   model_path = gl.conn_dir + f"/{subcortex}/train/{mname_base}/"
    for la in logalpha_list: 
       if la is not None:
          # Generate new model
@@ -77,7 +77,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       avrg_model,info = rm.calc_avrg_model(train_data,
                          mname_base,
                          mname_ext,
-                         cerebellum=cerebellum,
+                         subcortex=subcortex,
                          parameters=parameters,
                          avrg_mode=avrg_mode)
       dd.io.save(model_path + f"/{mname_base}{mname_ext}_{avg_id}.h5",
@@ -91,7 +91,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 train_ses = "ses-s1",
                 method = "L2regression",
                 parcellation = "Icosahedron1002", 
-                cerebellum='SUIT3', 
+                subcortex='SUIT3', 
                 eval_dataset = ["Demand"],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
@@ -110,7 +110,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
        train_ses (str): _description_. Defaults to "ses-s1".
        method (str): _description_. Defaults to "L2regression".
        parcellation (str): _description_. Defaults to "Icosahedron1002".
-       cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
+       subcortex (str, optional): _description_. Defaults to 'SUIT3'.
        eval_dataset (list): _description_. Defaults to ["Demand"].
        eval_type (list): _description_. Defaults to ["CondHalf"].
        eval_ses (str): _description_. Defaults to "all".
@@ -127,7 +127,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                                  parcellation = parcellation,
                                  crossed = crossed, # "half", # or None
                                  type = eval_type[i],
-                                 cerebellum=cerebellum,
+                                 subcortex=subcortex,
                                  splitby = None,
                                  add_rest = add_rest,
                                  model=model)
@@ -145,7 +145,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
             mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
          
       df, df_voxels = rm.eval_model(dirname,mname,config)
-      save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+      save_path = gl.conn_dir+ f"/{subcortex}/eval"
 
       if not os.path.isdir(save_path):
          os.mkdir(save_path)
@@ -168,7 +168,7 @@ def train_all():
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
                   train_ses = 'all',
-                  cerebellum='SUIT3',
+                  subcortex='SUIT3',
                   validate_model=False,
                   type = et,
                   crossed='half',
@@ -187,7 +187,7 @@ def train_all_wta():
          cr= 'half' 
       train_models(dataset = ed,method='WTA',
                   train_ses = 'all',
-                  cerebellum='SUIT3',
+                  subcortex='SUIT3',
                   parcellation = "Icosahedron1002",
                   validate_model=False,
                   type = et,
@@ -202,7 +202,7 @@ def avrg_all():
       avrg_model(train_data = ed,
                   
                  train_ses= "all",
-                 cerebellum='SUIT3',
+                 subcortex='SUIT3',
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
 def avrg_all_wta():
@@ -212,7 +212,7 @@ def avrg_all_wta():
       avrg_model(train_data = ed,
                method='WTA',                  
                  train_ses= "all",
-                 cerebellum='SUIT3',
+                 subcortex='SUIT3',
                  logalpha_list = [None])
 
 def eval_all(): 
@@ -262,6 +262,6 @@ if __name__ == "__main__":
    avrg_model(train_data = 'HCP',
                method='WTA',                  
                  train_ses= "all",
-                 cerebellum='SUIT3',
+                 subcortex='SUIT3',
                  logalpha_list = [None])
    # avrg_all_wta()

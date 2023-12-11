@@ -32,7 +32,7 @@ def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1", 
                      method = "L2regression",
                      log_alpha = 8,
-                     cerebellum = "SUIT3",
+                     subcortex = "SUIT3",
                      cortex = "fs32k",
                      parcellation = "Icosahedron1002",
                      type = "CondHalf",
@@ -49,7 +49,7 @@ def get_train_config(train_dataset = "MDTB",
        ses_id (str, optional): _description_. Defaults to "ses-s1".
        method (str, optional): _description_. Defaults to "L2regression".
        log_alpha (int, optional): _description_. Defaults to 8.
-       cerebellum (str, optional): _description_. Defaults to "SUIT3".
+       subcortex (str, optional): _description_. Defaults to "SUIT3".
        cortex (str, optional): _description_. Defaults to "fs32k".
        parcellation (str, optional): _description_. Defaults to "Icosahedron-1002_Sym.32k".
        mode (str, optional): _description_. Defaults to "crossed".
@@ -65,7 +65,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_ses'] = train_ses
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
-   train_config['cerebellum'] = cerebellum
+   train_config['subcortex'] = subcortex
    train_config['cortex'] = cortex
    train_config['parcellation'] = parcellation
    train_config['crossed'] = crossed
@@ -86,7 +86,7 @@ def get_train_config(train_dataset = "MDTB",
 
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
-            cerebellum = 'SUIT3',
+            subcortex = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
             crossed = "half", # or None
@@ -100,7 +100,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config = {}
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
-   eval_config['cerebellum'] = cerebellum
+   eval_config['subcortex'] = subcortex
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
    eval_config['crossed'] = crossed
@@ -182,7 +182,7 @@ def eval_metrics(Y, Y_pred, info):
         data["noise_Y_R2_vox"],
     ) = ev.calculate_reliability(Y=Y, dataframe = info)
 
-    # Noise ceiling for predicted cerebellum (squared)
+    # Noise ceiling for predicted subcortex (squared)
     (
         data["noise_X_R"],
         data["noise_X_R_vox"],
@@ -273,7 +273,7 @@ def train_model(config):
 
    # Generate model name and create directory
    mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
-   save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',
+   save_path = os.path.join(gl.conn_dir,config['subcortex'],'train',
                                   mname)
    # check if the directory exists
    try:
@@ -292,7 +292,7 @@ def train_model(config):
    for i, sub in enumerate(config["subj_list"]):
       YY, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["train_dataset"],
-                                    atlas=config["cerebellum"],
+                                    atlas=config["subcortex"],
                                     sess=config["train_ses"],
                                     type=config["type"],
                                     subj=str(sub))
@@ -395,7 +395,7 @@ def get_fitted_models(model_dirs,model_names,config):
       if isinstance(config['model'][0],str):
          for ind in config['model']:
             for d,m in zip(model_dirs,model_names):
-               model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+               model_path = os.path.join(gl.conn_dir,config['subcortex'],'train',d)
                fname = model_path + f"/{m}_{ind}.h5"
                json_name = model_path + f"/{m}_{ind}.json"
                fitted_model.append(dd.io.load(fname))
@@ -411,7 +411,7 @@ def get_fitted_models(model_dirs,model_names,config):
          raise ValueError('config["model"] must be a list of strings or a list of models')
    elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         model_path = os.path.join(gl.conn_dir,config['subcortex'],'train',d)
          fname = model_path + f"/{m}_avg.h5"
          json_name = model_path + f"/{m}_avg.json"
          fitted_model.append(dd.io.load(fname))
@@ -421,7 +421,7 @@ def get_fitted_models(model_dirs,model_names,config):
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         model_path = os.path.join(gl.conn_dir,config['subcortex'],'train',d)
          fm=[]
          for sub in config['subj_list']:
             fname = model_path + f"/{m}_{sub}.h5"
@@ -435,7 +435,7 @@ def get_fitted_models(model_dirs,model_names,config):
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         model_path = os.path.join(gl.conn_dir,config['subcortex'],'train',d)
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
                                  subj=config['subj_list'],
@@ -479,7 +479,7 @@ def eval_model(model_dirs,model_names,config):
 
       YY, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["eval_dataset"],
-                                    atlas=config["cerebellum"],
+                                    atlas=config["subcortex"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
                                     subj=str(sub))
@@ -550,14 +550,14 @@ def eval_model(model_dirs,model_names,config):
 def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
-              cerebellum='SUIT3',
+              subcortex='SUIT3',
               eval_t = 'eval'):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
        models (list): Strings of eval_ids to include. Defaults to ['Md_s1'].
        eval_data (list): Evaldatasets _description_. Defaults to ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
-       cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
+       subcortex (str, optional): _description_. Defaults to 'SUIT3'.
 
    Returns:
        _type_: _description_
@@ -567,7 +567,8 @@ def comb_eval(models=['Md_s1'],
    for dataset in eval_data:
       for m in models:
          for meth in methods: 
-            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            f = gl.conn_dir + f'/{subcortex}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            print(f)
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
@@ -588,7 +589,7 @@ def comb_eval(models=['Md_s1'],
 def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
-                    cerebellum='SUIT3',
+                    subcortex='SUIT3',
                     parameters=['scale_','coef_'],
                     avrg_mode='avrg_sep',
                     subj='all'):
@@ -617,7 +618,7 @@ def calc_avrg_model(train_dataset,
       else:
          subject_list = [subj]
    # get the directory where models are saved
-   model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
+   model_path = gl.conn_dir + f"/{subcortex}/train/{mname_base}/"
 
    # Collect the parameters in lists
    param_lists={}
@@ -670,7 +671,7 @@ def calc_avrg_model(train_dataset,
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],
-           'cerebellum': df.cerebellum[0],
+           'subcortex': df.subcortex[0],
            'cortex': df.cortex[0],
            'method': df.method[0],
            'logalpha': float(df.logalpha[0]),
