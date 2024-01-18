@@ -45,7 +45,13 @@ def model_to_cifti(weight_matrix,
 
     # Getting ROIs for trg_atlas
     if type == 'conn':
-        if trg_roi is not None:
+        if isinstance(trg_roi,list):
+            # get parcel axis 
+            # make sure that get_parcel has been done before
+            trg_axis = trg_atlas.get_parcel_axis()
+            # change the names of the parcel axis to the ones in the list
+            trg_axis.name = np.array(trg_roi)
+        elif isinstance(trg_roi,str):
             trg_atlas.get_parcel(trg_roi)
             trg_axis = trg_atlas.get_parcel_axis()
         else:
