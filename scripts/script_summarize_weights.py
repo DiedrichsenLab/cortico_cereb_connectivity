@@ -33,10 +33,12 @@ def avrg_weight_map(method = "L2Regression",
                     cortex_roi = "Icosahedron1002",
                     cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "SUIT3",
+                    space = 'SUIT', 
                     extension = 'A8',
                     dataset_name = "MDTB",
                     ses_id = "all",
-                    train_t = 'train'
+                    train_t = 'train', 
+                    type = 'scalar'
                     ):
     """ makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
 
@@ -65,27 +67,31 @@ def avrg_weight_map(method = "L2Regression",
     with warnings.catch_warnings():
         warnings.simplefilter("ignore",category=RuntimeWarning)
         weights = model.coef_/model.scale_
+    
+    # get the atlas object
+    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
 
     # label file for the cortex
+    atlas_fs, _ = am.get_atlas("fs32k", gl.atlas_dir)
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    atlas_fs.get_parcel(label_fs)
 
     # label file for the cerebellum
-    label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-SUIT_dseg.nii"
+    label_suit = gl.atlas_dir + f"/{ainf['dir']}/atl-{cerebellum_roi}_space-{space}_dseg.nii"
 
     # get the average cortical weights for each cerebellar parcel
-    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
     atlas_suit.get_parcel(label_suit)
     weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_suit.label_vector, fcn=np.nanmean)
 
     # load the lookup table for the cerebellar parcellation to get the names of the parcels
-    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
+    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/{ainf['dir']}/atl-{cerebellum_roi}.lut")
 
     cifti_img = cio.model_to_cifti(weights_parcel.T,
-                                   src_atlas = "fs32k",
-                                   trg_atlas = cerebellum_atlas,
-                                   src_roi = label_fs,
-                                   trg_roi = labels[1:],
-                                   type = 'scalar')
+                                    src_atlas = atlas_fs,
+                                    trg_atlas = atlas_suit,
+                                    src_roi = label_fs,
+                                    trg_roi = labels[1:], # uses the label names to create the scalar axis
+                                    type = type)
     return cifti_img
 
 def avrg_scale_map(method = "L2Regression",
@@ -284,8 +290,19 @@ def make_all_weight_maps_L2():
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
 
-    make_all_weight_maps_L2()
-    make_all_weight_maps_WTA()
+    # make_all_weight_maps_L2()
+    # make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
+    cii_conn = avrg_weight_map(method = "L2Regression",
+                    cortex_roi = "Icosahedron1002",
+                    cerebellum_roi = "HarvardOxBg",
+                    cerebellum_atlas = "MNIAsymBg2",
+                    space="MNI152NLin6Asym",
+                    extension = 'A6',
+                    dataset_name = "MDTB",
+                    ses_id = "ses-s1",
+                    train_t = 'train', 
+                    type = 'scalar'
+                    )
     pass
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
