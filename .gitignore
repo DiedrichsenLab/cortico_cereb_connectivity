@@ -2,4 +2,5 @@ globals.py
 *.pyc
 env/
 .DS_Store
-*.nii
+*.pdconn.nii
+.vscode/
