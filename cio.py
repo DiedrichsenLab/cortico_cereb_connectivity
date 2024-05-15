@@ -23,7 +23,7 @@ def model_to_cifti(weight_matrix,
         weight_matrix (ndarray): connectivity weights (trg x src) 
         src_atlas (am.atlas or str): Atlas for the source space
         trg_atlas (am.atlas or str): Atlas for the target space
-        src_roi (str): ROI for the source space
+        src_roi (str): ROI for the source space (list of gifti-names)
         trg_roi (str): ROI for the target space
         type (str): type of cifti-file. 'conn' or 'scale'
     Returns:

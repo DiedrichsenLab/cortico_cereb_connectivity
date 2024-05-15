@@ -10,33 +10,72 @@ from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 from scipy import stats
 import cortico_cereb_connectivity.evaluation as ev 
-
-
+import cortico_cereb_connectivity.cio as cio
+import warnings
+import nibabel as nb
 """
 connectivity models
 A connectivity model is inherited from the sklearn class BaseEstimator
 such that Ridge, Lasso, ElasticNet and other models can
 be easily used.
 
-@authors: Maedbh King, Ladan Shahshahani, Jörn Diedrichsen
+@authors: Jörn Diedrichsen, Maedbh King, Ladan Shahshahani, 
 """
 class Model:
     def __init__(self, name = None):
         self.name = name
 
     def fit(self, X, Y):
-        """
-        NOT IMPLEMENTED YET
+        """ Fitting function needs to be implemented for each model 
         """
         return
+
     def predict(self, X):
         Xs = X / self.scale_
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T
+
     def to_dict(self):
         data = {"coef_": self.coef_}
         return data
+
+    def to_cifti(self,
+                 src_atlas, 
+                 trg_atlas, 
+                 src_roi = None, 
+                 trg_roi = None,
+                 fname = None):
+        """ Convert the weights to a cifti conn-image. """
         
+        # Integrate the scaling factor (if present) to the weights
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore",category=RuntimeWarning)
+            weights = self.coef_/self.scale_
+
+        # Convert the weights to a cifti image
+        cifti_img = cio.model_to_cifti(weights,
+                                   src_atlas,
+                                   trg_atlas,
+                                   src_roi,
+                                   trg_roi,
+                                   type = 'conn')
+
+        if fname is not None: 
+            nb.save(cifti_img,fname)
+        return cifti_img
+
+    def from_cifti(self, fname = None):  
+        """ Load the model weights from a cifti conn-image. 
+        
+        Args:
+            fname (str) - filename of the cifti image
+        Returns:
+            self (Model) - the model with the loaded weights
+        """     
+        C = nb.load(fname)
+        self.coef_ = C.get_fdata()
+        self.scale_ = np.ones(self.coef_.shape[1])
+        return self
 
 class L2regression(Ridge, Model):
     """

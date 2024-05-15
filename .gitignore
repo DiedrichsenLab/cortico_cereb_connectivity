@@ -2,3 +2,4 @@ globals.py
 *.pyc
 env/
 .DS_Store
+*.nii
