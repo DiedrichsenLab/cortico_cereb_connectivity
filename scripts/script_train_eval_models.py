@@ -1,5 +1,5 @@
 """
-script for training models 
+script for training models
 @ Ladan Shahshahani, Joern Diedrichsen Jan 30 2023 12:57
 """
 import os
@@ -17,37 +17,37 @@ import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
 import json
 
-def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
-                 crossed = "half", 
+def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
+                 crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
                  dataset = "MDTB",
                  add_rest = True,
                  parcellation = "Icosahedron1002",
-                 subj_list = "all", 
-                 cerebellum='SUIT3', 
+                 subj_list = "all",
+                 cerebellum='SUIT3',
                  method = "L2regression",
                  validate_model = True):
-      
-   config = rm.get_train_config(log_alpha = logalpha_list, 
+
+   config = rm.get_train_config(log_alpha = logalpha_list,
                                 crossed = crossed,
                                 type = type,
                                 cerebellum=cerebellum,
-                                parcellation=parcellation, 
+                                parcellation=parcellation,
                                 train_dataset = dataset,
-                                method = method, 
+                                method = method,
                                 train_ses=train_ses,
                                 add_rest=add_rest,
                                 validate_model=validate_model)
-   dataset = fdata.get_dataset_class(gl.base_dir, 
-                                    dataset=config["train_dataset"]) 
+   dataset = fdata.get_dataset_class(gl.base_dir,
+                                    dataset=config["train_dataset"])
    # get the list of trained connectivity models and training summary
    T = dataset.get_participants()
    if subj_list is None:
       config["subj_list"] = T.participant_id
    elif subj_list=='all':
       config["subj_list"] = T.participant_id
-   elif isinstance(subj_list[0],str): 
+   elif isinstance(subj_list[0],str):
       config["subj_list"] = subj_list
    else:
       config["subj_list"] = T.participant_id.iloc[subj_list]
@@ -67,7 +67,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 
    mname_base = f"{train_data}_{train_ses}_{parcellation}_{method}"
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
-   for la in logalpha_list: 
+   for la in logalpha_list:
       if la is not None:
          # Generate new model
          mname_ext = f"_A{la}"
@@ -90,8 +90,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
                 method = "L2regression",
-                parcellation = "Icosahedron1002", 
-                cerebellum='SUIT3', 
+                parcellation = "Icosahedron1002",
+                cerebellum='SUIT3',
                 eval_dataset = ["Demand"],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
@@ -104,7 +104,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    """_summary_
 
    Args:
-       ext_list (list): logalpha or other extension 
+       ext_list (list): logalpha or other extension
        type (str): _description_. Defaults to "CondHalf".
        train_dataset (str): _description_. Defaults to "MDTB".
        train_ses (str): _description_. Defaults to "ses-s1".
@@ -123,7 +123,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    """
    for i,ed in enumerate(eval_dataset):
       config = rm.get_eval_config(eval_dataset = ed,
-                                 eval_ses = eval_ses, 
+                                 eval_ses = eval_ses,
                                  parcellation = parcellation,
                                  crossed = crossed, # "half", # or None
                                  type = eval_type[i],
@@ -143,7 +143,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
             mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
          elif isinstance(a,str):
             mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
-         
+
       df, df_voxels = rm.eval_model(dirname,mname,config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
@@ -163,7 +163,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 def train_all():
-   ED=["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ED=["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] #
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
    for ed,et in zip(ED,ET):
       train_models(dataset = ed,method='L2regression',
@@ -176,15 +176,15 @@ def train_all():
                   logalpha_list = [-4,-2,0,2,4,6,8,10,12])
 
 def train_all_wta():
-   ED=['HCP'] # ["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] # 
+   ED=['HCP'] # ["MDTB","WMFS","Nishimoto","IBC",'Somatotopic','Demand','HCP'] #
    ET=['Tseries'] # ["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf","Tseries"]
    for ed,et in zip(ED,ET):
       if et=='Tseries':
          ar= False
          cr=None
-      else: 
+      else:
          ar= True
-         cr= 'half' 
+         cr= 'half'
       train_models(dataset = ed,method='WTA',
                   train_ses = 'all',
                   cerebellum='SUIT3',
@@ -200,7 +200,7 @@ def avrg_all():
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
-                  
+
                  train_ses= "all",
                  cerebellum='SUIT3',
                  logalpha_list = [-4,-2,0,2,4,6,8,10,12])
@@ -210,12 +210,12 @@ def avrg_all_wta():
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
    for ed,et in zip(ED,ET):
       avrg_model(train_data = ed,
-               method='WTA',                  
+               method='WTA',
                  train_ses= "all",
                  cerebellum='SUIT3',
                  logalpha_list = [None])
 
-def eval_all(): 
+def eval_all():
    TD = ["HCP"]
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    tID = ["Hc"] # ['Md','Wm','Ni','Ib','So','De']
@@ -228,14 +228,14 @@ def eval_all():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   train_ses="all",eval_id = tid)
 
-def eval_all_loo(): 
+def eval_all_loo():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo','So-loo','De-loo']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf",'CondHalf','CondHalf']
    for ed,et,eid in zip(ED,ET,eID):
       eval_models(eval_dataset = [ed], eval_type = [et],
                   crossed='half',
-                  train_dataset=ed, 
+                  train_dataset=ed,
                   train_ses="all",
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
@@ -251,16 +251,16 @@ if __name__ == "__main__":
    for et,tid in zip(TD,tID):
       eval_models(eval_dataset = ED, eval_type = ET,
                   crossed='half',
-                  train_dataset=et, 
+                  train_dataset=et,
                   ext_list = [8],
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
    # train_all()
    # avrg_all()
-   # 
+   #
    avrg_model(train_data = 'HCP',
-               method='WTA',                  
+               method='WTA',
                  train_ses= "all",
                  cerebellum='SUIT3',
                  logalpha_list = [None])
