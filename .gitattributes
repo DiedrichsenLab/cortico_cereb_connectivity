@@ -1,0 +1,2 @@
+*conn.nii filter=lfs diff=lfs merge=lfs -text
+*dscalar.nii filter=lfs diff=lfs merge=lfs -text
