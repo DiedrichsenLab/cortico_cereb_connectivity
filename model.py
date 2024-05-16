@@ -44,7 +44,8 @@ class Model:
                  trg_atlas, 
                  src_roi = None, 
                  trg_roi = None,
-                 fname = None):
+                 fname = None,
+                 dtype = 'float32'):
         """ Convert the weights to a cifti conn-image. """
         
         # Integrate the scaling factor (if present) to the weights
@@ -53,7 +54,7 @@ class Model:
             weights = self.coef_/self.scale_
 
         # Convert the weights to a cifti image
-        cifti_img = cio.model_to_cifti(weights,
+        cifti_img = cio.model_to_cifti(weights.astype(dtype),
                                    src_atlas,
                                    trg_atlas,
                                    src_roi,

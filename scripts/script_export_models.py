@@ -25,11 +25,11 @@ def export_model(model_name,model_ext,file_name,type='pdconn'):
     C = M.to_cifti(src_atlas=info['cortex'],
                     trg_atlas=info['cerebellum'],
                     src_roi=src_roi,
-                    fname=f'data/{file_name}')
+                    fname=f'data/{file_name}',
+                    dtype = 'float32')
 
 
 if __name__ == "__main__":
-    """
     export_model('MDTB_all_Icosahedron1002_L2regression','A8_avg','Nettekoven_2024_MDTB_L2.pdconn.nii')
     export_model('Demand_all_Icosahedron1002_L2regression','A8_avg','Nettekoven_2024_Demand_L2.pdconn.nii')
     export_model('HCP_all_Icosahedron1002_L2regression','A-2_avg','Nettekoven_2024_HCP_L2.pdconn.nii')
@@ -38,7 +38,6 @@ if __name__ == "__main__":
     export_model('Somatotopic_all_Icosahedron1002_L2regression','A8_avg','Nettekoven_2024_Somatotopic_L2.pdconn.nii')
     export_model('WMFS_all_Icosahedron1002_L2regression','A8_avg','Nettekoven_2024_WMFS_L2.pdconn.nii')
     export_model('Fusion_all_Icosahedron1002_L2regression','06_avg','Nettekoven_2024_Fusion_L2.pdconn.nii')
-    """
     export_model('MDTB_ses-s1_Icosahedron1002_L2Regression','A8_avg','Shahshahani_2024_MDTB_L2.pdconn.nii')
     export_model('MDTB_ses-s1_Icosahedron1002_L1Regression','A-5_avg','Shahshahani_2024_MDTB_L1.pdconn.nii')
     export_model('Fusion_all_Icosahedron1002_L2Regression','09_avg', 'Shahshahani_2024_Fusion_L2.pdconn.nii')
