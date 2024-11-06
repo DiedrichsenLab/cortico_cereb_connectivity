@@ -462,7 +462,18 @@ def get_fitted_models(model_dirs,model_names,config):
                                  mix_param=config['mix_param'])
          fitted_model.append(fm)
          train_info.append(fi)
-
+   elif config['model'].startswith('bayes'):
+      fitted_model = []
+      train_info = []
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         ext = '_' + m.split('_')[-1]
+         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
+                                 subj=config['subj_list'],
+                                 mix_subj=config['model_subj_list'],
+                                 avrg_mode=config['model'])
+         fitted_model.append(fm)
+         train_info.append(fi)
 
    
    return fitted_model, train_info
@@ -474,6 +485,7 @@ def eval_model(model_dirs,model_names,config):
    if config['model']=='ind' it will evaluate each subejct individually
    if config['model']=='loo' it will average all other subjects
    if config['model']=='mix' it will do: p*subject + (1-p)*loo
+   if config['model']=='bayes' it will integrate individual weights with bayes rule
    For 'ind', 'loo', and 'mix' training and evaluation dataset must be the same 
    Args:
       model_dirs (list)  - list of model directories
@@ -622,6 +634,95 @@ def comb_eval(models=['Md_s1'],
    return df
 
 
+def calc_wopt_var(sub_weight_variance_list:list,
+                  avrg_mode,
+                  subject_list):
+   S = len(subject_list)
+   if 'vox' not in avrg_mode:
+      sub_weight_variance_list = np.nanmean(sub_weight_variance_list, axis=1)
+   sub_weight_variance_reciprocal_list = [np.reciprocal(sub_weight_variance) for sub_weight_variance in sub_weight_variance_list]
+   wopt_variance_list = [np.nansum(np.delete(sub_weight_variance_reciprocal_list, s, axis=0), axis=0) for s in range(S)]
+   if 'vox' in avrg_mode:
+      for wopt_var in wopt_variance_list:
+         wopt_var[wopt_var == 0] = np.nan
+
+   # if 'vox' in avrg_mode:
+      # show
+      # plt.hist(wopt_variance, bins='auto')
+      # plt.title('Histogram of wopt_var')
+      # plt.show()
+
+      # print(f'Number of NaNs: {np.count_nonzero(np.isnan(wopt_variance))}')
+      # print(f'Indices of NaNs: {np.where(np.isnan(wopt_variance))[0]}')
+
+   return wopt_variance_list
+
+
+def calc_bayes_avrg(param_lists,
+                    subject_list,
+                    avrg_mode,
+                    parameters=['scale_','coef_']):
+   # sub_weight_variance_list is a list containing S(number of subjects) vectors of size 1xP
+   sub_weight_variance_list = []
+   var_folder = gl.conn_dir+'/SUIT3/ali_temp/cortico_cereb_connectivity/variance'
+   S = len(subject_list)
+
+   # read subject weight variance matrix from file
+   for sub in subject_list:
+      print(f'Reading {str(sub)} weight variance...')
+      file_path = os.path.join(var_folder, f'weight_variance_{str(sub)}.npy')
+      sub_weight_variance_list.append(np.load(file_path))
+
+   # wopt_variance is a 1xP matrix
+   print(f'Calculating W_opt variance...')
+   wopt_variance_list = calc_wopt_var(sub_weight_variance_list=sub_weight_variance_list,
+                                           avrg_mode=avrg_mode,
+                                           subject_list=subject_list)
+
+   # use the formula to integrate precision-weighted average
+   param_w_opt = {}
+   for p in parameters:
+      P = np.stack(param_lists[p],axis=0)
+      if p=='scale_':
+         param_w_opt[p] = 0
+
+         # s_opt_temp = P
+         # sum_temp = 0.0
+         # for i in range(S):
+         #    temp = np.reciprocal(sub_weight_variance_list[i])
+         #    temp = np.nanmean(temp)
+         #    sum_temp += temp
+         #    s_opt_temp[i] = P[i] * temp
+
+         # # sum over subjects
+         # s_opt_temp = np.nansum(s_opt_temp, axis=0)
+         # # divide by the fixed term
+         # # print(f'P: {P[0]}')
+         # # print(f's_opt_temp: {s_opt_temp[0]}')
+         # # print(f'sum_temp: {sum_temp}')
+         # param_w_opt[p] = s_opt_temp / sum_temp
+      elif p=='coef_':
+         if 'vox' in avrg_mode:
+            # divide each weights by its variance
+            P = [P[s] / sub_weight_variance_list[s].T[:, np.newaxis] for s in range(S)]
+            # sum over subjects
+            P = [np.nansum(np.delete(P, s, axis=0), axis=0) for s in range(S)]
+            # divide by the fixed term
+            param_w_opt[p] = [P[s] / wopt_variance_list[s].T[:, np.newaxis] for s in range(S)]
+         else:
+            # divide each weights by its variance
+            P = [P[s] / np.nanmean(sub_weight_variance_list[s]) for s in range(S)]
+            # sum over subjects
+            P = [np.nansum(np.delete(P, s, axis=0), axis=0) for s in range(S)]
+            # divide by the fixed term
+            param_w_opt[p] = [P[s] / wopt_variance_list[s] for s in range(S)]
+            
+         for param in param_w_opt[p]:
+            param[np.isnan(param)] = 0.0
+
+   return param_w_opt
+
+
 def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
@@ -714,7 +815,17 @@ def calc_avrg_model(train_dataset,
                sel_subj.remove(s)
             attr_value = P[sel_subj].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
-
+   elif avrg_mode.startswith('bayes'):
+      avrg_model = []
+      for s,sub in enumerate(subject_list):
+         avrg_model.append(copy(fitted_model))
+      param_w_opt = calc_bayes_avrg(parameters=parameters,
+                              param_lists=param_lists,
+                              subject_list=subject_list,
+                              avrg_mode=avrg_mode)
+      for s,param in enumerate(param_w_opt['coef_']):
+         setattr(avrg_model[s], 'scale_', 0)
+         setattr(avrg_model[s], 'coef_', param)
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
