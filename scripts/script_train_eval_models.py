@@ -97,8 +97,11 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 eval_ses  = "all",
                 eval_id = 'Md_s1',
                 crossed = 'half',
-                add_rest= False,
+                add_rest = False,
+                subj_list = "all",
+                model_subj_list = "all",
                 model = 'avg',
+                mix_param = [],
                 append = False
                 ):
    """_summary_
@@ -116,6 +119,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
        eval_ses (str): _description_. Defaults to "all".
        eval_id (str): _description_. Defaults to 'Md_s1'.
        model (str): _description_. Defaults to 'avg'.
+       mix_param (list): Percentage of subject weights if model mix. Defaults to [].
        append (bool): Append to existing tsv file? Defaults to False.
 
    Returns:
@@ -130,7 +134,10 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                                  cerebellum=cerebellum,
                                  splitby = None,
                                  add_rest = add_rest,
-                                 model=model)
+                                 subj_list = subj_list,
+                                 model_subj_list = model_subj_list,
+                                 model = model,
+                                 mix_param = mix_param)
 
       dirname=[]
       mname=[]
@@ -158,7 +165,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
       file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
       if os.path.isfile(file_name) & append:
          dd = pd.read_csv(file_name, sep='\t')
-         df = df.append(dd,ignore_index=True)
+         df = pd.concat([dd, df], ignore_index=True)
+         # df = df.append(dd,ignore_index=True) # pd.append is deprecated
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 

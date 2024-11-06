@@ -6,6 +6,7 @@
 
 from audioop import cross
 import os
+import sys
 import numpy as np
 import deepdish as dd
 import pathlib as Path
@@ -25,6 +26,7 @@ import cortico_cereb_connectivity.model as model
 import cortico_cereb_connectivity.evaluation as ev
 from copy import copy, deepcopy
 import warnings
+import matplotlib.pyplot as plt
 
 # warnings.filterwarnings("ignore")
 
@@ -93,7 +95,10 @@ def get_eval_config(eval_dataset = 'MDTB',
             type = "CondHalf",
             splitby = None,
             add_rest = False,
-            model = 'avg'):
+            subj_list = "all",
+            model_subj_list = "all",
+            model = 'avg',
+            mix_param = []):
    """
    create a config file for evaluation
    """
@@ -108,8 +113,10 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config["splitby"] = splitby
    eval_config["type"] = type
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
-   eval_config['subj_list'] = "all"
+   eval_config['subj_list'] = subj_list
+   eval_config['model_subj_list'] = model_subj_list
    eval_config['model'] = model
+   eval_config['mix_param'] = mix_param
    
 
    # get label images for left and right hemisphere
@@ -442,6 +449,21 @@ def get_fitted_models(model_dirs,model_names,config):
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
+   elif config['model']=='mix':
+      fitted_model = []
+      train_info = []
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         ext = '_' + m.split('_')[-1]
+         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
+                                 subj=config['subj_list'],
+                                 mix_subj=config['model_subj_list'],
+                                 avrg_mode=config['model'],
+                                 mix_param=config['mix_param'])
+         fitted_model.append(fm)
+         train_info.append(fi)
+
+
    
    return fitted_model, train_info
 
@@ -451,7 +473,8 @@ def eval_model(model_dirs,model_names,config):
    if config['model']=='avg' it will average the models across subjects
    if config['model']=='ind' it will evaluate each subejct individually
    if config['model']=='loo' it will average all other subjects
-   For 'ind' and 'loo' training and evaluation dataset must be the same 
+   if config['model']=='mix' it will do: p*subject + (1-p)*loo
+   For 'ind', 'loo', and 'mix' training and evaluation dataset must be the same 
    Args:
       model_dirs (list)  - list of model directories
       model_names (list) - list of full model names (without .h5) to evaluate
@@ -465,10 +488,24 @@ def eval_model(model_dirs,model_names,config):
    dataset = fdata.get_dataset_class(gl.base_dir,
                                     dataset=config["eval_dataset"])
 
+   T = dataset.get_participants()
    # get list of subjects
    if config["subj_list"]=='all':
-      T = dataset.get_participants()
       config["subj_list"] = T.participant_id
+   elif isinstance(config["subj_list"],int):
+      if config["subj_list"] < len(T.participant_id):
+         config["subj_list"] = T[:config["subj_list"]].participant_id
+      else:
+         config["subj_list"] = T.participant_id
+   
+   # get list of subject for average model
+   if config["model_subj_list"]=='all':
+      config["model_subj_list"] = T.participant_id
+   elif isinstance(config["model_subj_list"],int):
+      if config["model_subj_list"] < len(T.participant_id):
+         config["model_subj_list"] = T[:config["model_subj_list"]].participant_id
+      else:
+         config["model_subj_list"] = T.participant_id
 
    # Get the list of fitted models  
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,config)
@@ -511,8 +548,8 @@ def eval_model(model_dirs,model_names,config):
 
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
-
-         # Use subject-specific model? (indiv or loo)
+         
+         # Use subject-specific model? (indiv or loo or mix)
          if (isinstance(fm,list)): 
             fitM = fm[i]
          else:
@@ -531,7 +568,7 @@ def eval_model(model_dirs,model_names,config):
          for key, value in config.items():
             if not isinstance(value,(list,pd.Series,np.ndarray)):
                eval_sub.update({key: value})
-
+               
          # add evaluation (summary)
          evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
 
@@ -591,7 +628,9 @@ def calc_avrg_model(train_dataset,
                     cerebellum='SUIT3',
                     parameters=['scale_','coef_'],
                     avrg_mode='avrg_sep',
-                    subj='all'):
+                    mix_param=[],
+                    subj='all',
+                    mix_subj='all'):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
    Args:
@@ -616,6 +655,7 @@ def calc_avrg_model(train_dataset,
          subject_list = T.participant_id
       else:
          subject_list = [subj]
+
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
@@ -659,6 +699,22 @@ def calc_avrg_model(train_dataset,
          P = np.stack(param_lists[p],axis=0)
          for s,sub in enumerate(subject_list):
             setattr(avrg_model[s],p,P[subj_ind!=s].mean(axis=0))
+   elif avrg_mode=='mix':
+      avrg_model = []
+      portion_value = mix_param / 100
+      print(f"portion_value = {portion_value}")
+      subj_ind = np.arange(len(subject_list))
+      for s,sub in enumerate(subject_list):
+         avrg_model.append(copy(fitted_model))
+      for p in parameters:
+         P = np.stack(param_lists[p],axis=0)
+         for s,sub in enumerate(subject_list):
+            sel_subj = subject_list[subject_list.isin(mix_subj)].index.tolist()
+            if s in sel_subj:
+               sel_subj.remove(s)
+            attr_value = P[sel_subj].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
+            setattr(avrg_model[s],p,attr_value)
+
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
