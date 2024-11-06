@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 
-var_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/variance')
+var_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../data/variance')
 
 
 def estimating_weight_var(ext_list=[8],
