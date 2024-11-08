@@ -1,5 +1,4 @@
 from operator import index
-import os
 import numpy as np
 import pandas as pd
 # import quadprog as qp
@@ -8,7 +7,6 @@ from scipy import sparse
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
-from scipy import stats
 import cortico_cereb_connectivity.evaluation as ev 
 import cortico_cereb_connectivity.cio as cio
 import warnings
