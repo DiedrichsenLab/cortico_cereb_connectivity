@@ -1,11 +1,6 @@
 import numpy as np
-import deepdish as dd
-import pathlib as Path
-import os
-
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
-import Functional_Fusion.matrix as fm
 import ProbabilisticParcellation.util as ut
 
 import cortico_cereb_connectivity.globals as gl

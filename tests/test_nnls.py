@@ -11,13 +11,13 @@ def generate_data(N,Q,P,sig_e=0.1):
     """
     Generate random data for testing nnls
     Args:
-        N (int): Number of observations
-        Q (int): Number of cortical features
-        P (int): Number of cerebellar voxels
+        N (int): Number of observations 
+        Q (int): Number of cortical features 
+        P (int): Number of cerebellar voxels 
     Returns:
         X (nd-array): N*Q Cortical activation matrix
         W (nd-array): Q * P True weight matrix (>0)
-        Y (nd-array): N X P
+        Y (nd-array): N X P 
     """
     rng = np.random.default_rng(seed=None)
     X = rng.normal(0,1,(N,Q))
@@ -26,9 +26,10 @@ def generate_data(N,Q,P,sig_e=0.1):
     Y = X @ W + rng.normal(0,sig_e,(N,P))
     return X, W, Y
 
+
 def scipy_nnls(X,Y):
     """
-    Use scipy nnls function directly
+    Use scipy nnls function
     """
     [N,Q]=X.shape
     [N1,P]=Y.shape

@@ -1,2 +1,5 @@
 globals.py
 *.pyc
+env/
+.DS_Store
+.vscode/
