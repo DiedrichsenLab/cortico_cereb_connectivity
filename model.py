@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 from scipy import sparse
+import scipy.optimize as so
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -22,12 +23,15 @@ class Model:
         self.name = name
 
     def fit(self, X, Y):
-        """ Fitting function needs to be implemented for each model
+        """ Fitting function needs to be implemented for each model.
+        Needs to return self.
         """
-        return
+        return self
+
     def predict(self, X):
         Xs = np.nan_to_num(X) # there are Nan values
         return Xs @ self.coef_.T
+
     def to_dict(self):
         data = {"coef_": self.coef_}
         return data
@@ -181,7 +185,9 @@ class WTA(BaseEstimator, Model):
 
 class NNLS(Model):
     """
-        NNLS model with L2 regularization - no internal scaling of the data
+        NNLS model with L2 regularization - no internal scaling of the data.
+        Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
+        A = [X; sqrt(alpha) * I] and b = [Y; 0]
     """
 
     def __init__(self,alpha=0):
@@ -191,8 +197,12 @@ class NNLS(Model):
         [N,Q]=X.shape
         [N1,P]=Y.shape
         self.coef_ = np.zeros((Q,P))
+        # With L2 regularization - appen
         if self.alpha > 0:
             A = np.vstack((X,np.sqrt(self.alpha)*np.eye(Q)))
             for i in range(P):
                 self.coef_[:,i] = so.nnls(A,np.stack([Y[:,i] np.zeros((Q,))))[0]
-    return W_est
+        else:
+            for i in range(P):
+                self.coef_[:,i] = so.nnls(X,Y[:,i])[0]
+        return self
