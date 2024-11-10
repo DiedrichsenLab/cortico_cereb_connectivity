@@ -1,8 +1,9 @@
 """Main module for training and evaluating connectivity models.
-
+   Designed to work together with Functional_Fusion package.
+   Dataset, session, and parcellation names are as in Functional_Fusion.
+   The main work is being done by train_model and eval_model functions.
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
-# TODO: implement the weighting option
 
 from audioop import cross
 import os
@@ -13,14 +14,12 @@ import json
 import pandas as pd
 from collections import defaultdict
 from sklearn.model_selection import cross_val_score
-from sklearn.metrics import mean_squared_error
 import nibabel as nb
 import Functional_Fusion as ff
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import Functional_Fusion.matrix as fm
 import cortico_cereb_connectivity.globals as gl
-
 import cortico_cereb_connectivity.model as model
 import cortico_cereb_connectivity.evaluation as ev
 from copy import copy, deepcopy
@@ -28,53 +27,58 @@ import warnings
 
 # warnings.filterwarnings("ignore")
 
-def get_train_config(train_dataset = "MDTB", 
-                     train_ses = "ses-s1", 
+def get_train_config(train_dataset = "MDTB",
+                     train_ses = "ses-s1",
                      method = "L2regression",
                      log_alpha = 8,
                      cerebellum = "SUIT3",
                      cortex = "fs32k",
                      parcellation = "Icosahedron1002",
                      type = "CondHalf",
-                     cv_fold = 4,
                      crossed = "half", # or None
                      validate_model = True,
+                     cv_fold = 4,
                      add_rest = False
+                     std_cortex = None,
+                     std_cerebellum = None,
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
 
    Args:
-       dataset (str, optional): _description_. Defaults to "MDTB".
-       ses_id (str, optional): _description_. Defaults to "ses-s1".
-       method (str, optional): _description_. Defaults to "L2regression".
-       log_alpha (int, optional): _description_. Defaults to 8.
-       cerebellum (str, optional): _description_. Defaults to "SUIT3".
-       cortex (str, optional): _description_. Defaults to "fs32k".
-       parcellation (str, optional): _description_. Defaults to "Icosahedron-1002_Sym.32k".
-       mode (str, optional): _description_. Defaults to "crossed".
-       type (str, optional): _description_. Defaults to "CondHalf".
-       cv_fold (int, optional): _description_. Defaults to 4.
-       cross_over (str, optional): _another option: or dataset name if you want to integrate over sessions of the dataset_. Defaults to "half".
-
+      train_dataset (str): training_dataset. Defaults to "MDTB".
+      train_ses (str): Training session. Defaults to "ses-s1".
+      method (str): Model class. Defaults to "L2regression".
+      log_alpha (int): log of regularization. Defaults to 8.
+      cerebellum (str): Atlas for cerebellum. Defaults to "SUIT3".
+      cortex (str): Atlas for neocortex. Defaults to "fs32k".
+      parcellation (str): Parcellation for cortex. Defaults to "Icosahedron-1002_Sym.32k".
+      type (str): _description_. Defaults to "CondHalf".
+      crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
+      validate_model (bool): Do cross-validation in training set for hyperparameter tuning? Defaults to True.
+      cv_fold (int): Number of validation folds. Defaults to 4.
+      add_rest (bool): Add rest condition to each session and half. Defaults to False.
+      std_cortex(): z-Standardize the cortical data. (Defaults to None)
+      std_cerebelum(): z-Standardize the cortical data. (Defaults to None)
    Returns:
-       _type_: _description_
+      dict: Dictionary containing the default training configuration
    """
    train_config = {}
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
+   train_config['subj_list'] = "all"
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
    train_config['cortex'] = cortex
    train_config['parcellation'] = parcellation
    train_config['crossed'] = crossed
-   # train_config['weighting'] = weighting
    train_config["validate_model"] = validate_model
    train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
-   train_config['subj_list'] = "all"
    train_config['add_rest'] = add_rest
+   train_config['std_cortex'] = std_cortex
+   train_config['std_cerebellum'] = std_cerebellum
    train_config['append'] = False
 
    # get label images for left and right hemisphere
@@ -107,10 +111,11 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['add_rest'] = add_rest
    eval_config["splitby"] = splitby
    eval_config["type"] = type
-   eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
    eval_config['subj_list'] = "all"
    eval_config['model'] = model
-   
+   eval_config['add_rest'] = add_rest
+   eval_config['std_cortex'] = std_cortex
+   eval_config['std_cerebellum'] = std_cerebellum
 
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
@@ -132,9 +137,8 @@ def train_metrics(model, X, Y):
     Y_pred = model.predict(X)
 
     # get train rmse and R
-    rmse_train = mean_squared_error(Y, Y_pred, squared=False)
     R_train, _ = ev.calculate_R(Y, Y_pred)
-    return rmse_train, R_train
+    return R_train
 
 def validate_metrics(model, X, Y, cv_fold):
     """computes CV training metrics (rmse and R) on X and Y
@@ -147,13 +151,11 @@ def validate_metrics(model, X, Y, cv_fold):
     Returns:
         rmse_cv (scalar), R_cv (scalar)
     """
-    # get cv rmse and R
-    rmse_cv_all = np.sqrt(cross_val_score(model, X, Y, scoring="neg_mean_squared_error", cv=cv_fold) * -1)
 
     # TO DO: implement train/validate splits for "sess", "run"
     r_cv_all = cross_val_score(model, X, Y, scoring=ev.calculate_R_cv, cv=cv_fold)
 
-    return np.nanmean(rmse_cv_all), np.nanmean(r_cv_all)
+    return np.nanmean(r_cv_all)
 
 def eval_metrics(Y, Y_pred, info):
     """Compute evaluation, returning summary and voxel data.
@@ -244,6 +246,18 @@ def add_rest(Y,info):
    infos = pd.concat(info_list,ignore_index=True)
    return Ys,infos
 
+def std_data(Y,mode):
+   if mode is None:
+      return Y
+   elif mode=='voxel':
+      sc=np.sqrt(np.nansum(Y ** 2, 0) / Y.shape[0])
+      return Y/sc
+   elif model=='global':
+      sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
+      return Y/sc
+   else:
+      raise ValueError('std_mode must be None, "voxel" or "global"')
+
 def train_model(config):
    """
    training a specific model based on the config file created
@@ -285,7 +299,7 @@ def train_model(config):
    train_info_name = save_path + "/" + mname + ".tsv"
    if os.path.isfile(train_info_name) and config["append"]:
       train_info = pd.read_csv(train_info_name, sep="\t")
-   else: 
+   else:
       train_info = pd.DataFrame()
 
    # Loop over subjects
@@ -313,10 +327,19 @@ def train_model(config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
-      # Add rest condition? 
+      # Add rest condition?
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
+
+      #Definitely subtract intercept across all conditions
+      X = (X - X.mean(axis=0))
+      Y = (Y - Y.mean(axis=0))
+
+      if 'std_cortex' in config.keys():
+         X = std_data(X,config['std_cortex'])
+      if 'std_cerebellum' in config.keys():
+         Y = std_data(Y,config['std_cerebellum'])
 
       # cross the halves within each session
       if config["crossed"] is not None:
@@ -337,26 +360,22 @@ def train_model(config):
 
          # Fit model, get train and validate metrics
          conn_model.fit(X, Y)
-         conn_model.rmse_train, conn_model.R_train = train_metrics(conn_model, X, Y)
+         R_train = train_metrics(conn_model, X, Y)
          conn_model_list.append(conn_model)
 
-         
-         # collect train metrics (rmse and R)
+         # collect train metrics ( R)
          model_info = {
                         "subj_id": sub,
                         "mname": mname_spec,
-                        "rmse_train": conn_model.rmse_train,
-                        "R_train": conn_model.R_train,
+                        "R_train": R_train,
                         "num_regions": X.shape[1],
                         "logalpha": la
                         }
 
          # run cross validation and collect metrics (rmse and R)
          if config['validate_model']:
-            conn_model.rmse_cv, conn_model.R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
-            model_info.update({"rmse_cv": conn_model.rmse_cv,
-                            "R_cv": conn_model.R_cv
-                           })
+            R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
+            model_info.update({"R_cv": conn_model.R_cv})
 
          # Copy over all scalars or strings from config to eval dict:
          for key, value in config.items():
@@ -375,7 +394,7 @@ def train_model(config):
 
 def get_fitted_models(model_dirs,model_names,config):
    """Builds a list of fitted models from the saved files
-   In case of individual-specific models, it builds a list of lists. 
+   In case of individual-specific models, it builds a list of lists.
 
    Args:
        model_dirs (_type_): _description_
@@ -384,7 +403,7 @@ def get_fitted_models(model_dirs,model_names,config):
 
    Returns:
        fitted_models (list): _description_
-       train_info (list): information on each trained model 
+       train_info (list): information on each trained model
    """
    # Load all the models to evaluate:
    fitted_model = []
@@ -427,7 +446,7 @@ def get_fitted_models(model_dirs,model_names,config):
             fname = model_path + f"/{m}_{sub}.h5"
             json_name = model_path + f"/{m}_{sub}.json"
             fm.append(dd.io.load(fname))
-         
+
          fitted_model.append(fm)
          with open(json_name) as json_file:
             train_info.append(json.load(json_file))
@@ -442,7 +461,7 @@ def get_fitted_models(model_dirs,model_names,config):
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
-   
+
    return fitted_model, train_info
 
 def eval_model(model_dirs,model_names,config):
@@ -451,7 +470,7 @@ def eval_model(model_dirs,model_names,config):
    if config['model']=='avg' it will average the models across subjects
    if config['model']=='ind' it will evaluate each subejct individually
    if config['model']=='loo' it will average all other subjects
-   For 'ind' and 'loo' training and evaluation dataset must be the same 
+   For 'ind' and 'loo' training and evaluation dataset must be the same
    Args:
       model_dirs (list)  - list of model directories
       model_names (list) - list of full model names (without .h5) to evaluate
@@ -470,7 +489,7 @@ def eval_model(model_dirs,model_names,config):
       T = dataset.get_participants()
       config["subj_list"] = T.participant_id
 
-   # Get the list of fitted models  
+   # Get the list of fitted models
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,config)
 
    # loop over subjects
@@ -500,10 +519,19 @@ def eval_model(model_dirs,model_names,config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
-      # Add explicit rest to sessions 
+      # Add explicit rest to sessions
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
+
+      #Definitely subtract intercept across all conditions
+      X = (X - X.mean(axis=0))
+      Y = (Y - Y.mean(axis=0))
+
+      if 'std_cortex' in config.keys():
+         X = std_data(X,config['std_cortex'])
+      if 'std_cerebellum' in config.keys():
+         Y = std_data(Y,config['std_cerebellum'])
 
       # cross the halves within each session
       if config["crossed"] is not None:
@@ -513,7 +541,7 @@ def eval_model(model_dirs,model_names,config):
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
 
          # Use subject-specific model? (indiv or loo)
-         if (isinstance(fm,list)): 
+         if (isinstance(fm,list)):
             fitM = fm[i]
          else:
             fitM = fm
@@ -566,14 +594,14 @@ def comb_eval(models=['Md_s1'],
 
    for dataset in eval_data:
       for m in models:
-         for meth in methods: 
+         for meth in methods:
             f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
                # add a column for the name of the dataset
                # get the noise ceilings
-               
+
                # Remove negative values from dd.noise_X_R
                dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
                dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
@@ -606,7 +634,7 @@ def calc_avrg_model(train_dataset,
    # To get the list of subjects
    tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
    T = tdata.get_participants()
-   
+
    if isinstance(subj,(list,pd.Series)):
       subject_list = subj
    elif isinstance(subj,np.ndarray):
@@ -659,7 +687,7 @@ def calc_avrg_model(train_dataset,
          P = np.stack(param_lists[p],axis=0)
          for s,sub in enumerate(subject_list):
             setattr(avrg_model[s],p,P[subj_ind!=s].mean(axis=0))
-         
+
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=np.nan, inplace=True)
