@@ -664,7 +664,7 @@ def calc_bayes_avrg(param_lists,
                     parameters=['scale_','coef_']):
    # sub_weight_variance_list is a list containing S(number of subjects) vectors of size 1xP
    sub_weight_variance_list = []
-   var_folder = gl.conn_dir+'/SUIT3/ali_temp/cortico_cereb_connectivity/variance'
+   var_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/variance')
    S = len(subject_list)
 
    # read subject weight variance matrix from file
