@@ -29,6 +29,7 @@ import warnings
 
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
+                     subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
                      cerebellum = "SUIT3",
@@ -38,7 +39,7 @@ def get_train_config(train_dataset = "MDTB",
                      crossed = "half", # or None
                      validate_model = True,
                      cv_fold = 4,
-                     add_rest = False
+                     add_rest = False,
                      std_cortex = None,
                      std_cerebellum = None,
                      ):
@@ -66,7 +67,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config = {}
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
-   train_config['subj_list'] = "all"
+   train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -249,10 +250,10 @@ def add_rest(Y,info):
 def std_data(Y,mode):
    if mode is None:
       return Y
-   elif mode=='voxel':
+   elif mode=='parcel':
       sc=np.sqrt(np.nansum(Y ** 2, 0) / Y.shape[0])
       return Y/sc
-   elif model=='global':
+   elif mode=='global':
       sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
       return Y/sc
    else:
@@ -276,14 +277,19 @@ def train_model(config):
    ## loop over sessions chosen through train_id and concatenate data
    info_list = []
 
-   if not isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
-      if config["subj_list"]=='all':
-         T = dataset.get_participants()
-         config["subj_list"] = T.participant_id
+   T = dataset.get_participants()
+   if config["subj_list"] is None:
+      config["subj_list"] = T.participant_id
+   elif config["subj_list"]=='all':
+      config["subj_list"] = T.participant_id
+   elif isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
+      if isinstance(config['subj_list'][0],int):
+         config["subj_list"] = T.participant_id.iloc[config['subj_list']]
+   else:
+      raise ValueError('config["subj_list"] must be a list of str, integers or "all"')
 
    # initialize training dict
    conn_model_list = []
-
 
    # Generate model name and create directory
    mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"

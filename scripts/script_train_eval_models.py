@@ -39,19 +39,6 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                 train_ses=train_ses,
                                 add_rest=add_rest,
                                 validate_model=validate_model)
-   dataset = fdata.get_dataset_class(gl.base_dir,
-                                    dataset=config["train_dataset"])
-   # get the list of trained connectivity models and training summary
-   T = dataset.get_participants()
-   if subj_list is None:
-      config["subj_list"] = T.participant_id
-   elif subj_list=='all':
-      config["subj_list"] = T.participant_id
-   elif isinstance(subj_list[0],str):
-      config["subj_list"] = subj_list
-   else:
-      config["subj_list"] = T.participant_id.iloc[subj_list]
-
    config, conn_list, df_tmp =rm.train_model(config)
    return df_tmp
 
@@ -195,6 +182,26 @@ def train_all_wta():
                   add_rest=ar,
                   logalpha_list = [None])
 
+def train_all_nnls(dataset = "MDTB",
+                 logalpha_list = [-2],
+                 subj_list = "all"):
+
+   config = rm.get_train_config(train_dataset=dataset,
+                                train_ses='ses-s1',
+                                subj_list=subj_list,
+                                log_alpha = logalpha_list,
+                                crossed = 'half',
+                                type = 'CondHalf',
+                                cerebellum='SUIT3',
+                                parcellation="Icosahedron162",
+                                method = 'NNLS',
+                                add_rest=False,
+                                std_cortex='parcel',
+                                std_cerebellum='global',
+                                validate_model=False)
+   config, conn_list, df_tmp =rm.train_model(config)
+   return df_tmp
+
 def avrg_all():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
@@ -259,9 +266,10 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    #
-   avrg_model(train_data = 'HCP',
-               method='WTA',
-                 train_ses= "all",
-                 cerebellum='SUIT3',
-                 logalpha_list = [None])
+   train_all_nnls(subj_list=[0,1])
+   # avrg_model(train_data = 'HCP',
+   #             method='WTA',
+   #               train_ses= "all",
+   #               cerebellum='SUIT3',
+   #               logalpha_list = [None])
    # avrg_all_wta()

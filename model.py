@@ -6,7 +6,7 @@ import scipy.optimize as so
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
-import cortico_cereb_connectivity.evaluation as ev 
+import cortico_cereb_connectivity.evaluation as ev
 import cortico_cereb_connectivity.cio as cio
 import warnings
 import nibabel as nb
@@ -16,7 +16,7 @@ A connectivity model is inherited from the sklearn class BaseEstimator
 such that Ridge, Lasso, ElasticNet and other models can
 be easily used.
 
-@authors: Jörn Diedrichsen, Maedbh King, Ladan Shahshahani, 
+@authors: Jörn Diedrichsen, Maedbh King, Ladan Shahshahani,
 """
 
 class Model:
@@ -59,18 +59,18 @@ class Model:
                                    trg_roi,
                                    type = 'conn')
 
-        if fname is not None: 
+        if fname is not None:
             nb.save(cifti_img,fname)
         return cifti_img
 
-    def from_cifti(self, fname = None):  
-        """ Load the model weights from a cifti conn-image. 
-        
+    def from_cifti(self, fname = None):
+        """ Load the model weights from a cifti conn-image.
+
         Args:
             fname (str) - filename of the cifti image
         Returns:
             self (Model) - the model with the loaded weights
-        """     
+        """
         C = nb.load(fname)
         self.coef_ = C.get_fdata()
         self.scale_ = np.ones(self.coef_.shape[1])
@@ -197,13 +197,18 @@ class NNLS(Model):
     def fit(self, X, Y):
         [N,Q]=X.shape
         [N1,P]=Y.shape
-        self.coef_ = np.zeros((Q,P))
+        self.coef_ = np.zeros((P,Q))
         # With L2 regularization - appen
         if self.alpha > 0:
             A = np.vstack((X,np.sqrt(self.alpha)*np.eye(Q)))
             for i in range(P):
-                self.coef_[:,i] = so.nnls(A,np.stack([Y[:,i] np.zeros((Q,))))[0]
+                if (i % 100) == 0:
+                    print('.')
+                v= np.concatenate([Y[:,i],np.zeros(Q)])
+                self.coef_[i,:] = so.nnls(A,v)[0]
         else:
             for i in range(P):
-                self.coef_[:,i] = so.nnls(X,Y[:,i])[0]
+                if (i % 100) == 0:
+                    print('.')
+                self.coef_[i,:] = so.nnls(X,Y[:,i])[0]
         return self
