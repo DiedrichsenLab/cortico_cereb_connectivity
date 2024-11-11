@@ -184,7 +184,8 @@ def train_all_wta():
 
 def train_all_nnls(dataset = "MDTB",
                  logalpha_list = [-2],
-                 subj_list = "all"):
+                 subj_list = "all",
+                 parcellation="Icosahedron162"):
 
    config = rm.get_train_config(train_dataset=dataset,
                                 train_ses='ses-s1',
@@ -266,7 +267,8 @@ if __name__ == "__main__":
    # train_all()
    # avrg_all()
    #
-   train_all_nnls(subj_list=[0,1])
+   train_all_nnls(logalpha_list=[-4,-2,0,2],parcellation='Icosahedron162')
+   train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
    # avrg_model(train_data = 'HCP',
    #             method='WTA',
    #               train_ses= "all",
