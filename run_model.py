@@ -98,6 +98,8 @@ def get_eval_config(eval_dataset = 'MDTB',
             type = "CondHalf",
             splitby = None,
             add_rest = False,
+            std_cortex = 'parcel',
+            std_cerebellum = 'global',
             model = 'avg'):
    """
    create a config file for evaluation
@@ -397,15 +399,41 @@ def train_model(config):
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
+def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
+   """ Makes a list of model dirs and model names, based on training set, etc.
+
+   Args:
+         train_dataset (str): trainign dataset 
+         train_ses (str): Session 
+         parcellation (str): Cortical parcellation
+         method (str): 'L2regression', 'WTA', 'L1regression', 'NNlS', etc
+         ext_list (list): List of extensions (numeric or string) to add to model name
+   Returns:
+         dirname (list): List of model directories 
+         mname (list): List of model names 
+   """   
+   dirname=[] # Model directory name
+   mname=[] # Model name - without the individual, average, or loo extension
+
+   # Build list of to-be-evaluated models
+   for a in ext_list:
+      dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      if a is None:
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      if isinstance(a,int):
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+      elif isinstance(a,str):
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
+   return dirname, mname
 
 def get_fitted_models(model_dirs,model_names,config):
    """Builds a list of fitted models from the saved files
-   In case of individual-specific models, it builds a list of lists.
+   In case of individual-specific models (ind or loo), it builds a list of lists.
 
    Args:
-       model_dirs (_type_): _description_
-       model_names (_type_): _description_
-       config (dict): _description_
+       model_dirs (_type_): List of dirctory names for models 
+       model_names (_type_): List of model names (without subject extension)
+       config (dict): Dictonary with evaluation parameters
 
    Returns:
        fitted_models (list): _description_
@@ -448,14 +476,15 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fm=[]
+         ti = []
          for sub in config['subj_list']:
             fname = model_path + f"/{m}_{sub}.h5"
             json_name = model_path + f"/{m}_{sub}.json"
             fm.append(dd.io.load(fname))
-
+            with open(json_name) as json_file:
+               ti.append(json.load(json_file))
          fitted_model.append(fm)
-         with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
+         train_info.append(ti)
    elif config['model']=='loo':
       fitted_model = []
       train_info = []
@@ -472,10 +501,10 @@ def get_fitted_models(model_dirs,model_names,config):
 
 def eval_model(model_dirs,model_names,config):
    """
-   evaluate group model on a specific dataset and session
-   if config['model']=='avg' it will average the models across subjects
-   if config['model']=='ind' it will evaluate each subejct individually
-   if config['model']=='loo' it will average all other subjects
+   evaluate models on a specific dataset and session
+   if config['model']=='avg' it will average the models across all subjects and evaluate 
+   if config['model']=='ind' it will evaluate each model on the corresponding subject
+   if config['model']=='loo' it will average all other subjects 
    For 'ind' and 'loo' training and evaluation dataset must be the same
    Args:
       model_dirs (list)  - list of model directories
@@ -552,6 +581,11 @@ def eval_model(model_dirs,model_names,config):
          else:
             fitM = fm
 
+         if (isinstance(tinfo,list)):
+            ti = tinfo[i]
+         else:
+            ti = tinfo
+
          # Get model predictions
          Y_pred = fitM.predict(X)
 
@@ -559,7 +593,7 @@ def eval_model(model_dirs,model_names,config):
                   "num_regions": X.shape[1]}
 
          # Copy over all scalars or strings to eval_all dataframe:
-         for key, value in tinfo.items():
+         for key, value in ti.items():
             if not isinstance(value,(list,pd.Series,np.ndarray)):
                eval_sub.update({key: value})
          for key, value in config.items():
@@ -577,7 +611,7 @@ def eval_model(model_dirs,model_names,config):
                eval_sub[k]=v
 
          # don't save voxel data to summary
-         eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub)],ignore_index= True)
+         eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub,index=[0])],ignore_index= True)
 
    return eval_df, eval_voxels
 

@@ -1,5 +1,7 @@
 """
-script for training models
+script for training models (Better to use run_model.py directly - 
+these are just examples of how to use the functions in run_model.py)
+
 @ Ladan Shahshahani, Joern Diedrichsen Jan 30 2023 12:57
 """
 import os
@@ -98,7 +100,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
        method (str): _description_. Defaults to "L2regression".
        parcellation (str): _description_. Defaults to "Icosahedron1002".
        cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
-       eval_dataset (list): _description_. Defaults to ["Demand"].
+       eval_dataset (list): List of evaluation datasets. Defaults to ["Demand"].
        eval_type (list): _description_. Defaults to ["CondHalf"].
        eval_ses (str): _description_. Defaults to "all".
        eval_id (str): _description_. Defaults to 'Md_s1'.
@@ -119,18 +121,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                                  add_rest = add_rest,
                                  model=model)
 
-      dirname=[]
-      mname=[]
-
-      for a in ext_list:
-         dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-         if a is None:
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-         if isinstance(a,int):
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
-         elif isinstance(a,str):
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
-
+      dirname,mname = rm.get_model_name(train_dataset,train_ses,parcellation,method)
+      # Evaluate them
       df, df_voxels = rm.eval_model(dirname,mname,config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
@@ -194,8 +186,29 @@ def train_all_nnls(dataset = "MDTB",
                                 crossed = 'half',
                                 type = 'CondHalf',
                                 cerebellum='SUIT3',
-                                parcellation="Icosahedron162",
+                                parcellation=parcellation,
                                 method = 'NNLS',
+                                add_rest=False,
+                                std_cortex='parcel',
+                                std_cerebellum='global',
+                                validate_model=False)
+   config, conn_list, df_tmp =rm.train_model(config)
+   return df_tmp
+
+def train_all_l2(dataset = "MDTB",
+                 logalpha_list = [0,2,4,6,8,10,12],
+                 subj_list = "all",
+                 parcellation="Icosahedron162"):
+
+   config = rm.get_train_config(train_dataset=dataset,
+                                train_ses='ses-s1',
+                                subj_list=subj_list,
+                                log_alpha = logalpha_list,
+                                crossed = 'half',
+                                type = 'CondHalf',
+                                cerebellum='SUIT3',
+                                parcellation=parcellation,
+                                method = 'L2regression',
                                 add_rest=False,
                                 std_cortex='parcel',
                                 std_cerebellum='global',
@@ -236,6 +249,28 @@ def eval_all():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   train_ses="all",eval_id = tid)
 
+def eval_nnls_mdtb():
+   # Get the names of models to evaluate
+   dirname,mname = rm.get_model_names(train_dataset = "MDTB",
+               train_ses = "ses-s1",
+                method = "NNLS",
+                parcellation = "Icosahedron162",
+                ext_list=[-4,-2,0,2])
+   # Evaluation config
+   config = rm.get_eval_config(eval_dataset = "MDTB",  
+                eval_ses  = "ses-s2",
+                type = "CondHalf",
+                parcellation = "Icosahedron162",
+                crossed = 'half',
+                add_rest= False,
+                std_cerebellum='global',
+                std_cortex='parcel',
+                model = 'ind')
+   df,vox=rm.eval_model(dirname,mname,config)
+   df.to_csv(gl.conn_dir + f"/SUIT3/eval/MDTBs2_NNLS_MDs1-ind.tsv", index = False, sep='\t')
+   pass
+
+
 def eval_all_loo():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo','So-loo','De-loo']
@@ -248,6 +283,7 @@ def eval_all_loo():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
                   add_rest=True,
+                  
                   model='loo')
 
 if __name__ == "__main__":
@@ -266,9 +302,10 @@ if __name__ == "__main__":
    """
    # train_all()
    # avrg_all()
-   #
-   train_all_nnls(logalpha_list=[-4,-2,0,2],parcellation='Icosahedron162')
-   train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
+   # eval_nnls_mdtb()
+   train_all_nnls(logalpha_list=[-4,-2,0,2,4,6,8,10],parcellation='Icosahedron162')
+   train_all_l2(logalpha_list=[0,2,4,6,8,10,12],parcellation='Icosahedron162')
+   # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
    # avrg_model(train_data = 'HCP',
    #             method='WTA',
    #               train_ses= "all",

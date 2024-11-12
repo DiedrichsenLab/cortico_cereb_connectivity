@@ -277,7 +277,8 @@ def make_all_weight_maps_L2():
     make_avrg_weight_map(dataset= "IBC",extension = 'A6',method="L2Regression")
     make_avrg_weight_map(dataset= "HCP",extension = 'A-2',method="L2Regression")
 
-
+def make_all_weight_maps_NNLS(): 
+    make_avrg_weight_map(dataset= "Fusion",extension = '06',method="NNLS")
 
 
 
