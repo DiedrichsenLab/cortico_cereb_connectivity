@@ -3,7 +3,7 @@ import scipy.optimize as so
 from scipy.linalg import LinAlgWarning, solve
 import matplotlib.pyplot as plt
 import time
-import fnnls
+# import fnnls
 import sklearn.linear_model as slm
 import warnings
 
@@ -162,14 +162,14 @@ def test_nnls_speed():
     X, W, Y = generate_data(N,Q,P)
 
     t1 = time.perf_counter()
-    W_est1 = fast_nnls(X,Y)
+    W_est1 = scipy_nnls(X,Y)
     t2 = time.perf_counter()
     print(f"Time taken by scipy nnls: {t2-t1}")
 
     t1 = time.perf_counter()
     W_est2 = scipy_source_nnls(X,Y)
     t2 = time.perf_counter()
-    print(f"Time taken by scipy s nnls: {t2-t1}")
+    print(f"Time taken by scipy source nnls: {t2-t1}")
 
     plt.subplot(3,1,1)
     plt.imshow(W)
@@ -209,4 +209,4 @@ def test_nnls_reg():
 
 
 if __name__ == "__main__":
-    test_nnls_reg()
+    test_nnls_speed()
