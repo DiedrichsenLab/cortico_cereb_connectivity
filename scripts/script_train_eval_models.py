@@ -249,13 +249,13 @@ def eval_all():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   train_ses="all",eval_id = tid)
 
-def eval_nnls_mdtb():
+def eval_mdtb(method = 'NNLS',ext_list=[-4,-2,0,2]):
    # Get the names of models to evaluate
    dirname,mname = rm.get_model_names(train_dataset = "MDTB",
                train_ses = "ses-s1",
-                method = "NNLS",
+                method = method,
                 parcellation = "Icosahedron162",
-                ext_list=[-4,-2,0,2])
+                ext_list=ext_list)
    # Evaluation config
    config = rm.get_eval_config(eval_dataset = "MDTB",  
                 eval_ses  = "ses-s2",
@@ -267,7 +267,7 @@ def eval_nnls_mdtb():
                 std_cortex='parcel',
                 model = 'ind')
    df,vox=rm.eval_model(dirname,mname,config)
-   df.to_csv(gl.conn_dir + f"/SUIT3/eval/MDTBs2_NNLS_MDs1-ind.tsv", index = False, sep='\t')
+   df.to_csv(gl.conn_dir + f"/SUIT3/eval/MDTBs2_{method}_MDs1-ind.tsv", index = False, sep='\t')
    pass
 
 
@@ -302,9 +302,10 @@ if __name__ == "__main__":
    """
    # train_all()
    # avrg_all()
-   # eval_nnls_mdtb()
-   train_all_nnls(logalpha_list=[-4,-2,0,2,4,6,8,10],parcellation='Icosahedron162')
-   train_all_l2(logalpha_list=[0,2,4,6,8,10,12],parcellation='Icosahedron162')
+   eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
+   eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
+   # train_all_nnls(logalpha_list=[-4,-2,0,2,4,6,8,10],parcellation='Icosahedron162')
+   # train_all_l2(logalpha_list=[0,2,4,6,8,10,12],parcellation='Icosahedron162')
    # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
    # avrg_model(train_data = 'HCP',
    #             method='WTA',
