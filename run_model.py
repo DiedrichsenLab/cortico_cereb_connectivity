@@ -141,7 +141,9 @@ def train_metrics(model, X, Y):
 
     # get train rmse and R
     R_train, _ = ev.calculate_R(Y, Y_pred)
-    return R_train
+    R2_train,_ = ev.calculate_R2(Y, Y_pred)
+
+    return R_train, R2_train
 
 def validate_metrics(model, X, Y, cv_fold):
     """computes CV training metrics (rmse and R) on X and Y
@@ -254,10 +256,10 @@ def std_data(Y,mode):
       return Y
    elif mode=='parcel':
       sc=np.sqrt(np.nansum(Y ** 2, 0) / Y.shape[0])
-      return Y/sc
+      return  np.nan_to_num(Y/sc)
    elif mode=='global':
       sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
-      return Y/sc
+      return np.nan_to_num(Y/sc)
    else:
       raise ValueError('std_mode must be None, "voxel" or "global"')
 
@@ -282,11 +284,13 @@ def train_model(config):
    T = dataset.get_participants()
    if config["subj_list"] is None:
       config["subj_list"] = T.participant_id
+   elif isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
+      if isinstance(config['subj_list'][0],str):
+         pass
+      else: # Numerical 
+         config["subj_list"] = T.participant_id.iloc[config['subj_list']]
    elif config["subj_list"]=='all':
       config["subj_list"] = T.participant_id
-   elif isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
-      if isinstance(config['subj_list'][0],int):
-         config["subj_list"] = T.participant_id.iloc[config['subj_list']]
    else:
       raise ValueError('config["subj_list"] must be a list of str, integers or "all"')
 
@@ -368,7 +372,7 @@ def train_model(config):
 
          # Fit model, get train and validate metrics
          conn_model.fit(X, Y)
-         R_train = train_metrics(conn_model, X, Y)
+         R_train,R2_train = train_metrics(conn_model, X, Y)
          conn_model_list.append(conn_model)
 
          # collect train metrics ( R)
@@ -376,6 +380,7 @@ def train_model(config):
                         "subj_id": sub,
                         "mname": mname_spec,
                         "R_train": R_train,
+                        "R2_train": R2_train,
                         "num_regions": X.shape[1],
                         "logalpha": la
                         }

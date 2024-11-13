@@ -302,10 +302,10 @@ if __name__ == "__main__":
    """
    # train_all()
    # avrg_all()
-   eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
-   eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
-   # train_all_nnls(logalpha_list=[-4,-2,0,2,4,6,8,10],parcellation='Icosahedron162')
-   # train_all_l2(logalpha_list=[0,2,4,6,8,10,12],parcellation='Icosahedron162')
+   # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
+   # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
+   train_all_nnls(logalpha_list=[6],subj_list=np.arange(5,24),parcellation='Icosahedron1002')
+   # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
    # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
    # avrg_model(train_data = 'HCP',
    #             method='WTA',
