@@ -5,22 +5,17 @@
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
 
-from audioop import cross
+# from audioop import cross
 import os
 import numpy as np
-import deepdish as dd
-import pathlib as Path
-import json
 import pandas as pd
 from collections import defaultdict
 from sklearn.model_selection import cross_val_score
-import nibabel as nb
-import Functional_Fusion as ff
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
-import Functional_Fusion.matrix as fm
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.model as model
+import cortico_cereb_connectivity.cio as cio
 import cortico_cereb_connectivity.evaluation as ev
 from copy import copy, deepcopy
 import warnings
@@ -395,11 +390,7 @@ def train_model(config):
             if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
                model_info.update({key: value})
          # Save the individuals info files
-         dd.io.save(save_path + "/" + mname_spec + ".h5",
-                     conn_model, compression=None)
-         with open(save_path + "/" + mname_spec + ".json", "w") as fp:
-            json.dump(model_info, fp, indent=4)
-
+         cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
@@ -454,11 +445,10 @@ def get_fitted_models(model_dirs,model_names,config):
          for ind in config['model']:
             for d,m in zip(model_dirs,model_names):
                model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-               fname = model_path + f"/{m}_{ind}.h5"
-               json_name = model_path + f"/{m}_{ind}.json"
-               fitted_model.append(dd.io.load(fname))
-               with open(json_name) as json_file:
-                  train_info.append(json.load(json_file))
+               fname = model_path + f"/{m}_{ind}"
+               mo,inf = cio.load_model(fname)
+               fitted_model.append(mo)
+               train_info.append(inf)
       elif isinstance(config['model'][0],model.Model):
          fitted_model = config['model']
          train_info = config['train_info']
@@ -470,11 +460,10 @@ def get_fitted_models(model_dirs,model_names,config):
    elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_avg.h5"
-         json_name = model_path + f"/{m}_avg.json"
-         fitted_model.append(dd.io.load(fname))
-         with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
+         fname = model_path + f"/{m}_avg"
+         mo,inf = cio.load_model(fname)
+         fitted_model.append(mo)
+         train_info.append(inf)
    elif config['model']=='ind':
       fitted_model = []
       train_info = []
@@ -483,11 +472,10 @@ def get_fitted_models(model_dirs,model_names,config):
          fm=[]
          ti = []
          for sub in config['subj_list']:
-            fname = model_path + f"/{m}_{sub}.h5"
-            json_name = model_path + f"/{m}_{sub}.json"
-            fm.append(dd.io.load(fname))
-            with open(json_name) as json_file:
-               ti.append(json.load(json_file))
+            fname = model_path + f"/{m}_{sub}"
+            mo,inf = cio.load_model(fname)
+            fm.append(mo)
+            ti.append(inf)
          fitted_model.append(fm)
          train_info.append(ti)
    elif config['model']=='loo':
@@ -669,7 +657,7 @@ def calc_avrg_model(train_dataset,
       and create group-averaged model
    Args:
        train_dataset (str): _description_
-       mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression)
+       mname_base (str): Directory name for model (MDTB_all_Icosahedron1002_L2regression)
        mname_ext (str): Extension of name - typically logalpha
        (_A0)
        parameters (list): List of parameters to average
@@ -701,15 +689,10 @@ def calc_avrg_model(train_dataset,
    df = pd.DataFrame()
    for sub in subject_list:
       print(f"- getting weights for {sub}")
-      # load the model
-      fname = model_path + f"/{mname_base}{mname_ext}_{sub}.h5"
-      info_name = model_path + f"/{mname_base}{mname_ext}_{sub}.json"
-      fitted_model = dd.io.load(fname)
-
-      # load the json file
-      with open(info_name) as json_file:
-         info = json.load(json_file)
-         df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
+      # load the model and info file
+      fname = model_path + f"/{mname_base}{mname_ext}_{sub}"
+      fitted_model, info = cio.load_model(fname)
+      df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
 
       for p in parameters:
          param_lists[p].append(getattr(fitted_model,p))
@@ -719,10 +702,6 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          setattr(avrg_model,p,P.mean(axis=0))
-   elif avrg_mode=='avrg_scalecoef':
-      scale = np.stack(param_lists[0],axis=0)
-      weight = np.stack(param_lists[1],axis=0)
-      setattr(avrg_model,p,P.mean(axis=0))
    elif avrg_mode=='loo_sep':
       avrg_model = []
       subj_ind = np.arange(len(subject_list))
@@ -736,21 +715,13 @@ def calc_avrg_model(train_dataset,
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=np.nan, inplace=True)
-   # Add fields if they don't exist
-   if 'R_cv' not in df.columns:
-      df['R_cv']=np.nan
-      df['rmse_cv']=np.nan
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],
            'cerebellum': df.cerebellum[0],
            'cortex': df.cortex[0],
            'method': df.method[0],
-           'logalpha': float(df.logalpha[0]),
-           'R_train': df.R_train.mean(),
-           'rmse_train': df.rmse_train.mean(),
-           'R_cv': df.R_cv.mean(),
-           'rmse_cv': df.rmse_cv.mean(),
+           'logalpha': float(df.logalpha[0])
            }
    # save dict as json
    return avrg_model, dict

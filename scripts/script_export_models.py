@@ -14,11 +14,8 @@ import json
 
 def export_model(model_name,model_ext,file_name,type='pdconn'):
     model_path = os.path.join(gl.conn_dir,'SUIT3','train',model_name)
-    fname = model_path + f"/{model_name}_{model_ext}.h5"
-    json_name = model_path + f"/{model_name}_{model_ext}.json"
-    M = dd.io.load(fname)
-    with open(json_name) as json_file:
-        info = json.load(json_file)
+    fname = model_path + f"/{model_name}_{model_ext}"
+    M,info = cm.load_model(fname)
     adir = am.default_atlas_dir
     src_roi = [f"{adir}/tpl-{info['cortex']}/Icosahedron1002.L.label.gii",
                f"{adir}/tpl-{info['cortex']}/Icosahedron1002.R.label.gii"]

@@ -5,19 +5,11 @@ these are just examples of how to use the functions in run_model.py)
 @ Ladan Shahshahani, Joern Diedrichsen Jan 30 2023 12:57
 """
 import os
-import numpy as np
-import deepdish as dd
-import pathlib as Path
 import pandas as pd
-import re
-import sys
-from collections import defaultdict
-import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
-import cortico_cereb_connectivity.model as cm
-import json
+import cortico_cereb_connectivity.cio as cio
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
@@ -69,12 +61,9 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                          cerebellum=cerebellum,
                          parameters=parameters,
                          avrg_mode=avrg_mode)
-      dd.io.save(model_path + f"/{mname_base}{mname_ext}_{avg_id}.h5",
-         avrg_model, compression=None)
-      with open(model_path + f"/{mname_base}{mname_ext}_{avg_id}.json", 'w') as fp:
-         json.dump(info, fp, indent=4)
-
-
+      fname = model_path + f"/{mname_base}{mname_ext}_{avg_id}"
+      cio.save_model(avrg_model,info,fname)
+      
 def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
@@ -304,12 +293,15 @@ if __name__ == "__main__":
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
-   train_all_nnls(logalpha_list=[6],subj_list=np.arange(5,24),parcellation='Icosahedron1002')
+   # train_all_nnls(logalpha_list=[6],subj_list=np.arange(5,24),parcellation='Icosahedron1002')
+
    # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
    # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
-   # avrg_model(train_data = 'HCP',
-   #             method='WTA',
-   #               train_ses= "all",
-   #               cerebellum='SUIT3',
-   #               logalpha_list = [None])
+   avrg_model(train_data = 'MDTB',
+              train_ses= "ses-s1",
+              parcellation = 'Icosahedron162',
+              method='NNLS',
+              parameters=['coef_'],
+              cerebellum='SUIT3',
+              logalpha_list = [6])
    # avrg_all_wta()
