@@ -422,6 +422,31 @@ def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
          mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
    return dirname, mname
 
+def get_ind_models(model_dir,model_name,subj_list,cerebellum='SUIT3'):
+   """Builds a list of individual-specific models from the saved files
+
+   Args:
+       model_dir (str): Directory name for models 
+       model_names (list): List of model names (without subject extension)
+       subj_list (list): List of subjects
+
+   Returns:
+       fitted_models (list): List of fitted models
+       train_info (list): information on each trained model
+   """
+   # Load all the models to evaluate:
+   fitted_model = []
+   train_info = []
+   model_path = os.path.join(gl.conn_dir,cerebellum,'train',model_dir)
+   for sub in subj_list:
+      fname = model_path + f"/{model_name}_{sub}"
+      mo,inf = cio.load_model(fname)
+      fitted_model.append(mo)
+      train_info.append(inf)
+   return fitted_model, train_info
+
+
+
 def get_fitted_models(model_dirs,model_names,config):
    """Builds a list of fitted models from the saved files
    In case of individual-specific models (ind or loo), it builds a list of lists.
@@ -429,7 +454,7 @@ def get_fitted_models(model_dirs,model_names,config):
    Args:
        model_dirs (_type_): List of dirctory names for models 
        model_names (_type_): List of model names (without subject extension)
-       config (dict): Dictonary with evaluation parameters
+       config (dict): Dictonary with 'model' and  parameters
 
    Returns:
        fitted_models (list): _description_
@@ -489,7 +514,6 @@ def get_fitted_models(model_dirs,model_names,config):
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
-
    return fitted_model, train_info
 
 def eval_model(model_dirs,model_names,config):
