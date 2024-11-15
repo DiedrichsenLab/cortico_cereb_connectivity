@@ -5,3 +5,4 @@ env/
 .vscode/
 data/simulation/
 data/variance/
+notebooks/init_paths.py
