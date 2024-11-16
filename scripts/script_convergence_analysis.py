@@ -23,7 +23,7 @@ def calc_area(weights,threshold=0):
         area (float): area of the weights above the threshold
     """
     area = np.mean((weights>threshold),axis=weights.ndim-1)
-
+    area[area==0] = np.nan
     return area
 
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     area = calc_area(weights)
     cerebellum,ainf = am.get_atlas('SUIT3')
     # cortex = am.get_atlas('fs32k')
-    nii = cerebellum.data_to_nifti(area.mean(axis=0))
+    nii = cerebellum.data_to_nifti(np.mean(area,axis=0))
     flat_data = suit.flatmap.vol_to_surf(nii)
     suit.flatmap.plot(flat_data,colorbar=True)
     plt.show()
