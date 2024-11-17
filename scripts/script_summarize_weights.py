@@ -155,13 +155,12 @@ def make_avrg_weight_map(dataset= "HCP",extension = 'A0',ext="",method="L2Regres
                                 cerebellum_atlas = "SUIT3",
                                 extension = extension,
                                 dataset_name = dataset,
-                                ses_id = "all",
-                                train_t = "train"+ext
+                                ses_id = "all"
                                 )
     if (len(extension) > 0) and extension[0] != "_":
         extension = "_" + extension
     fname = gl.conn_dir + f'/{"maps"+ext}/{dataset}_{method[:2]}{extension}.pscalar.nii'
-    # cifti_img = sort_roi_rows(cifti_img)
+    cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
 def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
@@ -281,21 +280,21 @@ def make_all_weight_maps_L2():
 
 def make_avrg_weight_map_NNLS(): 
     cifti_img = avrg_weight_map(method = 'NNLS',
-                                cortex_roi = "Icosahedron162",
+                                cortex_roi = "Icosahedron362",
                                 cerebellum_roi = "NettekovenSym32",
                                 cerebellum_atlas = "SUIT3",
-                                extension = 'A6',
+                                extension = 'A4',
                                 dataset_name = 'MDTB',
-                                ses_id = "ses-s1",
+                                ses_id = "all",
                                 )
-    fname = gl.conn_dir + f'/maps/MDTBs1_NNLS162_A6.pscalar.nii'
+    fname = gl.conn_dir + f'/maps/MDTB_NNLS362_A4.pscalar.nii'
     cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
 
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-
+    make_avrg_weight_map(dataset= "MDTB",extension = 'A8',method="L2Regression")
     make_avrg_weight_map_NNLS()
     # make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
