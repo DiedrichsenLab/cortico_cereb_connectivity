@@ -10,6 +10,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
+import numpy as np   
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
@@ -293,15 +294,16 @@ if __name__ == "__main__":
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
-   # train_all_nnls(logalpha_list=[6],subj_list=np.arange(5,24),parcellation='Icosahedron1002')
+   train_all_nnls(logalpha_list=[6],subj_list=[10],parcellation='Icosahedron1002')
 
-   # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
-   # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
-   avrg_model(train_data = 'MDTB',
-              train_ses= "ses-s1",
-              parcellation = 'Icosahedron162',
-              method='NNLS',
-              parameters=['coef_'],
-              cerebellum='SUIT3',
-              logalpha_list = [6])
-   # avrg_all_wta()
+   # train_all_l2(logalpha_list=[6],parcellation='Icosahedron362')
+   # train_all_nnls(logalpha_list=[6],parcellation='Icosahedron362')
+   # train_all_nnls(logalpha_list=[6],parcellation='Icosahedron362')
+   # # avrg_model(train_data = 'MDTB',
+   #            train_ses= "ses-s1",
+   #            parcellation = 'Icosahedron162',
+   #            method='NNLS',
+   #            parameters=['coef_'],
+   #            cerebellum='SUIT3',
+   #            logalpha_list = [6])
+   # # avrg_all_wta()
