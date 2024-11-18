@@ -298,8 +298,8 @@ if __name__ == "__main__":
    # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
    # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
    avrg_model(train_data = 'MDTB',
-              train_ses= "all",
-              parcellation = 'Icosahedron362',
+              train_ses= "ses-s1",
+              parcellation = 'Icosahedron1002',
               method='NNLS',
               parameters=['coef_'],
               cerebellum='SUIT3',

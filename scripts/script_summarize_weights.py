@@ -35,9 +35,10 @@ def avrg_weight_map(method = "L2Regression",
                     cerebellum_atlas = "SUIT3",
                     extension = 'A8',
                     dataset_name = "MDTB",
-                    ses_id = "all"
+                    ses_id = "all",
+                    rois = None
                     ):
-    """ Makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
+    """ Makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects). With the roi option, it allows for easy summary of the data. 
 
     Args:
         method (str) - connectivity method used to estimate weights
@@ -71,16 +72,21 @@ def avrg_weight_map(method = "L2Regression",
     # label file for the cortex
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
-    # label file for the cerebellum
-    label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-SUIT_dseg.nii"
+    # label and label names for the cerebellum
+    labelname = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-SUIT_dseg.nii"
+    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
+    atlas_suit.get_parcel(labelname)
+    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
+    labelvec=atlas_suit.label_vector
+
+    # Condense or resort the data if roi is specified 
+    if rois is not None: 
+        labelvec,indx = fdata.combine_parcel_labels(labels,labelvec,rois)
+        labels = rois
 
     # get the average cortical weights for each cerebellar parcel
-    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
-    atlas_suit.get_parcel(label_suit)
-    weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_suit.label_vector, fcn=np.nanmean)
+    weights_parcel, label_num = fdata.agg_parcels(weights.T, labelvec, fcn=np.nanmean)
 
-    # load the lookup table for the cerebellar parcellation to get the names of the parcels
-    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
 
     cifti_img = cio.model_to_cifti(weights_parcel.T,
                                    src_atlas = "fs32k",
@@ -280,21 +286,35 @@ def make_all_weight_maps_L2():
 
 def make_avrg_weight_map_NNLS(): 
     cifti_img = avrg_weight_map(method = 'NNLS',
-                                cortex_roi = "Icosahedron362",
+                                cortex_roi = "Icosahedron1002",
                                 cerebellum_roi = "NettekovenSym32",
                                 cerebellum_atlas = "SUIT3",
-                                extension = 'A4',
+                                extension = 'A6',
                                 dataset_name = 'MDTB',
-                                ses_id = "all",
+                                ses_id = "ses-s1",
                                 )
-    fname = gl.conn_dir + f'/maps/MDTB_NNLS362_A4.pscalar.nii'
+    fname = gl.conn_dir + f'/maps/MDTBs1_NNLS1002_A6.pscalar.nii'
     cifti_img = sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
+
+def make_avrg_weight_map_overall(): 
+    cifti_img = avrg_weight_map(method = 'L2Regression',
+                                cortex_roi = "Icosahedron1002",
+                                cerebellum_roi = "NettekovenSym32",
+                                cerebellum_atlas = "SUIT3",
+                                extension = '06',
+                                dataset_name = 'Fusion',
+                                ses_id = "all",
+                                rois = ['0','...']
+                                )
+    fname = gl.conn_dir + f'/maps/Fusion_L2_06_overall.pscalar.nii'
+    nb.save(cifti_img,fname)
+
 
 
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-    make_avrg_weight_map(dataset= "MDTB",extension = 'A8',method="L2Regression")
+    # make_avrg_weight_map(dataset= "MDTB",extension = 'A8',method="L2Regression")
     make_avrg_weight_map_NNLS()
     # make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
