@@ -40,3 +40,32 @@ King, M., Shahshahani, L., Ivry, R. B., & Diedrichsen, J. (2023). A task-general
 Nettekoven, C., Zhi, D., Ladan, S., Pinho, A. L., Saadon Grosmannn, N., Buckner, R., & Diedrichsen, J. (2023). A hierarchical atlas of the human cerebellum for functional precision mapping. BioRviv.
 
 Shahshahani, L., King, M., Nettekoven, C., Ivry, R., & Diedrichsen, J. (2023). Selective recruitment: Evidence for task-dependent gating of inputs to the cerebellum. bioRxiv, 2023.01.25.525395.
+
+### Details on Fusion model in Nettekoven et al. (2024)
+Models were trained evaluated ```ccc.run_model```, which is called from ```ccc.scripts.script_train_eval_models.py```
+
+Models are then fused (i.e. simply averaged) using ```ccc.scripts.script_fuse_models.py```
+
+* Model 4: Demand, HCP and MDTB 
+* Model 5: all datasets including HCP
+* Model 6: all datasets excluding HCP
+* Model 7: all datasets excluding HCP and Somatotopic
+
+The final model evaluation results reported in the paper can be found in ```ccc.notebooks.Evaluate_model_int.ipynb```.
+
+To summarize the connectivity pattern by cerebellar regions:
+
+```
+import cortico_cereb_connectivity.scripts.script_summarize_weights as csw
+csw.make_weight_map('Fusion','06',method='L2Regression')
+```
+
+To summarize further by cortical ROI:
+```T = csw.make_weight_table(dataset="Fusion",extension="06",cortical_roi="")```
+
+Summary figures (by MSHBM_Prior_15_fsLR32)
+```notebooks/cortical_connectivity.ipynb```
+
+
+Full connectivity maps:
+```notebooks/connectivity_weights.ipynb``` (Fig S5 & Fig S6)

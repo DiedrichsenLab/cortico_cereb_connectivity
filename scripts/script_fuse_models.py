@@ -41,15 +41,13 @@ def fuse_models(logalpha = [8, -2, 6, 8,  8, 8, 10],
         mname = f"{tdata}_{train_ses}_{parcellation}_{method}"
         model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
         m = mname + f"_A{la}_avg"
-        fname = model_path + f"/{m}.h5"
-        json_name = model_path + f"/{m}.json"
-        m = dd.io.load(fname)
+        fname = model_path + f"/{m}"
+        m,info = cio.load_model(fname)
         models.append(m)
+        train_info.append(info)
         coef_list.append(m.coef_/m.scale_) # Adjust for scaling
         scale_list.append(m.scale_)
          # Load json file
-        with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
 
     Coef = np.stack(coef_list,axis=0)
     Scale = np.stack(scale_list,axis=0)
