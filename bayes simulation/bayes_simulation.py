@@ -245,6 +245,8 @@ def make_dataframe(method_dic, method_name, alpha, nc=None):
 
 
 def evaluate_model_with_params(method, eval_metric, eval_param, eval_with, cv):
+    """ Calls the eval_model() with appropriate inputs
+    """
     if eval_param == 'W':
         if eval_with == 'mean':
             performance = eval_model(metric=eval_metric,
@@ -314,6 +316,8 @@ def eval_model(data, data_pred, metric='R'):
 
 
 def calc_noise_ceiling(X_subjects, W_model, Y1_subjects, Y2_subjects):
+    """ Is not complete yet
+    """
     nc = []
     for s in range(S):
         R, _ = ev.calculate_R(Y1_subjects[s,:,:], Y2_subjects[s,:,:])
@@ -335,9 +339,9 @@ def calc_rmse(data, data_pred):
 
 if __name__ == "__main__":
     # Parameters to change:
-    param_set = 0
-    save_df = True
-    plot_df = False
+    param_set = 2
+    save_df = False
+    plot_df = True
 
     if param_set==0:
         # MDTB estimations:
@@ -400,18 +404,16 @@ if __name__ == "__main__":
                 X_subjects, X_mean = create_dataset(data_mean=x_true_mean, data_var=x_true_var, data_ind_var=x_ind_var, shape=(N, Q))
                 X_subjects, X_mean = normalize_dataset(data_subjects=X_subjects, data_mean=X_mean)
                 W_subjects, W_mean = create_dataset(data_mean=w_true_mean, data_var=w_true_var, data_ind_var=w_ind_var, shape=(Q, P))
-
-                # shape_params = np.array([1.4067486842750054, 1.2770534266710492, 1.1328150830096797, 1.409704810353665, 2.064867002624763, 1.6958071349573576, 2.4181751782219507, 1.6466319246865182, 2.303449282655355, 2.1967688084819113, 1.6871730244950487, 2.234433894000422, 1.8194967278142473, 1.7845065275970837, 1.990104584473109, 1.5100204369833021, 1.6734372570281615, 2.0225755760743866, 2.4965773619608242, 1.7729638629911844, 2.5112686931467505, 1.2858801082140112, 1.071348481311573, 1.834150830155816])
-                # scale_params = np.array([0.4190765867642687, 0.44236942307935917, 0.30224550800609096, 0.27306911359660874, 0.33942935316197664, 0.21820202779952383, 0.19644066569897725, 0.31245701695430533, 0.16328018939942035, 0.20469539478100404, 0.4203833159179754, 0.12487783568874933, 0.17466327376312818, 0.19646444173580357, 0.17005633405159284, 0.30242040733731523, 0.2687341736779357, 0.1433753299342383, 0.22886884668570523, 0.14748108775637953, 0.12471548031178535, 0.5984579882986271, 0.7507159311079333, 0.1778076456097269])
-                shape_params = np.array([1.1473032982361686, 1.2951274520344782, 0.9679436505658024, 1.8452195681630008, 1.7822897660345185, 1.6070884950225943, 3.057081693706728, 1.6375526562271254, 2.196827625986511, 1.6968870328825916, 1.5361470793690848, 1.8737230591204774, 2.5429175638943304, 1.750896362276518, 1.8814280106435883, 1.689557858582146, 1.6420253488568153, 2.262145061135111, 2.0946819405313937, 1.615498520643554, 2.5935057319314176, 1.3085170629883058, 0.9076669866982234, 1.7745448565227164])
-                scale_params = np.array([0.006397510351075428, 0.004288201523562293, 0.005281265900250895, 0.00140938485632452, 0.005671815412353157, 0.0028659048089343343, 0.001198569691340678, 0.0035339640484205776, 0.0023421510415807196, 0.003398297654296774, 0.004105305542227382, 0.0019292391819560701, 0.0009584819367731865, 0.0023289789513727408, 0.0025918514265231133, 0.002253727597568885, 0.003164106513233705, 0.0013163597333146419, 0.0036058742484922812, 0.001775975873154506, 0.0013786335390489593, 0.006916112052916151, 0.012807388241712998, 0.002264911111820971])
+                
+                shape_params = np.array([1.1473032982361686, 1.2951274520344758, 0.9679436505658012, 1.8452195681630008, 1.7822897660345185, 1.607088495022598, 3.0570816937067122, 1.6375526562271254, 2.196827625986511, 1.6968870328825958, 1.5361470793690848, 1.8737230591204828, 2.5429175638943415, 1.7508963622765272, 1.8814280106435932, 1.689557858582146, 1.642025348856807, 2.262145061135111, 2.0946819405313866, 1.615498520643554, 2.593505731931406, 1.3085170629883034, 0.9076669866982224, 1.7745448565227115])
+                scale_params = np.array([0.0066259928636138365, 0.004441351577975239, 0.005469882539545577, 0.0014597200297646815, 0.005874380248508628, 0.002968258552110554, 0.0012413757517457087, 0.003660177050149884, 0.0024257992930657455, 0.0035196654276645075, 0.004251923597306932, 0.0019981405813116384, 0.0009927134345150818, 0.002412156771064612, 0.002684417548898932, 0.0023342178689106314, 0.0032771103172777832, 0.001363372580933022, 0.003734655471652732, 0.0018394035829100242, 0.0014278704511578569, 0.007163116054806027, 0.013264794964631333, 0.0023458007943860113])
 
                 sigma2_epss = generate_sigma2eps(shape_params=shape_params,
-                                                    scale_params=scale_params)
+                                                 scale_params=scale_params)
 
                 Y1_subjects, Y_star_subjects = generate_Y(X_subjects=X_subjects,
-                                                              W_subjects=W_subjects,
-                                                              sigma2_epss=sigma2_epss)
+                                                          W_subjects=W_subjects,
+                                                          sigma2_epss=sigma2_epss)
                 if cross_validation:
                     Y2_subjects, _ = generate_Y(X_subjects=X_subjects,
                                                 W_subjects=W_subjects,
@@ -438,16 +440,16 @@ if __name__ == "__main__":
                 W_group_model = {}
                 for method in method_names:
                     W_group_model[method] = calc_model(model=method,
-                                                        W_hat_subjects=W_hat_subjects,
-                                                        Var_W_hat_subjects=Var_W_hat_subjects)
+                                                       W_hat_subjects=W_hat_subjects,
+                                                       Var_W_hat_subjects=Var_W_hat_subjects)
 
                 # Calculate Y_hat
                 if eval_param == 'Y':
                     Y_hat_group_model = {}
                     for method in method_names:
                         Y_hat_group_model[method] = predict_Y_hat(X_subjects=X_subjects,
-                                                                    W_subjects=W_group_model[method],
-                                                                    alpha=alpha)
+                                                                  W_subjects=W_group_model[method],
+                                                                  alpha=alpha)
 
                 # Evaluate methods
                 performance = {}
@@ -455,10 +457,10 @@ if __name__ == "__main__":
                     performance[method] = {}
                     for eval_metric in eval_metrics:
                         performance[method][eval_metric] = evaluate_model_with_params(method=method,
-                                                                                        eval_metric=eval_metric,
-                                                                                        eval_param=eval_param,
-                                                                                        eval_with=eval_with,
-                                                                                        cv=cross_validation)
+                                                                                      eval_metric=eval_metric,
+                                                                                      eval_param=eval_param,
+                                                                                      eval_with=eval_with,
+                                                                                      cv=cross_validation)
                     if eval_type == 'Y_2':
                         noise_ceiling = calc_noise_ceiling(X_subjects=X_subjects, W_model=W_group_model[method], Y1_subjects=Y1_subjects, Y2_subjects=Y2_subjects)
                         # Make dataframe
