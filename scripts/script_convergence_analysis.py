@@ -17,6 +17,8 @@ import seaborn as sb
 
 def calc_area(weights,threshold=0):  
     """ Calculate the area of the weights above a threshold for each target voxel
+    the area is expressed as proportion of the entire cortical surface
+
     Args:
         weights (ndarray): weights
         threshold (float): threshold
@@ -26,6 +28,77 @@ def calc_area(weights,threshold=0):
     area = np.mean((weights>threshold),axis=weights.ndim-1)
     area[area==0] = np.nan
     return area
+
+def calc_dispersion(weights,parcel,threshold=0): 
+    """Caluclate spherical dispersion for the connectivity weights
+
+    Args:
+        weights (np array): N x P or nsubj x N x P array of data to claculate dispersion on  
+        cortex (str): cortical 
+
+    Returns:
+        dataframe (pd dataframe)
+    """
+    # get data
+    num_parcel = weights.shape[-1]
+    weights = np.nan_to_num(weights)
+
+    # Read the parcellation and coordinate on spherical surface into atlas space
+    hem_names = ['L', 'R']
+    atlas_dir = gl.atlas_dir + '/tpl-fs32k'
+    fs32, ainf = am.get_atlas('fs32k')
+    parcel = [atlas_dir + f"/{parcel}.{h}.label.gii" for h in hem_names]
+    sphere = [atlas_dir + f"/tpl-fs32k_hemi-{h}_sphere.surf.gii" for h in hem_names]
+
+    lable_vec = fs32.get_parcel(parcel)
+    coords = fs32.read_data(sphere).T
+    parcel_coords,_ = fdata.agg_parcels(coords, fs32.label_vector)
+    parcel_hem,_ = fdata.agg_parcels(fs32.structure_index, fs32.label_vector)
+
+    # Calcualte the dispersion per hemisphere
+    for h,hem in enumerate(hem_names):
+        indx =  parcel_hem == h
+        # Calculate spherical STD as measure
+        # Get coordinates and move back to 0,0,0 center
+        coord_hem = parcel_coords[:,indx].copy()
+        coord_hem[0,:]=coord_hem[0,:]-(h*2-1)*500
+
+        # Now compute a weoghted spherical mean, variance, and STD
+        # For each tessel, the weigth w_i is the connectivity weights with negative weights set to zero
+        # also set the sum of weights to 1
+        w = weights[...,indx].copy()
+        w[w<0]=0
+        sum_w = w.sum(axis=-1,keepdims=True)
+        w = w /sum_w
+        # print(sum_w.shape)
+
+        # We then define a unit vector for each tessel, v_i:
+        v = coord_hem.copy().T
+        v=v / np.sqrt(np.sum(v**2,axis=0))
+
+        # Weighted average vector =sum(w_i*v_i)
+        # R is the length of this average vector
+
+        for i in range(num_roi):
+
+            mean_v = np.sum(w[i,:] * v,axis=1)
+            R[i] = np.sqrt(np.sum(mean_v**2))
+
+            # Check with plot
+            # fig = plt.figure()
+            # ax = fig.add_subplot(projection='3d')
+            # ax.scatter(w[i,:]*v[0,:],w[i,:]*v[1,:],w[i,:]*v[2,:])
+            # ax.scatter(mean_v[0],mean_v[1],mean_v[2])
+            # pass
+
+        V = 1-R # This is the Spherical variance
+        Std = np.sqrt(-2*np.log(R)) # This is the spherical standard deviation
+        df1 = pd.DataFrame({'Variance':V,'Std':Std,'hem':h*np.ones((num_roi,)),'roi':np.arange(num_roi)+1,'sum_w':sum_w})
+        df = pd.concat([df,df1])
+    return df
+
+
+
 
 def summarize_measure(data,
                       cerebellum_roi='NettekovenSym32',
@@ -42,7 +115,7 @@ def summarize_measure(data,
     index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
 
     if rois is not None: 
-        lv = fdata.combine_parcel_labels(labels,catlas.label_vector,rois)
+        map,lv = fdata.combine_parcel_labels(labels,rois,catlas.label_vector)
     else:
         lv = catlas.label_vector
         rois = labels
@@ -87,7 +160,8 @@ def load_model_weights(dataset='MDTB',
 if __name__ == "__main__":
     weights = load_model_weights('MDTB','all','NNLS','SUIT3','Icosahedron362','A4')
     area = calc_area(weights)
-    T = summarize_measure(area,rois=None)
+    dispersion = calc_dispersion(weights,'Icosahedron362')
+    T = summarize_measure([area, dispersion],rois=None)
     plt.figure()
     sb.barplot(T,x='roi',y='value')
     plt.show()

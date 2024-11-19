@@ -81,7 +81,7 @@ def avrg_weight_map(method = "L2Regression",
 
     # Condense or resort the data if roi is specified 
     if rois is not None: 
-        labelvec,indx = fdata.combine_parcel_labels(labels,labelvec,rois)
+        indx, labelvec = fdata.combine_parcel_labels(labels,rois,labelvec)
         labels = rois
 
     # get the average cortical weights for each cerebellar parcel

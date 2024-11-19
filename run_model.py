@@ -423,7 +423,8 @@ def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
    return dirname, mname
 
 def get_ind_models(model_dir,model_name,subj_list,cerebellum='SUIT3'):
-   """Builds a list of individual-specific models from the saved files
+   """Loads all individual-specific models from the saved files
+   for a dataset. Returns them as a list.
 
    Args:
        model_dir (str): Directory name for models 
