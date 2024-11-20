@@ -11,6 +11,9 @@ import cortico_cereb_connectivity.cio as cio
 import numpy as np
 import SUITPy as suit
 import nibabel as nb
+import matplotlib
+matplotlib.use('MacOSX')  
+import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 import nitools as nt
 import seaborn as sb
@@ -74,27 +77,26 @@ def calc_dispersion(weights,parcel,threshold=0):
 
         # We then define a unit vector for each tessel, v_i:
         v = coord_hem.copy().T
-        v=v / np.sqrt(np.sum(v**2,axis=0))
+        v=v / np.sqrt(np.sum(v**2,axis=1,keepdims=1))
 
-        # Weighted average vector =sum(w_i*v_i)
+        # Weighted average vector mv_i = sum(w_ij * v_ij)
         # R is the length of this average vector
-
-        for i in range(num_roi):
-
-            mean_v = np.sum(w[i,:] * v,axis=1)
-            R[i] = np.sqrt(np.sum(mean_v**2))
-
-            # Check with plot
-            # fig = plt.figure()
-            # ax = fig.add_subplot(projection='3d')
-            # ax.scatter(w[i,:]*v[0,:],w[i,:]*v[1,:],w[i,:]*v[2,:])
-            # ax.scatter(mean_v[0],mean_v[1],mean_v[2])
-            # pass
-
+        vw = v*w[...,np.newaxis]
+        mv = np.nansum(vw ,axis=-2)
+        R = np.sqrt(np.sum(mv**2,axis=-1))
         V = 1-R # This is the Spherical variance
         Std = np.sqrt(-2*np.log(R)) # This is the spherical standard deviation
-        df1 = pd.DataFrame({'Variance':V,'Std':Std,'hem':h*np.ones((num_roi,)),'roi':np.arange(num_roi)+1,'sum_w':sum_w})
-        df = pd.concat([df,df1])
+
+        # Check with plot
+        plt.ion()
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        ax.scatter(v[0,:],v[1,:],v[2,:])
+        # ax.scatter(mean_v[0],mean_v[1],mean_v[2])
+            # pass
+        pass
+        # df1 = pd.DataFrame({'Variance':V,'Std':Std,'hem':h*np.ones((num_roi,)),'roi':np.arange(num_roi)+1,'sum_w':sum_w})
+        # df = pd.concat([df,df1])
     return df
 
 
