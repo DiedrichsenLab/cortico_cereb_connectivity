@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 
+
 """Main module for evaluation metrics for connectivity models.
 
    @authors: Maedbh King, Ladan Shahshahani, Jörn Diedrichsen  
@@ -69,3 +70,4 @@ def calculate_reliability(Y, dataframe):
     R, R_vox = calculate_R(Y, Y_flip)
     R2, R2_vox = calculate_R2(Y, Y_flip)
     return R, R_vox, R2, R2_vox
+
