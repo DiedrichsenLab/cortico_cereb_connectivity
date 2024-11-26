@@ -3,6 +3,5 @@ globals.py
 env/
 .DS_Store
 .vscode/
-data/simulation/
-data/variance/
+data/
 notebooks/init_paths.py
