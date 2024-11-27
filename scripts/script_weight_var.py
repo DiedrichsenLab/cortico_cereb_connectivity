@@ -109,38 +109,45 @@ def estimating_weight_var(ext_list=[8],
          Y = np.nan_to_num(YY[0,:,:])
          X = np.nan_to_num(XX[0,:,:])
 
-         # controls
-         # fig, ax = plt.subplots(1, 2, figsize=(10,5))
-         # ax[0].hist(X.flatten())
-         # ax[1].hist(Y.flatten())
-         # plt.show()
-         # x_mu, x_std = stats.norm.fit(X.flatten())
-         # y_mu, y_std = stats.norm.fit(Y.flatten())
-         # print(f"X: Mean: {x_mu}, Standard Deviation: {x_std}")
-         # print(f"Y: Mean: {y_mu}, Standard Deviation: {y_std}")
-         # sys.exit("Stopping the script...")
-
          # Add explicit rest to sessions 
          if config["add_rest"]:
             Y,_ = add_rest(Y,info)
             X,info = add_rest(X,info)
 
-         # cross the halves within each session
-         if config["crossed"] is not None:
-            Y_flip = rm.cross_data(Y,info,config["crossed"])
+         X /= np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
 
          sigma2_eps = estimate_sigma_eps(Y=Y, dataframe=info)
          sub_weight_variance = calc_weight_var(X=X, sigma2_eps=sigma2_eps, logalpha=ext_list[0])
-         np.save(os.path.join(var_folder, f'weight_variance_{str(sub)}.npy'), sub_weight_variance)
+         np.save(os.path.join(var_folder, f'weight_variance2_{str(sub)}.npy'), sub_weight_variance)
+         # np.save(os.path.join(var_folder, f'sigma2_eps3_{str(sub)}.npy'), sigma2_eps)
 
 
 def estimate_sigma_eps(Y: np.array, dataframe):
-   Y_mean = np.mean(Y, axis=0)
+   # general way
+   Y_list = []
+   for i in np.unique(dataframe["half"]):
+      Y_list.append(Y[dataframe["half"] == i, :])
 
-   sigma2_eps = np.zeros_like(Y_mean)
+   Y_mean = np.nanmean(np.stack(Y_list, axis=0), axis=0)
+
+   sigma2_eps = np.zeros(Y_mean.shape[1])
    for i in np.unique(dataframe["half"]):
       Y_i = Y[dataframe["half"] == i, :]
-      sigma2_eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean))
+      sigma2_eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean)) / (Y_mean.shape[0]-1)
+   
+   # subtraction way
+   # Y_1 = Y[dataframe["half"] == 1, :]
+   # Y_2 = Y[dataframe["half"] == 2, :]
+   # sigma2_eps = np.var(Y_1 - Y_2, axis=0)/2
+
+   # reliability way
+   # _, R_vox, _, _ = ev.calculate_reliability(Y, dataframe)
+   # var_Y_1 = np.var(Y[dataframe["half"] == 1, :], axis=0)
+   # var_Y_2 = np.var(Y[dataframe["half"] == 2, :], axis=0)
+   # var_Y = np.nanmean([var_Y_1, var_Y_2], axis=0)
+   # var_Y_star = var_Y * R_vox
+   # var_Y_star[var_Y_star <= 0] = np.nan
+   # sigma2_eps = var_Y - var_Y_star
 
    sigma2_eps[sigma2_eps == 0] = np.nan
    return sigma2_eps
@@ -152,12 +159,12 @@ def calc_weight_var(X: np.array,                # 2N x Q matrix
    
    Q: int = X.shape[1]
    P: int = len(sigma2_eps)
-   X_transpose: np.array = X.T
-   pseudoinverse: np.array = np.linalg.inv(X_transpose @ X + np.exp(logalpha) * np.identity(Q)) @ X_transpose
-   # I_N = np.identity(X.shape[0]//2)
+   X_transpose = X.T
+   pseudoinverse = np.linalg.inv(X_transpose @ X + np.exp(logalpha) * np.identity(Q)) @ X_transpose
 
-   sub_weight_variance = sigma2_eps * np.nansum(np.nansum(pseudoinverse**2, axis=1), axis=0)
-   print(f'trace(A@A.T): {np.nansum(np.nansum(pseudoinverse**2, axis=1), axis=0)}')
+   # sub_weight_variance = sigma2_eps * np.nansum(pseudoinverse**2)
+   sub_weight_variance = sigma2_eps * np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)
+   print(f'trace(A@A.T): {np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)}')
 
    # sub_weight_variance = np.zeros((1, P))
    # for v in range(P):
