@@ -98,7 +98,7 @@ class L2regression(Ridge, Model):
 
     def predict(self, X):
         # Xs = X / self.scale_
-        Xs = X / np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
+        Xs = X
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
 
