@@ -31,7 +31,8 @@ import matplotlib.pyplot as plt
 # warnings.filterwarnings("ignore")
 
 def get_train_config(train_dataset = "MDTB", 
-                     train_ses = "ses-s1", 
+                     train_ses = "ses-s1",
+                     train_run = "all",
                      method = "L2regression",
                      log_alpha = 8,
                      cerebellum = "SUIT3",
@@ -41,7 +42,8 @@ def get_train_config(train_dataset = "MDTB",
                      cv_fold = 4,
                      crossed = "half", # or None
                      validate_model = True,
-                     add_rest = False
+                     add_rest = False,
+                     append = False
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
@@ -65,6 +67,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config = {}
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
+   train_config['train_run'] = train_run
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -77,7 +80,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['subj_list'] = "all"
    train_config['add_rest'] = add_rest
-   train_config['append'] = False
+   train_config['append'] = append
 
    # get label images for left and right hemisphere
    train_config['label_img'] = []
@@ -88,6 +91,7 @@ def get_train_config(train_dataset = "MDTB",
 
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
+            eval_run = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -105,6 +109,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config = {}
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
+   eval_config['eval_run'] = eval_run
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -279,9 +284,10 @@ def train_model(config):
 
 
    # Generate model name and create directory
-   mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
+   mname = f"{config['train_dataset']}_{config['type']}_{config['train_ses']}_run-{config['train_run']}_{config['parcellation']}_{config['method']}"
    save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',
                                   mname)
+   
    # check if the directory exists
    try:
       os.makedirs(save_path)
@@ -320,6 +326,14 @@ def train_model(config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
+      # train only on some runs?
+      if config["train_run"]!='all':
+         if isinstance(config["train_run"], list):
+            run_mask = info['run'].isin(config["train_run"])
+            Y = Y[run_mask.values, :]
+            X = X[run_mask.values, :]
+            info = info[run_mask]
+
       # Add rest condition? 
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
@@ -328,6 +342,9 @@ def train_model(config):
       # cross the halves within each session
       if config["crossed"] is not None:
          Y = cross_data(Y,info,config["crossed"])
+
+      # normalize X before fitting model
+      X /= np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
 
       for la in config["logalpha"]:
       # loop over subjects and train models
@@ -558,6 +575,14 @@ def eval_model(model_dirs,model_names,config):
       if config["crossed"] is not None:
          Y = cross_data(Y,info,config["crossed"])
 
+      # eval only on some runs?
+      if config["eval_run"]!='all':
+         if isinstance(config["eval_run"], list):
+            run_mask = info['run'].isin(config["eval_run"])
+            Y = Y[run_mask.values, :]
+            X = X[run_mask.values, :]
+            info = info[run_mask]
+
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
          
@@ -617,6 +642,7 @@ def comb_eval(models=['Md_s1'],
       for m in models:
          for meth in methods: 
             f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            # f = '/home/ROBARTS/ashahb7/Github/TaskVsRest/results'+ f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
