@@ -54,6 +54,21 @@ def scipy_nnls_l2(X,Y,alpha=0.1):
         W_est[:,i] = so.nnls(A,B[:,i])[0]
     return W_est
 
+def scipy_nnls_l2(X,Y,alpha=0.1):
+    """
+        Implements a L2-regularized version of nnls appending penality term
+        Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
+        A = [X; sqrt(alpha) * I] and b = [Y; 0]
+        uses Parfor loop
+    """
+    [N,Q]=X.shape
+    [N1,P]=Y.shape
+    W_est = np.zeros((Q,P))
+    A = np.vstack((X,np.sqrt(alpha)*np.eye(Q)))
+    B = np.vstack((Y,np.zeros((Q,P))))
+    for i in range(P):
+        W_est[:,i] = so.nnls(A,B[:,i])[0]
+    return W_est
 
 def fast_nnls(X,Y):
     """
@@ -99,6 +114,29 @@ def scipy_source_nnls(X,Y,maxiter=None,tol=None):
         W_est[:,i]= _nnls(AtA,Atb[:,i],maxiter,tol)[0]
         # Initialize vars
     return W_est
+
+def scipy_source_nnls_l2(X,Y,alpha = 0.2, maxiter=None,tol=None):
+    """
+    This is a wrapper for the source code of scipy nnls
+    Slower than calling nnls directly - my guess is that scipy.nnls is compiled?
+    """
+    N,Q = X.shape
+    P = Y.shape[1]
+
+    AtA = X.T @ X + alpha * np.eye(Q)
+    Atb = X.T @ Y  # Result is 1D - let NumPy figure it out
+    W_est = np.zeros((Q,P))
+
+    if not maxiter:
+        maxiter = 3*Q
+    if tol is None:
+        tol = 10 * max(N,Q) * np.spacing(1.)
+
+    for i in range(P):
+        W_est[:,i]= _nnls(AtA,Atb[:,i],maxiter,tol)[0]
+        # Initialize vars
+    return W_est
+
 
 def _nnls(AtA,Atb,maxiter,tol):
     """ core NNLS implementation from Scipy (source code)"""
@@ -179,9 +217,41 @@ def test_nnls_speed():
     plt.imshow(W_est2)
     pass
 
+
+def test_nnls_l2_speed():
+    """
+    Test nnls function speed for different implementations
+    """
+    N = 12
+    Q = 200
+    P = 100
+    X, W, Y = generate_data(N,Q,P)
+
+    alpha = 0.1 
+    t1 = time.perf_counter()
+    W_est1 = scipy_nnls_l2(X,Y,alpha)
+    t2 = time.perf_counter()
+    print(f"Time taken by scipy nnls: {t2-t1}")
+
+    t1 = time.perf_counter()
+    W_est2 = scipy_source_nnls_l2(X,Y,alpha)
+    t2 = time.perf_counter()
+    print(f"Time taken by scipy source nnls: {t2-t1}")
+    print(W[:10,:5].round(3))
+    print(W_est1[:10,:5].round(3))
+    print(W_est2[:10,:5].round(3))
+
+    plt.subplot(3,1,1)
+    plt.imshow(W)
+    plt.subplot(3,1,2)
+    plt.imshow(W_est1)
+    plt.subplot(3,1,3)
+    plt.imshow(W_est2)
+    pass
+
 def test_nnls_reg():
     """
-    Test L2 regression on NNL
+    Test L2 regression on NNL vs NNLS
     """
     N = 30
     Q = 50
@@ -209,4 +279,4 @@ def test_nnls_reg():
 
 
 if __name__ == "__main__":
-    test_nnls_speed()
+    test_nnls_l2_speed()
