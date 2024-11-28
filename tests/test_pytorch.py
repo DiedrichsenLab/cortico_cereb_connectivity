@@ -97,5 +97,6 @@ def test_torch_solve():
 if __name__ == "__main__":
     print(pt.get_default_dtype())
     #print(pt.get_default_device())
+    # test_torch_mult()
     test_torch_solve()
     pass
