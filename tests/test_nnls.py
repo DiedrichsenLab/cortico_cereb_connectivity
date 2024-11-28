@@ -57,6 +57,21 @@ def nnls_l2_scipy(X,Y,alpha=0.1):
         W_est[:,i] = so.nnls(A,B[:,i])[0]
     return W_est
 
+def nnls_l2_scipy32(X,Y,alpha=0.1):
+    """
+        Implements a L2-regularized version of nnls appending penality term
+        Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
+        A = [X; sqrt(alpha) * I] and b = [Y; 0]
+    """
+    [N,Q]=X.shape
+    [N1,P]=Y.shape
+    W_est = np.zeros((Q,P),dtype=np.float32)
+    A = np.vstack((X.astype(np.float32),np.sqrt(alpha)*np.eye(Q,dtype=np.float32)))
+    B = np.vstack((Y.astype(np.float32),np.zeros((Q,P),dtype=np.float32)))
+    for i in range(P):
+        W_est[:,i] = so.nnls(A,B[:,i])[0]
+    return W_est
+
 def nnls_fast(X,Y):
     """
         Fast nnls algorithm - does not seem to be fast than even the
@@ -197,7 +212,7 @@ def _nnls(AtA,Atb,maxiter,tol):
     return x
 
 
-def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device='cuda'):
+def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device='cpu'):
     """
     This is a Pytorch implementation of NNLS with L2 regularization
     """
@@ -219,7 +234,7 @@ def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device
         # Initialize vars
     return W_est
 
-def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cuda'):
+def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cpu'):
     """ core NNLS implementation from Scipy (source code)"""
     n = AtA.shape[0]
     x = pt.zeros(n,device=device)
@@ -310,7 +325,7 @@ def test_nnls_l2_speed():
     Test nnls function speed for different implementations
     """
     N = 40
-    Q = 100
+    Q = 600
     P = 40
     X, W, Y = generate_data(N,Q,P)
 
@@ -373,6 +388,6 @@ def test_parallel():
     pass
 
 if __name__ == "__main__":
-    pt.set_default_device('cuda')
+    pt.set_default_device('mps')
     W = test_nnls_l2_speed()
     pass
