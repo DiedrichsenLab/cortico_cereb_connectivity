@@ -66,7 +66,7 @@ def test_torch_mult():
     print(f"Time taken by 1: {t2-t1}")
 
     t1 = time.perf_counter()
-    b= pt_mult(X,Y,alpha,device='mps')
+    b= pt_mult(X,Y,alpha,device='cuda')
     t2 = time.perf_counter()
     print(f"Time taken by 2: {t2-t1}")
     pass
@@ -86,7 +86,7 @@ def test_torch_solve():
     print(f"Time taken by 1: {t2-t1}")
 
     t1 = time.perf_counter()
-    b= pt_solve(X,Y,alpha,device='cpu')
+    b= pt_solve(X,Y,alpha,device='cuda')
     t2 = time.perf_counter()
     print(f"Time taken by 2: {t2-t1}")
 

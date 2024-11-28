@@ -197,7 +197,7 @@ def _nnls(AtA,Atb,maxiter,tol):
     return x
 
 
-def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device='cpu'):
+def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device='cuda'):
     """
     This is a Pytorch implementation of NNLS with L2 regularization
     """
@@ -219,13 +219,13 @@ def nnls_l2_torch(X,Y,alpha = 0.1, maxiter=None,tol=None,dtype=pt.float32,device
         # Initialize vars
     return W_est
 
-def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cpu'):
+def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cuda'):
     """ core NNLS implementation from Scipy (source code)"""
     n = AtA.shape[0]
-    x = pt.zeros(n)
-    s = pt.zeros(n)
+    x = pt.zeros(n,device=device)
+    s = pt.zeros(n,device=device)
     # Inactive constraint switches
-    P = pt.zeros(n,dtype=pt.bool)
+    P = pt.zeros(n,dtype=pt.bool,device=device)
 
     # Projected residual
     w = Atb.detach().clone()  # x=0. Skip (-AtA @ x) term
@@ -245,7 +245,8 @@ def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cpu'):
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', message='Ill-conditioned matrix',
                                     category=LinAlgWarning)
-            s[P] = pt.linalg.solve(AtA[np.ix_(P, P)], Atb[P])
+            pindx = P.nonzero(as_tuple=True)[0]
+            s[pindx] = pt.linalg.solve(AtA[pindx,:][:,pindx], Atb[pindx])
 
         # Inner loop
         while (iter < maxiter) and (s[P].min() < 0):  # C.1
@@ -258,7 +259,8 @@ def _nnls_torch(AtA,Atb,maxiter,tol,dtype=pt.float32,device='cpu'):
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', message='Ill-conditioned matrix',
                                         category=LinAlgWarning)
-                s[P] = pt.linalg.solve(AtA[np.ix_(P, P)], Atb[P])
+                pindx = P.nonzero(as_tuple=True)[0]
+                s[pindx] = pt.linalg.solve(AtA[pindx,:][:,pindx], Atb[pindx])
             s[~P] = 0  # C.6
 
         x[:] = s[:]
@@ -308,19 +310,19 @@ def test_nnls_l2_speed():
     Test nnls function speed for different implementations
     """
     N = 40
-    Q = 1000
+    Q = 100
     P = 40
     X, W, Y = generate_data(N,Q,P)
 
     alpha = 0.1
-    fcns = [nnls_l2_scipyS,nnls_l2_scipy,nnls_l2_torch]
+    fcns = [nnls_l2_scipy,nnls_l2_torch]
     W_est = []
     for f in fcns:
         t1 = time.perf_counter()
         W_est.append(f(X,Y,alpha))
         t2 = time.perf_counter()
         print(f"Time taken by {f.__name__} nnls: {t2-t1}")
-
+    return W_est
 
 def test_nnls_reg():
     """
@@ -371,4 +373,6 @@ def test_parallel():
     pass
 
 if __name__ == "__main__":
-    test_nnls_l2_speed()
+    pt.set_default_device('cuda')
+    W = test_nnls_l2_speed()
+    pass
