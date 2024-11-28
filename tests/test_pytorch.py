@@ -86,7 +86,7 @@ def test_torch_solve():
     print(f"Time taken by 1: {t2-t1}")
 
     t1 = time.perf_counter()
-    b= pt_solve(X,Y,alpha,device='cpu')
+    b= pt_solve(X,Y,alpha,device='mps')
     t2 = time.perf_counter()
     print(f"Time taken by 2: {t2-t1}")
 
@@ -97,5 +97,6 @@ def test_torch_solve():
 if __name__ == "__main__":
     print(pt.get_default_dtype())
     #print(pt.get_default_device())
+    # test_torch_mult()
     test_torch_solve()
     pass

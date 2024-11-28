@@ -308,18 +308,20 @@ def test_nnls_l2_speed():
     Test nnls function speed for different implementations
     """
     N = 40
-    Q = 1000
+    Q = 800
     P = 40
     X, W, Y = generate_data(N,Q,P)
 
     alpha = 0.1
-    fcns = [nnls_l2_scipyS,nnls_l2_scipy,nnls_l2_torch]
+    fcns = [nnls_l2_scipy,nnls_l2_torch] #     nnls_l2_scipyS
+
     W_est = []
     for f in fcns:
         t1 = time.perf_counter()
         W_est.append(f(X,Y,alpha))
         t2 = time.perf_counter()
         print(f"Time taken by {f.__name__} nnls: {t2-t1}")
+    return W_est
 
 
 def test_nnls_reg():
@@ -332,12 +334,12 @@ def test_nnls_reg():
     X, W, Y = generate_data(N,Q,P)
 
     t1 = time.perf_counter()
-    W_est1 = scipy_nnls_l2(X,Y,alpha=0.1)
+    W_est1 = nnls_l2_scipy(X,Y,alpha=0.1)
     t2 = time.perf_counter()
     print(f"Time taken by scipy nnls reg: {t2-t1}")
 
     t1 = time.perf_counter()
-    W_est2 = scipy_nnls(X,Y)
+    W_est2 = nnls_scipy(X,Y)
     t2 = time.perf_counter()
     print(f"Time taken by scipy nnls: {t2-t1}")
 
@@ -371,4 +373,5 @@ def test_parallel():
     pass
 
 if __name__ == "__main__":
-    test_nnls_l2_speed()
+    W = test_nnls_l2_speed()
+    pass
