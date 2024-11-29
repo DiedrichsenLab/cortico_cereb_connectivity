@@ -101,6 +101,8 @@ def get_eval_config(eval_dataset = 'MDTB',
             add_rest = False,
             subj_list = "all",
             model_subj_list = "all",
+            std_cortex = 'parcel',
+            std_cerebellum = 'global',
             model = 'avg',
             mix_param = []):
    """
@@ -115,6 +117,8 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['parcellation'] = parcellation
    eval_config['crossed'] = crossed
    eval_config['add_rest'] = add_rest
+   eval_config['std_cortex'] = std_cortex
+   eval_config['std_cerebellum'] = std_cerebellum
    eval_config["splitby"] = splitby
    eval_config["type"] = type
    eval_config["cv_fold"] = None, #TO IMPLEMENT: "sess", "run" (None is "tasks")
@@ -256,6 +260,18 @@ def add_rest(Y,info):
    infos = pd.concat(info_list,ignore_index=True)
    return Ys,infos
 
+def std_data(Y,mode):
+   if mode is None:
+      return Y
+   elif mode=='parcel':
+      sc=np.sqrt(np.nansum(Y ** 2, 0) / Y.shape[0])
+      return  np.nan_to_num(Y/sc)
+   elif mode=='global':
+      sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
+      return np.nan_to_num(Y/sc)
+   else:
+      raise ValueError('std_mode must be None, "voxel" or "global"')
+   
 def train_model(config):
    """
    training a specific model based on the config file created
@@ -570,6 +586,15 @@ def eval_model(model_dirs,model_names,config):
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
+
+      #Definitely subtract intercept across all conditions
+      X = (X - X.mean(axis=0))
+      Y = (Y - Y.mean(axis=0))
+
+      if 'std_cortex' in config.keys():
+         X = std_data(X,config['std_cortex'])
+      if 'std_cerebellum' in config.keys():
+         Y = std_data(Y,config['std_cerebellum'])
 
       # cross the halves within each session
       if config["crossed"] is not None:
