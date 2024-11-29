@@ -114,12 +114,19 @@ def estimating_weight_var(ext_list=[8],
             Y,_ = add_rest(Y,info)
             X,info = add_rest(X,info)
 
-         X /= np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
+         #Definitely subtract intercept across all conditions
+         X = (X - X.mean(axis=0))
+         Y = (Y - Y.mean(axis=0))
+
+         if 'std_cortex' in config.keys():
+            X = rm.std_data(X,config['std_cortex'])
+         if 'std_cerebellum' in config.keys():
+            Y = rm.std_data(Y,config['std_cerebellum'])
 
          sigma2_eps = estimate_sigma_eps(Y=Y, dataframe=info)
          sub_weight_variance = calc_weight_var(X=X, sigma2_eps=sigma2_eps, logalpha=ext_list[0])
-         np.save(os.path.join(var_folder, f'weight_variance2_{str(sub)}.npy'), sub_weight_variance)
-         # np.save(os.path.join(var_folder, f'sigma2_eps3_{str(sub)}.npy'), sigma2_eps)
+         # np.save(os.path.join(var_folder, f'weight_variance_{str(sub)}.npy'), sub_weight_variance)
+         np.save(os.path.join(var_folder, f'sigma2_eps_{config["eval_ses"]}_{str(sub)}.npy'), sigma2_eps)
 
 
 def estimate_sigma_eps(Y: np.array, dataframe):
@@ -162,9 +169,10 @@ def calc_weight_var(X: np.array,                # 2N x Q matrix
    X_transpose = X.T
    pseudoinverse = np.linalg.inv(X_transpose @ X + np.exp(logalpha) * np.identity(Q)) @ X_transpose
 
-   # sub_weight_variance = sigma2_eps * np.nansum(pseudoinverse**2)
-   sub_weight_variance = sigma2_eps * np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)
-   print(f'trace(A@A.T): {np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)}')
+   sub_weight_variance = sigma2_eps * np.nansum(pseudoinverse**2)
+   print(f'trace(A@A.T): {np.nansum(pseudoinverse**2)}')
+   # sub_weight_variance = sigma2_eps * np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)
+   # print(f'trace(A@A.T): {np.trace(pseudoinverse.T @ X_transpose @ X @ pseudoinverse)}')
 
    # sub_weight_variance = np.zeros((1, P))
    # for v in range(P):
