@@ -165,20 +165,22 @@ def train_all_wta():
                   logalpha_list = [None])
 
 def train_all_nnls(dataset = "MDTB",
+                   train_ses = 'all',
+                   add_rest = False,
                  logalpha_list = [-2],
                  subj_list = "all",
                  parcellation="Icosahedron162"):
 
    config = rm.get_train_config(train_dataset=dataset,
-                                train_ses='ses-s1',
-                                subj_list=subj_list,
+                                train_ses = train_ses,
+                                subj_list = subj_list,
                                 log_alpha = logalpha_list,
                                 crossed = 'half',
                                 type = 'CondHalf',
-                                cerebellum='SUIT3',
+                                cerebellum='MNISymC3',
                                 parcellation=parcellation,
                                 method = 'NNLS',
-                                add_rest=False,
+                                add_rest=add_rest,
                                 std_cortex='parcel',
                                 std_cerebellum='global',
                                 validate_model=False)
@@ -294,15 +296,20 @@ if __name__ == "__main__":
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
-   # train_all_nnls(logalpha_list=[6],subj_list=[10],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='MDTB',train_ses='all',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='MDTB',train_ses='ses-s1',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='IBC',train_ses='all',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='Nishimoto',train_ses='all',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='Demand',train_ses='all',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
+   train_all_nnls(dataset='WMFS',train_ses='all',logalpha_list=[2,4,6,8,10,12],parcellation='Icosahedron1002')
 
    # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
    # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
-   avrg_model(train_data = 'MDTB',
-              train_ses= "ses-s1",
-              parcellation = 'Icosahedron1002',
-              method='NNLS',
-              parameters=['coef_'],
-              cerebellum='SUIT3',
-              logalpha_list = [4])
+   # avrg_model(train_data = 'MDTB',
+   #            train_ses= "ses-s1",
+   #            parcellation = 'Icosahedron1002',
+   #            method='NNLS',
+   #            parameters=['coef_'],
+   #            cerebellum='SUIT3',
+   #           logalpha_list = [4])
    # avrg_all_wta()
