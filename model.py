@@ -101,6 +101,46 @@ class L2regression(Ridge, Model):
         Xs = X
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
+    
+class L2reg(Model):
+    """
+    New model for L2regression. This model assumes the data is already normalized.
+    The attribute 'sigma2eps' is an estimation of variance of the measurement noise on Y for each voxel.
+    The attribute 'coef_var' is an estimation of uncertainty of connectivity weights that can be used in Bayes optimal integration.
+    """
+
+    def __init__(self, alpha=1):
+        self.alpha = alpha
+
+    def estimate_sigma2eps(self, Y, dataframe=None):
+        if dataframe is None:
+            self.sigma2eps =  np.ones(Y.shape[1])
+        else:
+            Y_list = []
+            for i in np.unique(dataframe["half"]):
+                Y_list.append(Y[dataframe["half"] == i, :])
+
+            Y_mean = np.nanmean(Y_list, axis=0)
+
+            sigma2eps = np.zeros(Y_mean.shape[1])
+            for i in np.unique(dataframe["half"]):
+                Y_i = Y[dataframe["half"] == i, :]
+                sigma2eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean)) / (Y_mean.shape[0]-1)
+            self.sigma2eps = sigma2eps
+        return self.sigma2eps
+
+    def fit(self, X, Y, dataframe=None):
+        Xs = np.nan_to_num(X)
+        Xs_T = Xs.T
+        self.estimate_sigma2eps(Y, dataframe)
+        pseudoinverse = np.linalg.inv(Xs_T @ Xs + self.alpha * np.identity(Xs.shape[1])) @ Xs_T
+        self.coef_ = (pseudoinverse @ Y).T
+        self.coef_var = self.sigma2eps * np.nansum(pseudoinverse**2)
+        return self.coef_.T
+    
+    def predict(self, X):
+        Xs = np.nan_to_num(X)
+        return Xs @ self.coef_.T
 
 class L2noscale(Ridge, Model):
     """
