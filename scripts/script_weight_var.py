@@ -145,12 +145,12 @@ def estimate_sigma_eps(Y: np.array, dataframe):
    # subtraction way
    # Y_1 = Y[dataframe["half"] == 1, :]
    # Y_2 = Y[dataframe["half"] == 2, :]
-   # sigma2_eps = np.var(Y_1 - Y_2, axis=0)/2
+   # sigma2_eps = np.var(Y_1 - Y_2, axis=0, ddof=1)/2
 
    # reliability way
    # _, R_vox, _, _ = ev.calculate_reliability(Y, dataframe)
-   # var_Y_1 = np.var(Y[dataframe["half"] == 1, :], axis=0)
-   # var_Y_2 = np.var(Y[dataframe["half"] == 2, :], axis=0)
+   # var_Y_1 = np.var(Y[dataframe["half"] == 1, :], axis=0, ddof=1)
+   # var_Y_2 = np.var(Y[dataframe["half"] == 2, :], axis=0, ddof=1)
    # var_Y = np.nanmean([var_Y_1, var_Y_2], axis=0)
    # var_Y_star = var_Y * R_vox
    # var_Y_star[var_Y_star <= 0] = np.nan
