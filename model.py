@@ -115,18 +115,21 @@ class L2reg(Model):
     def estimate_sigma2eps(self, Y, dataframe=None):
         if dataframe is None:
             self.sigma2eps =  np.ones(Y.shape[1])
-        else:
-            Y_list = []
-            for i in np.unique(dataframe["half"]):
-                Y_list.append(Y[dataframe["half"] == i, :])
+            return self.sigma2eps
+        elif isinstance(dataframe, str) and dataframe == 'half':
+            dataframe = pd.DataFrame([1]*(Y.shape[0]//2) + [2]*(Y.shape[0]-Y.shape[0]//2), columns=["half"])
 
-            Y_mean = np.nanmean(Y_list, axis=0)
+        Y_list = []
+        for i in np.unique(dataframe["half"]):
+            Y_list.append(Y[dataframe["half"] == i, :])
 
-            sigma2eps = np.zeros(Y_mean.shape[1])
-            for i in np.unique(dataframe["half"]):
-                Y_i = Y[dataframe["half"] == i, :]
-                sigma2eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean)) / (Y_mean.shape[0]-1)
-            self.sigma2eps = sigma2eps
+        Y_mean = np.nanmean(Y_list, axis=0)
+
+        sigma2eps = np.zeros(Y_mean.shape[1])
+        for i in np.unique(dataframe["half"]):
+            Y_i = Y[dataframe["half"] == i, :]
+            sigma2eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean)) / (Y_mean.shape[0])
+        self.sigma2eps = sigma2eps
         return self.sigma2eps
 
     def fit(self, X, Y, dataframe=None):
