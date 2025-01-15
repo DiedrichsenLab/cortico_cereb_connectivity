@@ -1,5 +1,7 @@
 """Main module for training and evaluating connectivity models.
-
+   Designed to work together with Functional_Fusion package.
+   Dataset, session, and parcellation names are as in Functional_Fusion.
+   The main work is being done by train_model and eval_model functions.
    @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen
 """
 # TODO: implement the weighting option
@@ -23,6 +25,7 @@ import Functional_Fusion.matrix as fm
 import cortico_cereb_connectivity.globals as gl
 
 import cortico_cereb_connectivity.model as model
+import cortico_cereb_connectivity.cio as cio
 import cortico_cereb_connectivity.evaluation as ev
 from copy import copy, deepcopy
 import warnings
@@ -33,6 +36,7 @@ import matplotlib.pyplot as plt
 def get_train_config(train_dataset = "MDTB", 
                      train_ses = "ses-s1",
                      train_run = "all",
+                     subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
                      cerebellum = "SUIT3",
@@ -43,7 +47,9 @@ def get_train_config(train_dataset = "MDTB",
                      crossed = "half", # or None
                      validate_model = True,
                      add_rest = False,
-                     append = False
+                     append = False,
+                     std_cortex = None,
+                     std_cerebellum = None
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
@@ -60,7 +66,8 @@ def get_train_config(train_dataset = "MDTB",
        type (str, optional): _description_. Defaults to "CondHalf".
        cv_fold (int, optional): _description_. Defaults to 4.
        cross_over (str, optional): _another option: or dataset name if you want to integrate over sessions of the dataset_. Defaults to "half".
-
+       std_cortex(): z-Standardize the cortical data. (Defaults to None)
+       std_cerebelum(): z-Standardize the cortical data. (Defaults to None)
    Returns:
        _type_: _description_
    """
@@ -68,6 +75,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
    train_config['train_run'] = train_run
+   train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
    train_config['cerebellum'] = cerebellum
@@ -78,8 +86,9 @@ def get_train_config(train_dataset = "MDTB",
    train_config["validate_model"] = validate_model
    train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
-   train_config['subj_list'] = "all"
    train_config['add_rest'] = add_rest
+   train_config['std_cortex'] = std_cortex
+   train_config['std_cerebellum'] = std_cerebellum
    train_config['append'] = append
 
    # get label images for left and right hemisphere
@@ -148,9 +157,10 @@ def train_metrics(model, X, Y):
     Y_pred = model.predict(X)
 
     # get train rmse and R
-    rmse_train = mean_squared_error(Y, Y_pred, squared=False)
     R_train, _ = ev.calculate_R(Y, Y_pred)
-    return rmse_train, R_train
+    R2_train,_ = ev.calculate_R2(Y, Y_pred)
+
+    return R_train, R2_train
 
 def validate_metrics(model, X, Y, cv_fold):
     """computes CV training metrics (rmse and R) on X and Y
@@ -163,13 +173,11 @@ def validate_metrics(model, X, Y, cv_fold):
     Returns:
         rmse_cv (scalar), R_cv (scalar)
     """
-    # get cv rmse and R
-    rmse_cv_all = np.sqrt(cross_val_score(model, X, Y, scoring="neg_mean_squared_error", cv=cv_fold) * -1)
 
     # TO DO: implement train/validate splits for "sess", "run"
     r_cv_all = cross_val_score(model, X, Y, scoring=ev.calculate_R_cv, cv=cv_fold)
 
-    return np.nanmean(rmse_cv_all), np.nanmean(r_cv_all)
+    return np.nanmean(r_cv_all)
 
 def eval_metrics(Y, Y_pred, info):
     """Compute evaluation, returning summary and voxel data.
@@ -223,6 +231,15 @@ def cross_data(Y,info,mode):
          Y_list.append(Y[(info.sess==s) & (info.half==2),:])
          Y_list.append(Y[(info.sess==s) & (info.half==1),:])
       Ys = np.concatenate(Y_list,axis=0)
+   elif mode=='run':
+      unique_runs = sorted(info.run.unique())
+      first_runs = unique_runs[:len(unique_runs)//2]
+      second_runs = unique_runs[len(unique_runs)//2:]
+      Y_list = []
+      for s in np.unique(info.sess):
+         Y_list.append(Y[(info.sess==s) & (info.run.isin(second_runs)),:])
+         Y_list.append(Y[(info.sess==s) & (info.run.isin(first_runs)),:])
+      Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
 def add_rest(Y,info):
@@ -271,7 +288,7 @@ def std_data(Y,mode):
       return np.nan_to_num(Y/sc)
    else:
       raise ValueError('std_mode must be None, "voxel" or "global"')
-   
+
 def train_model(config):
    """
    training a specific model based on the config file created
@@ -290,20 +307,26 @@ def train_model(config):
    ## loop over sessions chosen through train_id and concatenate data
    info_list = []
 
-   if not isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
-      if config["subj_list"]=='all':
-         T = dataset.get_participants()
-         config["subj_list"] = T.participant_id
+   T = dataset.get_participants()
+   if config["subj_list"] is None:
+      config["subj_list"] = T.participant_id
+   elif isinstance(config['subj_list'],(list,pd.Series,np.ndarray)):
+      if isinstance(config['subj_list'][0],str):
+         pass
+      else: # Numerical 
+         config["subj_list"] = T.participant_id.iloc[config['subj_list']]
+   elif config["subj_list"]=='all':
+      config["subj_list"] = T.participant_id
+   else:
+      raise ValueError('config["subj_list"] must be a list of str, integers or "all"')
 
    # initialize training dict
    conn_model_list = []
-
 
    # Generate model name and create directory
    mname = f"{config['train_dataset']}_{config['type']}_{config['train_ses']}_run-{config['train_run']}_{config['parcellation']}_{config['method']}"
    save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',
                                   mname)
-   
    # check if the directory exists
    try:
       os.makedirs(save_path)
@@ -314,7 +337,7 @@ def train_model(config):
    train_info_name = save_path + "/" + mname + ".tsv"
    if os.path.isfile(train_info_name) and config["append"]:
       train_info = pd.read_csv(train_info_name, sep="\t")
-   else: 
+   else:
       train_info = pd.DataFrame()
 
    # Loop over subjects
@@ -350,17 +373,23 @@ def train_model(config):
             X = X[run_mask.values, :]
             info = info[run_mask]
 
-      # Add rest condition? 
+      # Add rest condition?
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
 
+      #Definitely subtract intercept across all conditions
+      X = (X - X.mean(axis=0))
+      Y = (Y - Y.mean(axis=0))
+
+      if 'std_cortex' in config.keys():
+         X = std_data(X,config['std_cortex'])
+      if 'std_cerebellum' in config.keys():
+         Y = std_data(Y,config['std_cerebellum'])
+
       # cross the halves within each session
       if config["crossed"] is not None:
          Y = cross_data(Y,info,config["crossed"])
-
-      # normalize X before fitting model
-      X /= np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
 
       for la in config["logalpha"]:
       # loop over subjects and train models
@@ -376,55 +405,77 @@ def train_model(config):
             mname_spec = f"{mname}_{sub}"
 
          # Fit model, get train and validate metrics
-         conn_model.fit(X, Y)
-         conn_model.rmse_train, conn_model.R_train = train_metrics(conn_model, X, Y)
+         if config["method"] == 'L2reg':
+            conn_model.fit(X, Y, info)
+         else:
+            conn_model.fit(X, Y)
+         R_train,R2_train = train_metrics(conn_model, X, Y)
          conn_model_list.append(conn_model)
 
-         
-         # collect train metrics (rmse and R)
+         # collect train metrics ( R)
          model_info = {
                         "subj_id": sub,
                         "mname": mname_spec,
-                        "rmse_train": conn_model.rmse_train,
-                        "R_train": conn_model.R_train,
+                        "R_train": R_train,
+                        "R2_train": R2_train,
                         "num_regions": X.shape[1],
                         "logalpha": la
                         }
 
          # run cross validation and collect metrics (rmse and R)
          if config['validate_model']:
-            conn_model.rmse_cv, conn_model.R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
-            model_info.update({"rmse_cv": conn_model.rmse_cv,
-                            "R_cv": conn_model.R_cv
-                           })
+            R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
+            model_info.update({"R_cv": conn_model.R_cv})
 
          # Copy over all scalars or strings from config to eval dict:
          for key, value in config.items():
             if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
                model_info.update({key: value})
          # Save the individuals info files
-         dd.io.save(save_path + "/" + mname_spec + ".h5",
-                     conn_model, compression=None)
-         with open(save_path + "/" + mname_spec + ".json", "w") as fp:
-            json.dump(model_info, fp, indent=4)
-
+         cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
+def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
+   """ Makes a list of model dirs and model names, based on training set, etc.
+
+   Args:
+         train_dataset (str): trainign dataset 
+         train_ses (str): Session 
+         parcellation (str): Cortical parcellation
+         method (str): 'L2regression', 'WTA', 'L1regression', 'NNlS', etc
+         ext_list (list): List of extensions (numeric or string) to add to model name
+   Returns:
+         dirname (list): List of model directories 
+         mname (list): List of model names 
+   """   
+   dirname=[] # Model directory name
+   mname=[] # Model name - without the individual, average, or loo extension
+
+   # Build list of to-be-evaluated models
+   for a in ext_list:
+      dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      if a is None:
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      if isinstance(a,int):
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+      elif isinstance(a,str):
+         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
+   return dirname, mname
 
 def get_fitted_models(model_dirs,model_names,config):
    """Builds a list of fitted models from the saved files
-   In case of individual-specific models, it builds a list of lists. 
+   In case of individual-specific models (ind or loo), it builds a list of lists.
 
    Args:
-       model_dirs (_type_): _description_
-       model_names (_type_): _description_
-       config (dict): _description_
+       model_dirs (_type_): List of dirctory names for models 
+       model_names (_type_): List of model names (without subject extension)
+       config (dict): Dictonary with evaluation parameters
 
    Returns:
        fitted_models (list): _description_
-       train_info (list): information on each trained model 
+       train_info (list): information on each trained model
    """
    # Load all the models to evaluate:
    fitted_model = []
@@ -436,11 +487,10 @@ def get_fitted_models(model_dirs,model_names,config):
          for ind in config['model']:
             for d,m in zip(model_dirs,model_names):
                model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-               fname = model_path + f"/{m}_{ind}.h5"
-               json_name = model_path + f"/{m}_{ind}.json"
-               fitted_model.append(dd.io.load(fname))
-               with open(json_name) as json_file:
-                  train_info.append(json.load(json_file))
+               fname = model_path + f"/{m}_{ind}"
+               mo,inf = cio.load_model(fname)
+               fitted_model.append(mo)
+               train_info.append(inf)
       elif isinstance(config['model'][0],model.Model):
          fitted_model = config['model']
          train_info = config['train_info']
@@ -452,25 +502,24 @@ def get_fitted_models(model_dirs,model_names,config):
    elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_avg.h5"
-         json_name = model_path + f"/{m}_avg.json"
-         fitted_model.append(dd.io.load(fname))
-         with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
+         fname = model_path + f"/{m}_avg"
+         mo,inf = cio.load_model(fname)
+         fitted_model.append(mo)
+         train_info.append(inf)
    elif config['model']=='ind':
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fm=[]
+         ti = []
          for sub in config['subj_list']:
-            fname = model_path + f"/{m}_{sub}.h5"
-            json_name = model_path + f"/{m}_{sub}.json"
-            fm.append(dd.io.load(fname))
-         
+            fname = model_path + f"/{m}_{sub}"
+            mo,inf = cio.load_model(fname)
+            fm.append(mo)
+            ti.append(inf)
          fitted_model.append(fm)
-         with open(json_name) as json_file:
-            train_info.append(json.load(json_file))
+         train_info.append(ti)
    elif config['model']=='loo':
       fitted_model = []
       train_info = []
@@ -479,6 +528,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
                                  subj=config['subj_list'],
+                                 cerebellum=config['cerebellum'],
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
@@ -490,6 +540,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
                                  subj=config['subj_list'],
+                                 cerebellum=config['cerebellum'],
                                  mix_subj=config['model_subj_list'],
                                  avrg_mode=config['model'],
                                  mix_param=config['mix_param'])
@@ -503,6 +554,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
                                  subj=config['subj_list'],
+                                 cerebellum=config['cerebellum'],
                                  mix_subj=config['model_subj_list'],
                                  avrg_mode=config['model'])
          fitted_model.append(fm)
@@ -552,7 +604,7 @@ def eval_model(model_dirs,model_names,config):
       else:
          config["model_subj_list"] = T.participant_id
 
-   # Get the list of fitted models  
+   # Get the list of fitted models
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,config)
 
    # loop over subjects
@@ -582,7 +634,7 @@ def eval_model(model_dirs,model_names,config):
       Y = np.nan_to_num(YY[0,:,:])
       X = np.nan_to_num(XX[0,:,:])
 
-      # Add explicit rest to sessions 
+      # Add explicit rest to sessions
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
@@ -610,12 +662,17 @@ def eval_model(model_dirs,model_names,config):
 
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
-         
+
          # Use subject-specific model? (indiv or loo or mix)
-         if (isinstance(fm,list)): 
+         if (isinstance(fm,list)):
             fitM = fm[i]
          else:
             fitM = fm
+
+         if (isinstance(tinfo,list)):
+            ti = tinfo[i]
+         else:
+            ti = tinfo
 
          # Get model predictions
          Y_pred = fitM.predict(X)
@@ -624,13 +681,13 @@ def eval_model(model_dirs,model_names,config):
                   "num_regions": X.shape[1]}
 
          # Copy over all scalars or strings to eval_all dataframe:
-         for key, value in tinfo.items():
+         for key, value in ti.items():
             if not isinstance(value,(list,pd.Series,np.ndarray)):
                eval_sub.update({key: value})
          for key, value in config.items():
             if not isinstance(value,(list,pd.Series,np.ndarray)):
                eval_sub.update({key: value})
-               
+
          # add evaluation (summary)
          evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
 
@@ -642,13 +699,15 @@ def eval_model(model_dirs,model_names,config):
                eval_sub[k]=v
 
          # don't save voxel data to summary
-         eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub)],ignore_index= True)
+         eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub,index=[0])],ignore_index= True)
 
    return eval_df, eval_voxels
 
 def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
+              eval_run='all',
+              eval_type='Tseries',
               cerebellum='SUIT3',
               eval_t = 'eval'):
    """Combine different tsv files from different datasets into one dataframe
@@ -665,15 +724,15 @@ def comb_eval(models=['Md_s1'],
 
    for dataset in eval_data:
       for m in models:
-         for meth in methods: 
-            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
-            # f = '/home/ROBARTS/ashahb7/Github/TaskVsRest/results'+ f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+         for meth in methods:
+            # f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{eval_type}_{eval_run}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
                # add a column for the name of the dataset
                # get the noise ceilings
-               
+
                # Remove negative values from dd.noise_X_R
                dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
                dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
@@ -712,17 +771,15 @@ def calc_wopt_var(sub_weight_variance_list:list,
 def calc_bayes_avrg(param_lists,
                     subject_list,
                     avrg_mode,
-                    parameters=['scale_','coef_']):
+                    parameters=['coef_','coef_var']):
    # sub_weight_variance_list is a list containing S(number of subjects) vectors of size 1xP
    sub_weight_variance_list = []
-   var_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data/variance')
    S = len(subject_list)
 
-   # read subject weight variance matrix from file
-   for sub in subject_list:
+   # read subject weight variance vector
+   for s, sub in enumerate(subject_list):
       print(f'Reading {str(sub)} weight variance...')
-      file_path = os.path.join(var_folder, f'weight_variance_{str(sub)}.npy')
-      sub_weight_variance_list.append(np.load(file_path))
+      sub_weight_variance_list.append(param_lists['coef_var'][s])
 
    # wopt_variance is a 1xP matrix
    print(f'Calculating W_opt variance...')
@@ -734,25 +791,7 @@ def calc_bayes_avrg(param_lists,
    param_w_opt = {}
    for p in parameters:
       P = np.stack(param_lists[p],axis=0)
-      if p=='scale_':
-         param_w_opt[p] = 0
-
-         # s_opt_temp = P
-         # sum_temp = 0.0
-         # for i in range(S):
-         #    temp = np.reciprocal(sub_weight_variance_list[i])
-         #    temp = np.nanmean(temp)
-         #    sum_temp += temp
-         #    s_opt_temp[i] = P[i] * temp
-
-         # # sum over subjects
-         # s_opt_temp = np.nansum(s_opt_temp, axis=0)
-         # # divide by the fixed term
-         # # print(f'P: {P[0]}')
-         # # print(f's_opt_temp: {s_opt_temp[0]}')
-         # # print(f'sum_temp: {sum_temp}')
-         # param_w_opt[p] = s_opt_temp / sum_temp
-      elif p=='coef_':
+      if p=='coef_':
          if 'vox' in avrg_mode:
             # divide each weights by its variance
             P = [P[s] / sub_weight_variance_list[s].T[:, np.newaxis] for s in range(S)]
@@ -778,7 +817,7 @@ def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
                     cerebellum='SUIT3',
-                    parameters=['scale_','coef_'],
+                    parameters=['coef_'],
                     avrg_mode='avrg_sep',
                     mix_param=[],
                     subj='all',
@@ -787,7 +826,7 @@ def calc_avrg_model(train_dataset,
       and create group-averaged model
    Args:
        train_dataset (str): _description_
-       mname_base (str): Directory name for mode (MDTB_all_Icosahedron1002_L2regression)
+       mname_base (str): Directory name for model (MDTB_all_Icosahedron1002_L2regression)
        mname_ext (str): Extension of name - typically logalpha
        (_A0)
        parameters (list): List of parameters to average
@@ -797,7 +836,7 @@ def calc_avrg_model(train_dataset,
    # To get the list of subjects
    tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
    T = tdata.get_participants()
-   
+
    if isinstance(subj,(list,pd.Series)):
       subject_list = subj
    elif isinstance(subj,np.ndarray):
@@ -812,6 +851,8 @@ def calc_avrg_model(train_dataset,
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
    # Collect the parameters in lists
+   if avrg_mode.startswith('bayes'):
+      parameters = ['coef_', 'coef_var']
    param_lists={}
    for p in parameters:
       param_lists[p]=[]
@@ -820,15 +861,10 @@ def calc_avrg_model(train_dataset,
    df = pd.DataFrame()
    for sub in subject_list:
       print(f"- getting weights for {sub}")
-      # load the model
-      fname = model_path + f"/{mname_base}{mname_ext}_{sub}.h5"
-      info_name = model_path + f"/{mname_base}{mname_ext}_{sub}.json"
-      fitted_model = dd.io.load(fname)
-
-      # load the json file
-      with open(info_name) as json_file:
-         info = json.load(json_file)
-         df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
+      # load the model and info file
+      fname = model_path + f"/{mname_base}{mname_ext}_{sub}"
+      fitted_model, info = cio.load_model(fname)
+      df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
 
       for p in parameters:
          param_lists[p].append(getattr(fitted_model,p))
@@ -838,10 +874,6 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          setattr(avrg_model,p,P.mean(axis=0))
-   elif avrg_mode=='avrg_scalecoef':
-      scale = np.stack(param_lists[0],axis=0)
-      weight = np.stack(param_lists[1],axis=0)
-      setattr(avrg_model,p,P.mean(axis=0))
    elif avrg_mode=='loo_sep':
       avrg_model = []
       subj_ind = np.arange(len(subject_list))
@@ -875,27 +907,18 @@ def calc_avrg_model(train_dataset,
                               subject_list=subject_list,
                               avrg_mode=avrg_mode)
       for s,param in enumerate(param_w_opt['coef_']):
-         setattr(avrg_model[s], 'scale_', 0)
          setattr(avrg_model[s], 'coef_', param)
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=np.nan, inplace=True)
-   # Add fields if they don't exist
-   if 'R_cv' not in df.columns:
-      df['R_cv']=np.nan
-      df['rmse_cv']=np.nan
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
            'train_type': df.type[0],
            'cerebellum': df.cerebellum[0],
            'cortex': df.cortex[0],
            'method': df.method[0],
-           'logalpha': float(df.logalpha[0]),
-           'R_train': df.R_train.mean(),
-           'rmse_train': df.rmse_train.mean(),
-           'R_cv': df.R_cv.mean(),
-           'rmse_cv': df.rmse_cv.mean(),
+           'logalpha': float(df.logalpha[0])
            }
    # save dict as json
    return avrg_model, dict
