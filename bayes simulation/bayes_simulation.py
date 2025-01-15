@@ -125,10 +125,13 @@ def estimate_W(X_subjects, Y_subjects, alpha, sigma2_epss=None):
     for s in range(S):
         X = X_subjects[s, :, :] #- np.nanmean(X_subjects[s, :, :], axis=0)
         Y = Y_subjects[s, :, :] #- np.nanmean(Y_subjects[s, :, :], axis=0)
+        conn_model = getattr(model, 'L2reg')(alpha)
+        conn_model.fit(X, Y, dataframe='half')
         A = np.linalg.inv(X.T @ X + alpha * np.eye(Q)) @ X.T
-        W_hat_subjects[s, :, :] = A @ Y
-
-        Var_W_hat_subjects[s, :] = estimate_sigma2eps(Y) * np.trace(A @ A.T)
+        # W_hat_subjects[s, :, :] = A @ Y
+        # Var_W_hat_subjects[s, :] = estimate_sigma2eps(Y) * np.trace(A @ A.T)
+        W_hat_subjects[s, :, :] = conn_model.coef_.T
+        Var_W_hat_subjects[s, :] = conn_model.coef_var
 
         if sigma2_epss is not None:
             sigma2_eps = sigma2_epss[s, :]
@@ -531,6 +534,7 @@ def simulate_variance():
 
     all_w_hat = np.zeros((Q, P, n_simulation))
     all_var_w_hat = np.zeros((P, n_simulation))
+    all_true_var_w_hat = np.zeros((P, n_simulation))
     shape_params = np.array([1.147303298236169, 1.2951274520344769, 0.9679436505658018, 1.8452195681630037, 1.7822897660345203, 1.6070884950225959, 3.0570816937067327, 1.6375526562271243, 2.1968276259865145, 1.6968870328825905, 1.5361470793690861, 1.8737230591204794, 2.542917563894335, 1.7508963622765255, 1.8814280106435888, 1.6895578585821485, 1.6420253488568122, 2.262145061135117, 2.0946819405313852, 1.615498520643554, 2.5935057319314105, 1.3085170629883034, 0.9076669866982234, 1.7745448565227135])
     scale_params = np.array([0.6637798380267982, 0.46657192379123447, 0.9632069640215286, 0.22398335299700103, 0.498003478011745, 0.48046865555341634, 0.15497464833030872, 0.4236359668707756, 0.38499293370453785, 0.4722049769668939, 0.35736278023811796, 0.42706672536184603, 0.18579466478136689, 0.4060979729144744, 0.4740329939830097, 0.30344052070407035, 0.433431972919698, 0.2799293666758564, 0.38761037408371685, 0.41915654448113043, 0.27181207571727045, 0.5612981305479915, 0.986969927097492, 0.4282710771621106])
     sigma2_epss = generate_sigma2eps(shape_params=shape_params,
@@ -547,15 +551,17 @@ def simulate_variance():
                                     sigma2_epss=sigma2_epss)
         # Y1_subjects = normalize_dataset(dataset=Y1_subjects, std_method='global')
         
-        W_hat_subjects, Var_W_hat_subjects = estimate_W(X_subjects=X_subjects,
+        W_hat_subjects, Var_W_hat_subjects, true_Var_W_hat_subjects = estimate_W(X_subjects=X_subjects,
                                                         Y_subjects=Y1_subjects,
-                                                        alpha=alpha)
+                                                        alpha=alpha,
+                                                        sigma2_epss=sigma2_epss)
         
         all_w_hat[:, :, n] = np.squeeze(W_hat_subjects)
         all_var_w_hat[:, n] = np.squeeze(Var_W_hat_subjects)
+        all_true_var_w_hat[:, n] = np.squeeze(true_Var_W_hat_subjects)
 
     df = pd.DataFrame()
-    df["simulation_points"] = np.repeat(np.unique(np.logspace(0, 3, 20, dtype=int)), 2*P)
+    df["simulation_points"] = np.repeat(np.unique(np.logspace(0, 3, 20, dtype=int)), 3*P)
     w_var = []
     label = []
     for point in np.unique(df["simulation_points"]):
@@ -563,6 +569,8 @@ def simulate_variance():
         label.extend(['estimated' for _ in range(P)])
         w_var.extend(np.sum(np.var(all_w_hat[:, :, :point], axis=2), axis=0))
         label.extend(['empirical' for _ in range(P)])
+        w_var.extend(np.mean(all_true_var_w_hat[:, :point], axis=1))
+        label.extend(['real' for _ in range(P)])
     
     df["w_var"] = w_var
     df["mode"] = label
