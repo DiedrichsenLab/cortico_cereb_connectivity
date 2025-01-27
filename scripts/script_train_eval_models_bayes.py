@@ -18,7 +18,7 @@ import cortico_cereb_connectivity.model as cm
 import cortico_cereb_connectivity.cio as cio
 import json
 
-def train_models(logalpha_list = [6, 8, 10],
+def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'ses-s1',
@@ -62,12 +62,12 @@ def train_models(logalpha_list = [6, 8, 10],
    return df_tmp
 
 
-def avrg_model(logalpha_list = [6, 8, 10],
+def avrg_model(logalpha_list = [2, 4, 6, 8, 10, 12],
                train_data = "MDTB",
                train_ses= "ses-s1",
                train_run='all',
                parcellation = 'Icosahedron1002',
-               method='L2Reg',
+               method='L2reg',
                type='CondHalf',
                cerebellum='MNISymC3',
                parameters=['coef_','coef_var'],
@@ -92,7 +92,7 @@ def avrg_model(logalpha_list = [6, 8, 10],
       cio.save_model(avrg_model,info,model_path + f"/{mname_base}{mname_ext}_{avg_id}")
 
 
-def eval_models(ext_list = [6, 8, 10],
+def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
                 train_run = 'all',
@@ -105,7 +105,7 @@ def eval_models(ext_list = [6, 8, 10],
                 eval_run='all',
                 eval_id = 'MD_s1',
                 crossed = 'half',
-                add_rest = False,
+                add_rest = True,
                 std_cortex = 'parcel',
                 std_cerebellum = 'global',
                 subj_list = "all",
@@ -177,24 +177,44 @@ def eval_models(ext_list = [6, 8, 10],
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
+
 if __name__ == "__main__":
-   """
-   TD=["MDTB"] # ["MDTB","WMFS", "Nishimoto", "IBC"]
-   tID = ['Md-rest']
-   ED=["Demand","WMFS"]
-   ET=["CondHalf","CondHalf"]
-   for et,tid in zip(TD,tID):
-      eval_models(eval_dataset = ED, eval_type = ET,
-                  crossed='half',
-                  train_dataset=et,
-                  ext_list = [8],
-                  add_rest=True,
-                  train_ses="all",eval_id = tid)
-   """
-   D = fdata.get_dataset_class(gl.base_dir,'MDTB')
-   T = D.get_participants()
-   subj_name = list(T['participant_id'])
-   # train_models()
-   # avrg_model()
-   eval_models(ext_list=[6, 8, 10], model='bayes_vox', eval_id='bayes-vox')
+   eval_across_dataset = True
+   do_train = False
+   models = ["loo", "bayes", "bayes_vox"]
+   # models = ["ind"]
+
+   train_types = {
+      'MDTB':        ('ses-s1'),
+      'WMFS':        ('ses-01'),
+      'Nishimoto':   ('ses-01'),
+   }
+
+   eval_types = {
+      'MDTB':        ('ses-s2',     models),
+      'WMFS':        ('ses-02',     models),
+      'Nishimoto':   ('ses-02',     models),
+   }
+
+   for train_dataset, (train_ses) in train_types.items():
+      if do_train:
+         train_models(dataset=train_dataset, train_ses=train_ses)
+         avrg_model(train_data=train_dataset, train_ses=train_ses)
+
+      for eval_dataset, (eval_ses, models) in eval_types.items():
+         if not eval_across_dataset:
+            if train_dataset != eval_dataset:
+               continue
+
+         for model in models:
+            print(f'Train: {train_dataset} - Eval: {eval_dataset} - {model}')
+            eval_id = train_dataset+"-"+model
+            if model == 'ind':
+               D = fdata.get_dataset_class(gl.base_dir, train_dataset)
+               T = D.get_participants()
+               eval_id = train_dataset+"-"+model
+               model = list(T['participant_id'])
+            
+            eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
+                        model=model, ext_list=[2, 4, 6, 8, 10, 12], eval_id=eval_id)
 
