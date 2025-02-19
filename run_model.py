@@ -258,7 +258,7 @@ def std_data(Y,mode):
    else:
       raise ValueError('std_mode must be None, "voxel" or "global"')
 
-def train_model(config):
+def train_model(config, save_path=None, mname=None):
    """
    training a specific model based on the config file created
    model will be trained on cerebellar voxels and average within cortical tessels.
@@ -293,9 +293,10 @@ def train_model(config):
    conn_model_list = []
 
    # Generate model name and create directory
-   mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
-   save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',
-                                  mname)
+   if mname is None:
+      mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
+   if save_path is None:
+      save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',mname)
    # check if the directory exists
    try:
       os.makedirs(save_path)
@@ -612,7 +613,8 @@ def comb_eval(models=['Md_s1'],
               eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
               methods =['L2regression'],
               cerebellum='SUIT3',
-              eval_t = 'eval'):
+              eval_t = 'eval',
+              eval_type = None):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
@@ -628,7 +630,10 @@ def comb_eval(models=['Md_s1'],
    for dataset in eval_data:
       for m in models:
          for meth in methods:
-            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            if eval_type is None:
+               f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            else:
+               f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{eval_type}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
