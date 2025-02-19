@@ -136,7 +136,8 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
        _type_: _description_
    """
    for i,ed in enumerate(eval_dataset):
-      config = rm.get_eval_config(eval_dataset = ed,
+      config = rm.get_eval_config(train_dataset=train_dataset,
+                                 eval_dataset = ed,
                                  eval_ses = eval_ses,
                                  eval_run=eval_run,
                                  parcellation=parcellation,
@@ -179,10 +180,11 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
 
 
 if __name__ == "__main__":
-   eval_across_dataset = True
+   eval_across_dataset = False
    do_train = False
-   models = ["loo", "bayes", "bayes_vox"]
+   # models = ["loo", "bayes", "bayes_vox"]
    # models = ["ind"]
+   models = ["loo"]
 
    train_types = {
       'MDTB':        ('ses-s1'),

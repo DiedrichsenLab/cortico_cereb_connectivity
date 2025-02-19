@@ -1,19 +1,23 @@
+import os
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import cortico_cereb_connectivity.model as model
+import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.evaluation as ev
 import cortico_cereb_connectivity.run_model as rm
+import cortico_cereb_connectivity.cio as cio
 from scipy import stats
+from IPython.display import display
 
 
 # Set global parameters
 N = 58  # Number of tasks
-Q = 200  # Number of cortical regions
-P = 800  # Number of cerebellar voxels
+Q = 100  # Number of cortical regions
+P = 400  # Number of cerebellar voxels
 S = 24  # Number of subjects
-n_simulation = 10 # Number of simulations
+n_simulation = 50 # Number of simulations
 
 
 def create_dataset(data_mean, data_var, data_ind_var, shape):
@@ -29,10 +33,15 @@ def create_dataset(data_mean, data_var, data_ind_var, shape):
     """
 
     dataset_true = np.random.normal(data_mean, np.sqrt(data_var), shape)
+    data_subjects = create_subject_realization(dataset_true, data_ind_var, shape)
+    return data_subjects, dataset_true
+
+
+def create_subject_realization(dataset_true, data_ind_var, shape):
     data_subjects = np.empty((S, *shape))
     for s in range(S):
         data_subjects[s, :, :] = np.random.normal(dataset_true, np.sqrt(data_ind_var), shape)
-    return data_subjects, dataset_true
+    return data_subjects
 
 
 def normalize_dataset(dataset, std_method='global'):
@@ -128,8 +137,6 @@ def estimate_W(X_subjects, Y_subjects, alpha, sigma2_epss=None):
         conn_model = getattr(model, 'L2reg')(alpha)
         conn_model.fit(X, Y, dataframe='half')
         A = np.linalg.inv(X.T @ X + alpha * np.eye(Q)) @ X.T
-        # W_hat_subjects[s, :, :] = A @ Y
-        # Var_W_hat_subjects[s, :] = estimate_sigma2eps(Y) * np.trace(A @ A.T)
         W_hat_subjects[s, :, :] = conn_model.coef_.T
         Var_W_hat_subjects[s, :] = conn_model.coef_var
 
@@ -160,6 +167,14 @@ def calc_model(model, W_hat_subjects, Var_W_hat_subjects):
     elif model == 'bayes':
         W_group_model = calc_model_bayes(W_hat_subjects, Var_W_hat_subjects)
     elif model == 'bayes vox':
+        W_group_model = calc_model_bayes_vox(W_hat_subjects, Var_W_hat_subjects)
+    elif model == 'bayes new':
+        Var_W_hat_subjects = [Var_W_hat_subjects[s]/(np.linalg.norm(W_hat_subjects[s,:,:], ord='fro')**2) for s in range(S)]
+        W_hat_subjects = normalize_dataset(W_hat_subjects, 'norm')
+        W_group_model = calc_model_bayes(W_hat_subjects, Var_W_hat_subjects)
+    elif model == 'bayes vox new':
+        Var_W_hat_subjects = [Var_W_hat_subjects[s]/(np.linalg.norm(W_hat_subjects[s,:,:], ord='fro')**2) for s in range(S)]
+        W_hat_subjects = normalize_dataset(W_hat_subjects, 'norm')
         W_group_model = calc_model_bayes_vox(W_hat_subjects, Var_W_hat_subjects)
     return W_group_model
 
@@ -263,7 +278,7 @@ def make_dataframe(method_dic, method_name, alpha, nc=None):
     return pd.DataFrame(data)
 
 
-def evaluate_model_with_params(method, eval_metric, eval_param, eval_with, cv):
+def evaluate_model_with_params(method, eval_metric, eval_param, eval_with, cv, W_mean=None, W_group_model=None):
     """ Calls the eval_model() with appropriate inputs
     """
     if eval_param == 'W':
@@ -408,7 +423,7 @@ def simulate_all():
         # 'Y_mean':   ('Y',   'mean',   False),     # X_mean @ W_mean
         # 'Y_star':   ('Y',   'star',   False),     # individual activations without measurement noise
         # 'Y_1':      ('Y',   'ind',    False),
-        'Y_2':      ('Y',   'ind',    True),
+        # 'Y_2':      ('Y',   'ind',    True),
     }
 
     save_path = '/cifs/diedrichsen/data/Cerebellum/connectivity/SUIT3/bayes_simulation/'
@@ -439,7 +454,7 @@ def simulate_all():
                 Y1_subjects, Y_star_subjects = generate_Y(X_subjects=X_subjects,
                                                           W_subjects=W_subjects,
                                                           sigma2_epss=sigma2_epss)
-                # X_subjects = normalize_dataset(dataset=X_subjects, std_method='parcel')
+
                 if cross_validation:
                     Y2_subjects, _ = generate_Y(X_subjects=X_subjects,
                                                 W_subjects=W_subjects,
@@ -462,7 +477,7 @@ def simulate_all():
                                                                                          sigma2_epss=sigma2_epss)
 
                 # Run methods
-                method_names = ['loo', 'bayes', 'bayes vox']
+                method_names = ['loo', 'bayes', 'bayes vox', 'bayes new', 'bayes vox new']
                 W_group_model = {}
                 for method in method_names:
                     W_group_model[method] = calc_model(model=method,
@@ -486,7 +501,9 @@ def simulate_all():
                                                                                       eval_metric=eval_metric,
                                                                                       eval_param=eval_param,
                                                                                       eval_with=eval_with,
-                                                                                      cv=cross_validation)
+                                                                                      cv=cross_validation,
+                                                                                      W_mean=W_mean,
+                                                                                      W_group_model=W_group_model)
                     if eval_type == 'Y_2':
                         noise_ceiling = calc_noise_ceiling(X_subjects=X_subjects, W_model=W_group_model[method], Y1_subjects=Y1_subjects, Y2_subjects=Y2_subjects)
                         # Make dataframe
@@ -589,7 +606,101 @@ def simulate_variance():
     plt.show()
 
 
+def simulate_normalized_bayes():
+    proportion = 10
+    global Q
+    Q = 1876#//proportion
+    global P
+    P = 5446#//proportion
+    global S
+    S = 24
+    w_ind_var = 1.4e-6
+
+    # # load avg model as the W_group
+    # model_path = os.path.join(gl.conn_dir,"MNISymC3",'train',"MDTB_CondHalf_ses-s1_run-all_Icosahedron1002_L2reg")
+    # fname = model_path + f"/MDTB_CondHalf_ses-s1_run-all_Icosahedron1002_L2reg_A8_avg"
+    # mo, _ = cio.load_model(fname)
+    # W_group = mo.coef_.T
+
+    # # make subjects around W_group
+    # W_subjects = create_subject_realization(dataset_true=W_group, data_ind_var=w_ind_var, shape=(Q, P))
+
+    W_subjects, W_group = create_dataset(data_mean=3e-6, data_var=2e-7, data_ind_var=w_ind_var, shape=(Q, P))
+
+    # load the MDTB estimations
+    var_df = pd.read_csv('/home/ROBARTS/ashahb7/Github/bayes_temp/var_df.tsv', sep='\t')
+    W_i_hat_norms = np.array(var_df.coef_norm[:S])
+    estimated_variances = np.array(var_df.coef_var[:S])
+
+    # estimated_noise_norm = 
+
+    noise = np.zeros_like(W_subjects)
+
+    # hard way:
+    # sigma_n = np.zeros((S,))
+    # for s in range(S):
+    #     sigma_n[s], _ = np.roots([W_i_hat_norms[s]**2 - Q*estimated_variances[s],
+    #                     (-2)*np.linalg.norm(W_subjects[s])*np.sqrt(Q),
+    #                     (-1)*estimated_variances[s]*(np.linalg.norm(W_subjects[s])**2)])
+
+    # for s, noise_std in enumerate(sigma_n):
+    #     noise[s, :, :] = np.random.normal(scale=noise_std, size=(Q, P))
+
+    # noise_norm = np.linalg.norm(noise, axis=(1,2))
+    # scaling_factors = W_i_hat_norms / (np.linalg.norm(W_subjects, axis=(1,2)) + noise_norm)
+
+    # W_hat_subjects = (W_subjects + noise) * scaling_factors[:, np.newaxis, np.newaxis]
+
+    # easy way:
+    for s in range(S):
+        noise[s] = np.random.normal(scale=np.sqrt(estimated_variances[s]), size=(Q, P))
+    W_hat_subjects = W_subjects + noise
+
+    # control
+    for s in range(S):
+        # print(f'noise norm pred: {noise_norm[s]}, VS real: {np.linalg.norm(noise[s,:,:])}')
+        print(f'coef norm pred: {W_i_hat_norms[s]}, VS real: {np.linalg.norm(W_hat_subjects[s])}, VS actual: {np.linalg.norm(W_subjects[s])}')
+
+    weights = 1 / estimated_variances
+    weights /= np.sum(weights)
+    W_group_est = np.sum(W_hat_subjects * weights[:, np.newaxis, np.newaxis], axis=0)
+
+    W_hat_subjects_normalized = normalize_dataset(W_hat_subjects, 'norm')
+    new_weights = 1 / (estimated_variances/(np.linalg.norm(W_hat_subjects, axis=(1,2))**2))
+    new_weights /= np.sum(new_weights)
+    W_group_est_new = np.sum(W_hat_subjects_normalized * new_weights[:, np.newaxis, np.newaxis], axis=0)
+
+    W_group_avg = np.mean(W_hat_subjects, axis=0)
+
+    # Display results
+    # plt.subplots(1,4)
+    # plt.subplot(1,4,1)
+    # plt.imshow(W_group)
+    # plt.title('True Group')
+    
+    # plt.subplot(1,4,2)
+    # plt.imshow(W_group_est)
+    # plt.title('Bayes Group')
+
+    # plt.subplot(1,4,3)
+    # plt.imshow(W_group_est_new)
+    # plt.title('New Bayes Group')
+
+    # plt.subplot(1,4,4)
+    # plt.imshow(W_group_avg)
+    # plt.title('Simple AVG Group')
+
+    # plt.show()
+
+    model_names = ["True", "Bayes", "New Bayes", "Simple Avg"]
+    models = [W_group, W_group_est, W_group_est_new, W_group_avg]
+    results = pd.DataFrame(columns=['model', 'corr'])
+    for model_name, model in zip(model_names, models):
+        results.loc[len(results)] = {'model': model_name, 'corr': np.corrcoef(W_group.flatten(), model.flatten())[0,1]}
+    display(results)
+
 if __name__ == "__main__":
     # simulate_all()
-    simulate_variance()
+    # simulate_variance()
+    simulate_normalized_bayes()
 

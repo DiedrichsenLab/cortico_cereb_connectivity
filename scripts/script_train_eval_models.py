@@ -61,7 +61,7 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                parcellation = 'Icosahedron1002',
                method='L2Regression',
                cerebellum='SUIT3',
-               parameters=['scale_','coef_'],
+               parameters=['coef_'],
                avrg_mode = 'avrg_sep',
                avg_id = 'avg'):
 

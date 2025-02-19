@@ -5,6 +5,33 @@ import Functional_Fusion.atlas_map as am
 import nibabel as nb
 import numpy as np
 import warnings 
+import deepdish as dd
+import json
+
+def load_model(fname):
+    """ Loads model from a combination of a .h5 file and a .json file.
+    Args:
+        fname (str): File name without .h5 or .json extension
+    Returns: 
+        model (Model): Model object 
+        info (dict): Info dictionary
+    """
+    model = dd.io.load(fname + ".h5")
+    with open(fname + ".json") as json_file:
+        info = json.load(json_file)
+    return model, info
+
+def save_model(model,info,fname):
+    """ Saves model to a combinattion of a .h5 file and a .json file.
+
+    Args:
+        model (Model): _description_
+        info (dict): _description_
+        fname (str): File name without .h5 or .json extension
+    """
+    dd.io.save(fname + ".h5",model, compression=None)
+    with open(fname + ".json", 'w') as fp:
+        json.dump(info, fp, indent=4)
 
 def model_to_cifti(weight_matrix, 
                    src_atlas, 

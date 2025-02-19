@@ -98,7 +98,8 @@ def get_train_config(train_dataset = "MDTB",
 
    return train_config
 
-def get_eval_config(eval_dataset = 'MDTB',
+def get_eval_config(train_dataset = None,
+            eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
             eval_run = 'all',
             cerebellum = 'SUIT3',
@@ -118,6 +119,10 @@ def get_eval_config(eval_dataset = 'MDTB',
    create a config file for evaluation
    """
    eval_config = {}
+   if train_dataset is None:
+      eval_config['train_dataset'] = eval_dataset
+   else:
+      eval_config['train_dataset'] = train_dataset
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
    eval_config['eval_run'] = eval_run
@@ -286,8 +291,11 @@ def std_data(Y,mode):
    elif mode=='global':
       sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
       return np.nan_to_num(Y/sc)
+   elif mode=='norm':
+      sc=np.linalg.norm(Y, ord='fro')
+      return np.nan_to_num(Y/sc)
    else:
-      raise ValueError('std_mode must be None, "voxel" or "global"')
+      raise ValueError('std_mode must be None, "voxel" or "global" or "norm"')
 
 def train_model(config):
    """
@@ -526,8 +534,7 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          ext = '_' + m.split('_')[-1]
-         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
-                                 subj=config['subj_list'],
+         fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
@@ -538,8 +545,7 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          ext = '_' + m.split('_')[-1]
-         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
-                                 subj=config['subj_list'],
+         fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
                                  mix_subj=config['model_subj_list'],
                                  avrg_mode=config['model'],
@@ -552,8 +558,7 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          ext = '_' + m.split('_')[-1]
-         fm,fi = calc_avrg_model(config['eval_dataset'],d,ext,
-                                 subj=config['subj_list'],
+         fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
                                  mix_subj=config['model_subj_list'],
                                  avrg_mode=config['model'])
@@ -725,8 +730,8 @@ def comb_eval(models=['Md_s1'],
    for dataset in eval_data:
       for m in models:
          for meth in methods:
-            # f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
-            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{eval_type}_{eval_run}_{meth}_{m}.tsv'
+            f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{meth}_{m}.tsv'
+            # f = gl.conn_dir + f'/{cerebellum}/{eval_t}/{dataset}_{eval_type}_{eval_run}_{meth}_{m}.tsv'
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
@@ -821,6 +826,7 @@ def calc_avrg_model(train_dataset,
                     avrg_mode='avrg_sep',
                     mix_param=[],
                     subj='all',
+                    model_subj='all',
                     mix_subj='all'):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
@@ -831,7 +837,6 @@ def calc_avrg_model(train_dataset,
        (_A0)
        parameters (list): List of parameters to average
    """
-
    # get the dataset class the model was trained on
    # To get the list of subjects
    tdata = fdata.get_dataset_class(gl.base_dir, dataset=train_dataset)
@@ -846,6 +851,16 @@ def calc_avrg_model(train_dataset,
          subject_list = T.participant_id
       else:
          subject_list = [subj]
+
+   if isinstance(model_subj,(list,pd.Series)):
+      model_subject_list = model_subj
+   elif isinstance(model_subj,np.ndarray):
+      model_subject_list = T.participant_id.iloc[model_subj]
+   elif isinstance(model_subj,str):
+      if model_subj=='all':
+         model_subject_list = T.participant_id
+      else:
+         model_subject_list = [model_subj]
 
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
@@ -877,12 +892,13 @@ def calc_avrg_model(train_dataset,
    elif avrg_mode=='loo_sep':
       avrg_model = []
       subj_ind = np.arange(len(subject_list))
-      for s,sub in enumerate(subject_list):
+      for s,sub in enumerate(model_subject_list):
          avrg_model.append(copy(fitted_model))
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
-         for s,sub in enumerate(subject_list):
-            setattr(avrg_model[s],p,P[subj_ind!=s].mean(axis=0))
+         for s,sub in enumerate(model_subject_list):
+            sel_ind = list(subject_list).index(sub)
+            setattr(avrg_model[s],p,P[subj_ind!=sel_ind].mean(axis=0))
    elif avrg_mode=='mix':
       avrg_model = []
       portion_value = mix_param / 100
