@@ -24,6 +24,7 @@ import warnings
 
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
+                     train_run = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -62,6 +63,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config = {}
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
+   train_config['train_run'] = train_run
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -86,6 +88,7 @@ def get_train_config(train_dataset = "MDTB",
 
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
+            subj_list = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -109,7 +112,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['add_rest'] = add_rest
    eval_config["splitby"] = splitby
    eval_config["type"] = type
-   eval_config['subj_list'] = "all"
+   eval_config['subj_list'] = subj_list
    eval_config['model'] = model
    eval_config['add_rest'] = add_rest
    eval_config['std_cortex'] = std_cortex
@@ -339,6 +342,14 @@ def train_model(config, save_path=None, mname=None):
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
+
+      # train only on some runs?
+      if config["train_run"]!='all':
+         if isinstance(config["train_run"], list):
+            run_mask = info['run'].isin(config["train_run"])
+            Y = Y[run_mask.values, :]
+            X = X[run_mask.values, :]
+            info = info[run_mask]
 
       #Definitely subtract intercept across all conditions
       X = (X - X.mean(axis=0))
