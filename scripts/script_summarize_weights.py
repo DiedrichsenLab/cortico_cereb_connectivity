@@ -12,9 +12,9 @@ import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.data as cdata
 import cortico_cereb_connectivity.cio as cio
+
 import Functional_Fusion.atlas_map as am
 import nitools as nt
-import json
 from pathlib import Path
 import warnings
 
@@ -35,10 +35,9 @@ def avrg_weight_map(method = "L2Regression",
                     cerebellum_atlas = "SUIT3",
                     extension = 'A8',
                     dataset_name = "MDTB",
-                    ses_id = "all",
-                    train_t = 'train'
+                    ses_id = "all"
                     ):
-    """ makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
+    """ Makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
 
     Args:
         method (str) - connectivity method used to estimate weights
@@ -59,12 +58,15 @@ def avrg_weight_map(method = "L2Regression",
     # load the avg model
     if (len(extension) > 0) and extension[0] != "_":
         extension = "_" + extension
-    model = dd.io.load(fpath + f"/{m_basename}{extension}_avg.h5")
+    model,info = cio.load_model(fpath + f"/{m_basename}{extension}_avg")
 
     # get the weights
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore",category=RuntimeWarning)
-        weights = model.coef_/model.scale_
+    if hasattr(model,'scale_'):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore",category=RuntimeWarning)
+            weights = model.coef_/model.scale_
+    else:
+        weights = model.coef_
 
     # label file for the cortex
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
@@ -117,7 +119,7 @@ def avrg_scale_map(method = "L2Regression",
         fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
 
         # load the avg model
-        model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
+        model,info = cio.load_model(fpath + f"/{m_basename}_{extension}_avg")
 
         # get the weights
         scale_maps.append(model.scale_/model.scale_.max())
@@ -211,7 +213,7 @@ def get_weight_by_cortex(method = "L2Regression",
     fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{m_basename}"
 
     # load the avg model
-    model = dd.io.load(fpath + f"/{m_basename}_{extension}_avg.h5")
+    model,info = cio.load_model(fpath + f"/{m_basename}_{extension}_avg")
 
     # get the weights
     with warnings.catch_warnings():
@@ -277,15 +279,25 @@ def make_all_weight_maps_L2():
     make_avrg_weight_map(dataset= "IBC",extension = 'A6',method="L2Regression")
     make_avrg_weight_map(dataset= "HCP",extension = 'A-2',method="L2Regression")
 
-
-
+def make_avrg_weight_map_NNLS(): 
+    cifti_img = avrg_weight_map(method = 'NNLS',
+                                cortex_roi = "Icosahedron162",
+                                cerebellum_roi = "NettekovenSym32",
+                                cerebellum_atlas = "SUIT3",
+                                extension = 'A6',
+                                dataset_name = 'MDTB',
+                                ses_id = "ses-s1",
+                                )
+    fname = gl.conn_dir + f'/maps/MDTBs1_NNLS162_A6.pscalar.nii'
+    cifti_img = sort_roi_rows(cifti_img)
+    nb.save(cifti_img,fname)
 
 
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
 
-    make_all_weight_maps_L2()
-    make_all_weight_maps_WTA()
+    make_avrg_weight_map_NNLS()
+    # make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
     pass
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],

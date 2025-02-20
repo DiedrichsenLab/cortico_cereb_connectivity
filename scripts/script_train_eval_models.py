@@ -1,21 +1,15 @@
 """
-script for training models
+script for training models (Better to use run_model.py directly - 
+these are just examples of how to use the functions in run_model.py)
+
 @ Ladan Shahshahani, Joern Diedrichsen Jan 30 2023 12:57
 """
 import os
-import numpy as np
-import deepdish as dd
-import pathlib as Path
 import pandas as pd
-import re
-import sys
-from collections import defaultdict
-import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
-import cortico_cereb_connectivity.model as cm
-import json
+import cortico_cereb_connectivity.cio as cio
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
@@ -39,19 +33,6 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                 train_ses=train_ses,
                                 add_rest=add_rest,
                                 validate_model=validate_model)
-   dataset = fdata.get_dataset_class(gl.base_dir,
-                                    dataset=config["train_dataset"])
-   # get the list of trained connectivity models and training summary
-   T = dataset.get_participants()
-   if subj_list is None:
-      config["subj_list"] = T.participant_id
-   elif subj_list=='all':
-      config["subj_list"] = T.participant_id
-   elif isinstance(subj_list[0],str):
-      config["subj_list"] = subj_list
-   else:
-      config["subj_list"] = T.participant_id.iloc[subj_list]
-
    config, conn_list, df_tmp =rm.train_model(config)
    return df_tmp
 
@@ -80,12 +61,9 @@ def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                          cerebellum=cerebellum,
                          parameters=parameters,
                          avrg_mode=avrg_mode)
-      dd.io.save(model_path + f"/{mname_base}{mname_ext}_{avg_id}.h5",
-         avrg_model, compression=None)
-      with open(model_path + f"/{mname_base}{mname_ext}_{avg_id}.json", 'w') as fp:
-         json.dump(info, fp, indent=4)
-
-
+      fname = model_path + f"/{mname_base}{mname_ext}_{avg_id}"
+      cio.save_model(avrg_model,info,fname)
+      
 def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "ses-s1",
@@ -114,7 +92,7 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
        method (str): _description_. Defaults to "L2regression".
        parcellation (str): _description_. Defaults to "Icosahedron1002".
        cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
-       eval_dataset (list): _description_. Defaults to ["Demand"].
+       eval_dataset (list): List of evaluation datasets. Defaults to ["Demand"].
        eval_type (list): _description_. Defaults to ["CondHalf"].
        eval_ses (str): _description_. Defaults to "all".
        eval_id (str): _description_. Defaults to 'Md_s1'.
@@ -139,18 +117,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                                  model = model,
                                  mix_param = mix_param)
 
-      dirname=[]
-      mname=[]
-
-      for a in ext_list:
-         dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-         if a is None:
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
-         if isinstance(a,int):
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
-         elif isinstance(a,str):
-            mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
-
+      dirname,mname = rm.get_model_name(train_dataset,train_ses,parcellation,method)
+      # Evaluate them
       df, df_voxels = rm.eval_model(dirname,mname,config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
@@ -203,6 +171,48 @@ def train_all_wta():
                   add_rest=ar,
                   logalpha_list = [None])
 
+def train_all_nnls(dataset = "MDTB",
+                 logalpha_list = [-2],
+                 subj_list = "all",
+                 parcellation="Icosahedron162"):
+
+   config = rm.get_train_config(train_dataset=dataset,
+                                train_ses='ses-s1',
+                                subj_list=subj_list,
+                                log_alpha = logalpha_list,
+                                crossed = 'half',
+                                type = 'CondHalf',
+                                cerebellum='SUIT3',
+                                parcellation=parcellation,
+                                method = 'NNLS',
+                                add_rest=False,
+                                std_cortex='parcel',
+                                std_cerebellum='global',
+                                validate_model=False)
+   config, conn_list, df_tmp =rm.train_model(config)
+   return df_tmp
+
+def train_all_l2(dataset = "MDTB",
+                 logalpha_list = [0,2,4,6,8,10,12],
+                 subj_list = "all",
+                 parcellation="Icosahedron162"):
+
+   config = rm.get_train_config(train_dataset=dataset,
+                                train_ses='ses-s1',
+                                subj_list=subj_list,
+                                log_alpha = logalpha_list,
+                                crossed = 'half',
+                                type = 'CondHalf',
+                                cerebellum='SUIT3',
+                                parcellation=parcellation,
+                                method = 'L2regression',
+                                add_rest=False,
+                                std_cortex='parcel',
+                                std_cerebellum='global',
+                                validate_model=False)
+   config, conn_list, df_tmp =rm.train_model(config)
+   return df_tmp
+
 def avrg_all():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    ET=["CondHalf","CondHalf", "CondHalf", "CondHalf","CondHalf", "CondHalf"]
@@ -236,6 +246,28 @@ def eval_all():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   train_ses="all",eval_id = tid)
 
+def eval_mdtb(method = 'NNLS',ext_list=[-4,-2,0,2]):
+   # Get the names of models to evaluate
+   dirname,mname = rm.get_model_names(train_dataset = "MDTB",
+               train_ses = "ses-s1",
+                method = method,
+                parcellation = "Icosahedron162",
+                ext_list=ext_list)
+   # Evaluation config
+   config = rm.get_eval_config(eval_dataset = "MDTB",  
+                eval_ses  = "ses-s2",
+                type = "CondHalf",
+                parcellation = "Icosahedron162",
+                crossed = 'half',
+                add_rest= False,
+                std_cerebellum='global',
+                std_cortex='parcel',
+                model = 'ind')
+   df,vox=rm.eval_model(dirname,mname,config)
+   df.to_csv(gl.conn_dir + f"/SUIT3/eval/MDTBs2_{method}_MDs1-ind.tsv", index = False, sep='\t')
+   pass
+
+
 def eval_all_loo():
    ED=["MDTB","WMFS", "Nishimoto", "IBC",'Somatotopic','Demand']
    eID = ['Md-loo','Wm-loo','Ni-loo','Ib-loo','So-loo','De-loo']
@@ -248,6 +280,7 @@ def eval_all_loo():
                   ext_list = [-4,-2,0,2,4,6,8,10,12],
                   eval_id = eid,
                   add_rest=True,
+                  
                   model='loo')
 
 if __name__ == "__main__":
@@ -266,10 +299,17 @@ if __name__ == "__main__":
    """
    # train_all()
    # avrg_all()
-   #
-   avrg_model(train_data = 'HCP',
-               method='WTA',
-                 train_ses= "all",
-                 cerebellum='SUIT3',
-                 logalpha_list = [None])
+   # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
+   # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
+   # train_all_nnls(logalpha_list=[6],subj_list=np.arange(5,24),parcellation='Icosahedron1002')
+
+   # train_all_l2(logalpha_list=[6],parcellation='Icosahedron1002')
+   # train_all_nnls(logalpha_list=[-2,0,2],parcellation='Icosahedron1002')
+   avrg_model(train_data = 'MDTB',
+              train_ses= "ses-s1",
+              parcellation = 'Icosahedron162',
+              method='NNLS',
+              parameters=['coef_'],
+              cerebellum='SUIT3',
+              logalpha_list = [6])
    # avrg_all_wta()
