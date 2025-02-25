@@ -145,33 +145,6 @@ class L2reg(Model):
         Xs = np.nan_to_num(X)
         return Xs @ self.coef_.T
 
-class L2reg(Model):
-    """
-    L2 regularized connectivity model
-    simple wrapper for Ridge. It performs scaling by stdev, but not by mean before fitting and prediction
-    """
-
-    def __init__(self, alpha=1):
-        """
-        Simply calls the superordinate construction - but does not fit intercept, as this is tightly controlled in Dataset.get_data()
-        """
-        self.alpha = alpha
-        self.fit_intercept=False
-
-    def fit(self, X, Y):
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
-        # Compute Psuedu-inverse using solve
-
-        self.coef_ = A @ Y 
-        self.var_coef = ...
-        return self
-
-    def predict(self, X):
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
-        return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
-
-
 
 class L1regression(Lasso, Model):
     """
