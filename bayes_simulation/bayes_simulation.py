@@ -63,13 +63,13 @@ def simulate_all():
         w_sigma2_s = 1.1e-6
     elif param_set==4:
         x_group_mean = 0
-        x_sigma2_g = 1.1e-3
+        x_sigma2_g = 1
         x_sigma2_s = 0
         w_group_mean = 0
-        w_sigma2_g = 2e-6
-        w_sigma2_s = 2e-6
+        w_sigma2_g = 1
+        w_sigma2_s = 1
 
-    alpha_list = [np.exp(2)]
+    alpha_list = [np.exp(8)]
 
     # eval_metrics = ['RMSE', 'R', 'R2']
     eval_metrics = ['R']#, 'R2']
@@ -110,7 +110,7 @@ def simulate_all():
                 #                                  scale_params=scale_params,
                 #                                  shape=(S, P))
 
-                sigma2_epss = np.tile(np.random.normal(loc=np.sqrt(w_sigma2_s)*2, scale=np.sqrt(w_sigma2_s), size=(S,))**2, (P, 1)).T
+                sigma2_epss = np.tile(np.random.normal(loc=np.sqrt(w_sigma2_s)*5, scale=np.sqrt(w_sigma2_s), size=(S,))**2, (P, 1)).T
 
                 # plt.hist(sigma2_epss[0,:])
                 # plt.show()
@@ -149,14 +149,10 @@ def simulate_all():
                                                           sigma2_epss=sigma2_epss)
                 
                 # estimate the sigma2_g, sigma2_s, and sigma2_m
-                est_var = ds.decompose_pattern_into_group_indiv_noise(np.stack((W_i_hat, W_i_hat_2), axis=1), 'subject_wise')
-                vg, vs, vm = np.split(est_var, 3, axis=1)
-                vg = np.squeeze(vg)
-                vs = np.squeeze(vs)
-                vm = np.squeeze(vm)
+                vg, vs, vm = decompose_variance(np.stack((W_i_hat, W_i_hat_2), axis=1))
 
                 # control
-                print(f'diff sigma2_w: {(vm*Q-np.mean(w_sigma2_w,axis=1)) / np.mean(w_sigma2_w,axis=1) * 100}%')
+                print(f'diff sigma2_w: {(vm-np.mean(w_sigma2_w,axis=1)/Q) / (np.mean(w_sigma2_w,axis=1)/Q) * 100}%')
                 print(f'diff sigma2_w: {(np.mean((w_sigma2_w_hat+w_sigma2_w_hat_2)/2,axis=1)-np.mean(w_sigma2_w,axis=1)) / np.mean(w_sigma2_w,axis=1) * 100}%')
 
                 # Run methods
@@ -316,8 +312,8 @@ def simulate_normalized_bayes():
     S = 24
     global n_simulation
     n_simulation = 50
-    sigma2_g = 4e-5
-    sigma2_s = 4e-5
+    sigma2_g = 1
+    sigma2_s = sigma2_g
     sigma_w_ranges = [[0.2, 1.4], [0.6, 4.2], [1, 7], [4, 28]]
 
     W_i, W_group = create_dataset(data_mean=0, data_var=sigma2_g, data_ind_var=sigma2_s, shape=(S, Q, P))
@@ -560,7 +556,7 @@ def simulate_sigma_estimation():
     S = 50
     A = 100
     B = 200
-    sigma2_g = 1e-4
+    sigma2_g = 1
     sigma2_s = sigma2_g
     X_i, X_group = create_dataset(0, sigma2_g, sigma2_s, shape=(S, A, B))
 
@@ -597,9 +593,9 @@ def simulate_sigma_estimation():
 
 
 if __name__ == "__main__":
-    # simulate_all()
+    simulate_all()
     # simulate_variance()
-    simulate_normalized_bayes()
+    # simulate_normalized_bayes()
     # simulate_W_normalization()
     # simulate_cheat_model()
     # simulate_sigma_estimation()
