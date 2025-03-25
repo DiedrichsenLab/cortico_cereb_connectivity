@@ -741,26 +741,15 @@ def comb_eval(models=['Md_s1'],
    return df
 
 
-def calc_wopt_var(sub_weight_variance_list:list,
+def calc_wopt_var(sub_weight_variance,
                   avrg_mode,
-                  subject_list):
-   S = len(subject_list)
-   if 'vox' not in avrg_mode:
-      sub_weight_variance_list = np.nanmean(sub_weight_variance_list, axis=1)
-   sub_weight_variance_reciprocal_list = [np.reciprocal(sub_weight_variance) for sub_weight_variance in sub_weight_variance_list]
-   wopt_variance_list = [np.nansum(np.delete(sub_weight_variance_reciprocal_list, s, axis=0), axis=0) for s in range(S)]
+                  S):
+   
+   uncertainty = np.reciprocal(sub_weight_variance)
+   wopt_variance_list = [np.nansum(uncertainty[s], axis=0) for s in range(S)]
    if 'vox' in avrg_mode:
       for wopt_var in wopt_variance_list:
          wopt_var[wopt_var == 0] = np.nan
-
-   # if 'vox' in avrg_mode:
-      # show
-      # plt.hist(wopt_variance, bins='auto')
-      # plt.title('Histogram of wopt_var')
-      # plt.show()
-
-      # print(f'Number of NaNs: {np.count_nonzero(np.isnan(wopt_variance))}')
-      # print(f'Indices of NaNs: {np.where(np.isnan(wopt_variance))[0]}')
 
    return wopt_variance_list
 
@@ -769,43 +758,98 @@ def calc_bayes_avrg(param_lists,
                     subject_list,
                     avrg_mode,
                     parameters=['coef_','coef_var']):
-   # sub_weight_variance_list is a list containing S(number of subjects) vectors of size 1xP
-   sub_weight_variance_list = []
+   # stack for numpy functions
+   param_coef_ = np.stack(param_lists['coef_'], axis=0)
+   
+   # dimensions
    S = len(subject_list)
+   n_vox, n_region = param_coef_[0].shape
 
-   # read subject weight variance vector
-   for s, sub in enumerate(subject_list):
-      print(f'Reading {str(sub)} weight variance...')
-      sub_weight_variance_list.append(param_lists['coef_var'][s])
+   if 'loo' in avrg_mode:
+      param_coef_var = np.stack(param_lists['coef_var'], axis=0)
+      # calculate adjusted variance (vs: Sx(S-1))
+      vg, vs = decompose_variance(param_coef_, np.nanmean(param_coef_var, axis=1)/n_region, model_type="loo")
 
-   # wopt_variance is a 1xP matrix
-   print(f'Calculating W_opt variance...')
-   wopt_variance_list = calc_wopt_var(sub_weight_variance_list=sub_weight_variance_list,
-                                           avrg_mode=avrg_mode,
-                                           subject_list=subject_list)
+      # reshape param_coef_var for loo
+      idx = np.arange(24)[:, None]
+      param_coef_var = param_coef_var[np.arange(24) != idx].reshape(S, S-1, n_vox)
+      sub_var = vs[:, :, np.newaxis]*n_region + param_coef_var
 
-   # use the formula to integrate precision-weighted average
-   param_w_opt = {}
-   for p in parameters:
-      P = np.stack(param_lists[p],axis=0)
-      if p=='coef_':
-         if 'vox' in avrg_mode:
-            # divide each weights by its variance
-            P = [P[s] / sub_weight_variance_list[s].T[:, np.newaxis] for s in range(S)]
-            # sum over subjects
-            P = [np.nansum(np.delete(P, s, axis=0), axis=0) for s in range(S)]
-            # divide by the fixed term
-            param_w_opt[p] = [P[s] / wopt_variance_list[s].T[:, np.newaxis] for s in range(S)]
-         else:
-            # divide each weights by its variance
-            P = [P[s] / np.nanmean(sub_weight_variance_list[s]) for s in range(S)]
-            # sum over subjects
-            P = [np.nansum(np.delete(P, s, axis=0), axis=0) for s in range(S)]
-            # divide by the fixed term
-            param_w_opt[p] = [P[s] / wopt_variance_list[s] for s in range(S)]
-            
-         for param in param_w_opt[p]:
-            param[np.isnan(param)] = 0.0
+      if not 'vox' in avrg_mode:
+         sub_var = np.nanmean(sub_var, axis=-1)
+         coef_norm = np.linalg.norm(param_coef_, axis=(1,2))[np.arange(24) != idx].reshape(S, S-1)
+      else:
+         coef_norm = np.linalg.norm(param_coef_, axis=2)[np.arange(24) != idx].reshape(S, S-1, n_vox)
+
+      signal_norm2 = coef_norm**2 - n_vox*sub_var
+      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
+      sub_var /= signal_norm2
+
+      wopt_variance_list = calc_wopt_var(sub_weight_variance=sub_var,
+                                         avrg_mode=avrg_mode,
+                                         S=S)
+      param_w_opt = {}
+      if 'vox' in avrg_mode:
+         # divide each weights by its variance
+         P = [np.delete(param_coef_, s, axis=0) / sub_var[s, :, :, None] for s in range(S)]
+         # sum over subjects and normalize
+         param_w_opt['coef_'] = [np.nansum(P[s], axis=0) / wopt_variance_list[s][:, None] for s in range(S)]
+      else:
+         # divide each weights by its variance
+         P = [np.delete(param_coef_, s, axis=0) / sub_var[s, :, None, None] for s in range(S)]
+         # sum over subjects and normalize
+         param_w_opt['coef_'] = [np.nansum(P[s], axis=0) / wopt_variance_list[s] for s in range(S)]
+
+      param_w_opt['coef_'] = [np.nan_to_num(arr) for arr in param_w_opt['coef_']]
+      param_w_opt['coef_var'] = wopt_variance_list
+   elif 'half' in avrg_mode:
+      param_coef_1 = np.stack(param_lists['coef_1'], axis=0)
+      param_coef_2 = np.stack(param_lists['coef_2'], axis=0)
+      vg, vs, vm = decompose_variance_half(np.stack((param_coef_1, param_coef_2), axis=1))
+      sub_var = vs + vm/2
+
+      coef_norm = np.linalg.norm(param_coef_, axis=(1,2))
+      signal_norm2 = coef_norm**2 - n_vox*n_region*sub_var
+      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
+      sub_var /= signal_norm2
+
+      param_w_opt = {}
+      wopt_variance = np.nan_to_num(np.nansum(1 / sub_var, axis=0))
+      # divide each weights by its variance
+      P = param_coef_ / sub_var[:, None, None]
+      # sum over subjects and normalize
+      param_w_opt['coef_'] = np.nan_to_num(np.nansum(P, axis=0) / wopt_variance)
+      param_w_opt['coef_var'] = wopt_variance
+   else:
+      param_coef_var = np.stack(param_lists['coef_var'], axis=0)
+      # calculate adjusted variance (vs: S)
+      vg, vs = decompose_variance(param_coef_, np.nanmean(param_coef_var, axis=1)/n_region)
+      sub_var = vs[:, np.newaxis]*n_region + param_coef_var
+
+      if not 'vox' in avrg_mode:
+         sub_var = np.nanmean(sub_var, axis=-1)
+         coef_norm = np.linalg.norm(param_coef_, axis=(1,2))
+      else:
+         coef_norm = np.linalg.norm(param_coef_, axis=2)
+   
+      signal_norm2 = coef_norm**2 - n_vox*sub_var
+      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
+      sub_var /= signal_norm2
+
+      param_w_opt = {}
+      wopt_variance = np.nan_to_num(np.nansum(1 / sub_var, axis=0))
+      if 'vox' in avrg_mode:
+         # divide each weights by its variance
+         P = param_coef_ / sub_var[:, :, None]
+         # sum over subjects and normalize
+         param_w_opt['coef_'] = np.nansum(P, axis=0) / wopt_variance[:, None]
+      else:
+         # divide each weights by its variance
+         P = param_coef_ / sub_var[:, None, None]
+         # sum over subjects and normalize
+         param_w_opt['coef_'] = np.nansum(P, axis=0) / wopt_variance
+      param_w_opt['coef_'] = np.nan_to_num(param_w_opt['coef_'])
+      param_w_opt['coef_var'] = wopt_variance
 
    return param_w_opt
 
@@ -858,8 +902,10 @@ def calc_avrg_model(train_dataset,
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
    # Collect the parameters in lists
-   if avrg_mode.startswith('bayes'):
+   if avrg_mode.startswith('bayes') & ('half' not in avrg_mode):
       parameters = ['coef_', 'coef_var']
+   elif avrg_mode.startswith('bayes') & ('half' in avrg_mode):
+      parameters = ['coef_', 'coef_1', 'coef_2']
    param_lists={}
    for p in parameters:
       param_lists[p]=[]
@@ -907,15 +953,21 @@ def calc_avrg_model(train_dataset,
             attr_value = P[sel_subj].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
    elif avrg_mode.startswith('bayes'):
-      avrg_model = []
-      for s,sub in enumerate(subject_list):
-         avrg_model.append(copy(fitted_model))
       param_w_opt = calc_bayes_avrg(parameters=parameters,
                               param_lists=param_lists,
                               subject_list=subject_list,
                               avrg_mode=avrg_mode)
-      for s,param in enumerate(param_w_opt['coef_']):
-         setattr(avrg_model[s], 'coef_', param)
+      if 'loo' in avrg_mode:
+         avrg_model = []
+         for s,sub in enumerate(subject_list):
+            avrg_model.append(copy(fitted_model))
+         for s,(coef,var) in enumerate(zip(param_w_opt['coef_'], param_w_opt['coef_var'])):
+            setattr(avrg_model[s], 'coef_', coef)
+            setattr(avrg_model[s], 'coef_var', var)
+      else:
+         avrg_model = fitted_model
+         setattr(avrg_model, 'coef_', param_w_opt['coef_'])
+         setattr(avrg_model, 'coef_var', param_w_opt['coef_var'])
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
@@ -930,3 +982,111 @@ def calc_avrg_model(train_dataset,
            }
    # save dict as json
    return avrg_model, dict
+
+
+def decompose_variance_half(data):
+    """ Decomposes variance of group, subject, and measurement noise. This is an upgraded version to handle subject-specific scaling.
+    Args:
+        data (ndarray (n_sub, n_rep, n_A, n_B)): the data to decompose, at least 2 for each dimension
+    Returns:
+        vg (ndarray (n_sub,)): group variance scaled for each subject
+        vs (ndarray (n_sub,)): subject variance scaled for each subject
+        vm (ndarray (n_sun,)): measurement noise variance scaled for each subject
+    """
+
+    n_sub, n_rep, n_A, n_B = data.shape
+    n_features = n_A * n_B
+    data = data.reshape((n_sub, n_rep, n_features))    # Shape: (n_sub, n_rep, n_features)
+
+    product_matrices = np.einsum('srf,tkf->stkr', data, data) / n_features  # Shape: (n_sub, n_sub, n_rep, n_rep)
+
+    # Masks
+    mask_self_sub = np.eye(n_sub, dtype=bool)[:, :, None, None] # Shape: (n_sub, n_sub, 1, 1)
+    mask_self_rep = np.eye(n_rep, dtype=bool)[None, None, :, :] # Shape: (1, 1, n_rep, n_rep)
+    
+    # Cross-subject (type 1)
+    # Remove self-pairs by masking
+    type_1 = np.where(mask_self_sub, 0, product_matrices)   # Set self-pairs to 0
+    # Mean over repetitions
+    SS_1 = np.nansum(type_1, axis=(2, 3)) / (n_rep**2)  # Shape: (n_sub, n_sub)
+
+    # Within-subject, diff reps (type 2)
+    # Remove other-pairs and self-reps by masking
+    type_2 = np.where(mask_self_sub, product_matrices, 0)   # Set other-pairs to 0
+    type_2 = np.where(mask_self_rep, 0, type_2) # Set self-reps to 0
+    # Mean over repetitions
+    SS_2 = np.diagonal(np.nansum(type_2, axis=(2,3)) / (n_rep**2-n_rep), axis1=0, axis2=1)    # Shape: (n_sub)
+
+    # Within-subject, same reps (type 3)
+    type_3 = np.where(mask_self_sub, product_matrices, 0)   # Set other-pairs to 0
+    type_3 = np.where(mask_self_rep, type_3, 0) # Set other-reps to 0
+    # Mean over repetitions
+    SS_3 = np.diagonal(np.nansum(type_3, axis=(2,3)) / (n_rep), axis1=0, axis2=1)   # Shape: (n_sub)
+
+    vm = SS_3 - SS_2
+    vg = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub-1)    # Shape: (n_sub)
+    vs = SS_2 - vg
+
+    return vg, vs, vm
+
+
+def decompose_variance(data, vm_hat, model_type=None):
+   """ Decomposes variance of group, subject, and measurement noise.
+      This is an upgraded version to handle subject-specific scaling.
+      With the vm_hat already estimated, there is no need for different observations.
+   Args:
+      data (ndarray (n_sub, n_A, n_B)): the data to decompose
+      vm_hat (ndarray (n_sub)): estimated variance of measurement noise of subjects
+      model_type (str): either None or 'loo':
+         if 'loo': the output will be stretched by subject size
+   Returns:
+      vg (ndarray (n_sub,)): group variance scaled for each subject
+      vs (ndarray (n_sub,)): subject variance scaled for each subject
+      vm (ndarray (n_sun,)): measurement noise variance scaled for each subject
+      if model_type is 'loo': outputs will be (n_sub, n_sub-1) shape
+   """
+
+   n_sub, n_A, n_B = data.shape
+   n_features = n_A * n_B
+   data = data.reshape((n_sub, n_features))
+
+   product_matrices = np.einsum('sf,kf->sk', data, data) / n_features   # Shape: (n_sub, n_sub)
+
+   if model_type == 'loo':
+      n_sub_loo = n_sub - 1
+      vg = np.zeros((n_sub, n_sub - 1))
+      vs = np.zeros((n_sub, n_sub - 1))
+      for s in range(n_sub):
+         product_matrices_loo = np.delete(np.delete(product_matrices, s, axis=0), s, axis=1)
+
+         # Masks
+         mask_self_sub = np.eye(n_sub_loo, dtype=bool) # Shape: (n_sub, n_sub)
+         
+         # Cross-subject (type 1)
+         SS_1 = np.where(mask_self_sub, 0, product_matrices_loo)   # Set self-pairs to 0
+
+         # Within-subject, same reps (type 3)
+         SS_3 = np.diag(product_matrices_loo)   # Set other-pairs to 0
+
+         SS_2 = SS_3 - np.delete(vm_hat, s, axis=0)
+
+         vg[s] = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub_loo-1)    # Shape: (n_sub)
+         vs[s] = SS_2 - vg[s]
+   elif model_type is None:
+      # Masks
+      mask_self_sub = np.eye(n_sub, dtype=bool) # Shape: (n_sub, n_sub)
+      
+      # Cross-subject (type 1)
+      SS_1 = np.where(mask_self_sub, 0, product_matrices)   # Set self-pairs to 0
+
+      # Within-subject, same reps (type 3)
+      SS_3 = np.diag(product_matrices)   # Set other-pairs to 0
+
+      SS_2 = SS_3 - vm_hat
+
+      vg = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub-1)    # Shape: (n_sub)
+      vs = SS_2 - vg
+   else:
+      raise ValueError("model_type should be 'loo' or not given")
+   return vg, vs
+
