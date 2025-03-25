@@ -6,7 +6,7 @@ import cortico_cereb_connectivity.run_model as rm
 from cortico_cereb_connectivity.bayes_simulation.simulation_functions import *
 
 
-def create_dataset(data_mean, data_var, data_ind_var, shape):
+def create_dataset(data_mean, data_var, data_ind_var, shape, same_half=False):
     """ Creates data based on the mean and variance provided. Then makes realizitions for each subject.
     Args:
         data_mean (scalar): mean of the true dataset distribution
@@ -21,6 +21,9 @@ def create_dataset(data_mean, data_var, data_ind_var, shape):
     S, A, B = shape
     dataset_true = np.random.normal(data_mean, np.sqrt(data_var), (A, B))
     data_subjects = create_subject_realization(dataset_true, data_ind_var, shape)
+    if same_half:
+        dataset_true = np.concatenate((dataset_true, dataset_true), axis=0)
+        data_subjects = np.concatenate((data_subjects, data_subjects), axis=1)
     return data_subjects, dataset_true
 
 
@@ -79,13 +82,13 @@ def generate_Y(X_subjects, W_subjects, sigma2_epss, shape):
     """
 
     S, N, P = shape
-    Y_star_subjects = np.empty((S, N, P))
-    Y_subjects = np.empty((S, N, P))
+    Y_star_subjects = np.zeros((S, N, P))
+    Y_subjects = np.zeros((S, N, P))
     for s in range(S):
         X = X_subjects[s, :, :]
         W = W_subjects[s, :, :]
         sigma2_eps = sigma2_epss[s, :]
-        eps = np.empty((N, P))
+        eps = np.zeros((N, P))
         for v in range(P):
             eps[:, v] = np.random.normal(0, np.sqrt(sigma2_eps[v]), size=N)
 
@@ -120,9 +123,9 @@ def estimate_W(X_subjects, Y_subjects, alpha, shape, sigma2_epss=None):
     """
 
     S, Q, P = shape
-    W_hat_subjects = np.empty((S, Q, P))
-    Var_W_hat_subjects = np.empty((S, P))
-    true_Var_W_hat_subjects = np.empty((S, P))
+    W_hat_subjects = np.zeros((S, Q, P))
+    Var_W_hat_subjects = np.zeros((S, P))
+    true_Var_W_hat_subjects = np.zeros((S, P))
     for s in range(S):
         X = X_subjects[s, :, :] #- np.nanmean(X_subjects[s, :, :], axis=0)
         Y = Y_subjects[s, :, :] #- np.nanmean(Y_subjects[s, :, :], axis=0)
@@ -187,6 +190,16 @@ def decompose_variance(data):
     return vg, vs, vm
 
 
+def calc_SNR(data, signal):
+    S, _, _ = data.shape
+    SNR_db = np.zeros((S,))
+    for s in range(S):
+        signal_power = np.sum(signal[s]**2)
+        noise_power = np.sum((data[s]-signal[s])**2)
+        SNR_db[s] = 10 * np.log10(signal_power / noise_power)
+    return SNR_db
+
+
 def weighted_avg(data, weights):
     weights /= np.sum(weights)
     if data.ndim == 3:
@@ -210,7 +223,7 @@ def calc_model(model, W_hat_subjects, sigma2_w_hat, sigma2_s_hat):
     """
 
     S, Q, P = W_hat_subjects.shape
-    Var_W_hat_subjects = (sigma2_w_hat / Q + sigma2_s_hat[:, np.newaxis])
+    Var_W_hat_subjects = (sigma2_w_hat + sigma2_s_hat)
     if model == 'loo':
         W_group_model = calc_model_loo(W_hat_subjects)
     elif model == 'bayes':
@@ -289,7 +302,7 @@ def calc_model_bayes_vox(W_hat_subjects, Var_W_hat_subjects):
     return W_hat_opt_vox
 
 
-def predict_Y_hat(X_subjects, W_subjects, alpha):
+def predict_Y_hat(X_subjects, W_subjects):
     """ Predicts the cerebellar activity using the cortical activity and group connectivity weights
     Args:
         X_subjects (ndarray (SxNxQ)): cortical data for subjects
@@ -300,10 +313,10 @@ def predict_Y_hat(X_subjects, W_subjects, alpha):
 
     S, N, _ = X_subjects.shape
     _, _, P = W_subjects.shape
-    conn_model = getattr(model, 'L2regression')(alpha)
+    conn_model = getattr(model, 'L2regression')()
     Y_hat_group_model = np.empty((S, N, P))
     for s in range(S):
-        X = X_subjects[s, :, :] - np.nanmean(X_subjects[s, :, :])
+        X = X_subjects[s, :, :]
         W = W_subjects[s, :, :]
         setattr(conn_model, 'coef_', W.T)
         Y_hat_group_model[s, :, :] = conn_model.predict(X)

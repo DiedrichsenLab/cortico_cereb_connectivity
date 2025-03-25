@@ -66,8 +66,8 @@ def simulate_all():
         x_sigma2_g = 1
         x_sigma2_s = 0
         w_group_mean = 0
-        w_sigma2_g = 1
-        w_sigma2_s = 1
+        w_sigma2_g = 8e-4
+        w_sigma2_s = 8e-4
 
     alpha_list = [np.exp(8)]
 
@@ -82,7 +82,7 @@ def simulate_all():
         # 'Y_group':   ('Y',   'group',   False),     # X_group @ W_group
         # 'Y_star':   ('Y',   'star',   False),     # individual activations without measurement noise
         # 'Y_1':      ('Y',   'ind',    False),
-        # 'Y_2':      ('Y',   'ind',    True),
+        'Y_2':      ('Y',   'ind',    True),
     }
 
     save_path = '/cifs/diedrichsen/data/Cerebellum/connectivity/SUIT3/bayes_simulation/'
@@ -94,7 +94,7 @@ def simulate_all():
             for i in range(n_simulation):
 
                 # Generate data
-                X_i, X_group = create_dataset(data_mean=x_group_mean, data_var=x_sigma2_g, data_ind_var=x_sigma2_s, shape=(S, N, Q))
+                X_i, X_group = create_dataset(data_mean=x_group_mean, data_var=x_sigma2_g, data_ind_var=x_sigma2_s, shape=(S, N//2, Q), same_half=True)
                 # X_i = normalize_dataset(dataset=X_i, std_method='parcel')
                 # X_group = normalize_dataset(dataset=X_group, std_method='parcel')
                 W_i, W_group = create_dataset(data_mean=w_group_mean, data_var=w_sigma2_g, data_ind_var=w_sigma2_s, shape=(S, Q, P))
@@ -110,7 +110,7 @@ def simulate_all():
                 #                                  scale_params=scale_params,
                 #                                  shape=(S, P))
 
-                sigma2_epss = np.tile(np.random.normal(loc=np.sqrt(w_sigma2_s)*5, scale=np.sqrt(w_sigma2_s), size=(S,))**2, (P, 1)).T
+                sigma2_epss = 50 * np.tile(np.random.normal(loc=np.sqrt(w_sigma2_s)*5, scale=3*np.sqrt(w_sigma2_s), size=(S,))**2, (P, 1)).T
 
                 # plt.hist(sigma2_epss[0,:])
                 # plt.show()
@@ -124,6 +124,10 @@ def simulate_all():
                                             W_subjects=W_i,
                                             sigma2_epss=sigma2_epss,
                                             shape=(S, N, P))
+                
+                # SNR
+                SNR_db = calc_SNR(Y1_subjects, Y_star_subjects)
+                print(f'mean SNR: {np.mean(SNR_db):.2f} db')
                                         
                 # for s in range(S):
                 #     mn = Y2_subjects[s,:,:]-Y_star_subjects[s,:,:]
@@ -143,17 +147,17 @@ def simulate_all():
                                                                  sigma2_epss=sigma2_epss)
                 
                 W_i_hat_2, w_sigma2_w_hat_2, _ = estimate_W(X_subjects=X_i,
-                                                          Y_subjects=Y2_subjects,
-                                                          alpha=alpha,
-                                                          shape=(S, Q, P),
-                                                          sigma2_epss=sigma2_epss)
+                                                            Y_subjects=Y2_subjects,
+                                                            alpha=alpha,
+                                                            shape=(S, Q, P),
+                                                            sigma2_epss=sigma2_epss)
                 
                 # estimate the sigma2_g, sigma2_s, and sigma2_m
                 vg, vs, vm = decompose_variance(np.stack((W_i_hat, W_i_hat_2), axis=1))
 
                 # control
-                print(f'diff sigma2_w: {(vm-np.mean(w_sigma2_w,axis=1)/Q) / (np.mean(w_sigma2_w,axis=1)/Q) * 100}%')
-                print(f'diff sigma2_w: {(np.mean((w_sigma2_w_hat+w_sigma2_w_hat_2)/2,axis=1)-np.mean(w_sigma2_w,axis=1)) / np.mean(w_sigma2_w,axis=1) * 100}%')
+                # print(f'diff sigma2_w: {(vm-np.mean(w_sigma2_w,axis=1)/Q) / (np.mean(w_sigma2_w,axis=1)/Q) * 100}%')
+                # print(f'diff sigma2_w: {(np.mean((w_sigma2_w_hat+w_sigma2_w_hat_2)/2,axis=1)-np.mean(w_sigma2_w,axis=1)) / np.mean(w_sigma2_w,axis=1) * 100}%')
 
                 # Run methods
                 method_names = ['loo', 'bayes', 'bayes new']#, 'bayes vox', 'bayes vox new']
@@ -161,16 +165,15 @@ def simulate_all():
                 for method in method_names:
                     W_group_model[method] = calc_model(model=method,
                                                        W_hat_subjects=W_i_hat,
-                                                       sigma2_w_hat=vm[:,np.newaxis]*Q,
-                                                       sigma2_s_hat=(vs+vg)/2)
+                                                       sigma2_w_hat=vm[:,np.newaxis],
+                                                       sigma2_s_hat=vs[:,np.newaxis])
 
                 # Calculate Y_hat
                 if eval_param == 'Y':
                     Y_hat_group_model = {}
                     for method in method_names:
                         Y_hat_group_model[method] = predict_Y_hat(X_subjects=X_i,
-                                                                  W_subjects=W_group_model[method],
-                                                                  alpha=alpha)
+                                                                  W_subjects=W_group_model[method])
                 else:
                     Y_hat_group_model = None
 
@@ -195,7 +198,7 @@ def simulate_all():
                                                                                       eval_data=eval_data,
                                                                                       W_group_model=W_group_model,
                                                                                       Y_hat_group_model=Y_hat_group_model)
-                    if eval_type == 'Y_2':
+                    if False:#eval_type == 'Y_2':
                         noise_ceiling = calc_noise_ceiling(X_subjects=X_i, W_model=W_group_model[method], Y1_subjects=Y1_subjects, Y2_subjects=Y2_subjects)
                         # Make dataframe
                         df = make_dataframe(performance[method], method, alpha, S, nc=noise_ceiling)
@@ -225,22 +228,25 @@ def simulate_all():
 
 def simulate_variance():
     # Change global parameters
+    global N
     N = 58  # Number of tasks
+    global Q
     Q = 100  # Number of cortical regions
     global P
     P = 400  # Number of cerebellar voxels
     global S
     S = 1  # Number of subjects
-    n_simulation = 1000 # Number of simulations
+    global n_simulation
+    n_simulation = 100 # Number of simulations
 
     x_group_mean = 0
-    x_sigma2_g = 1.1e-2
+    x_sigma2_g = 1 #1.1e-2
     x_sigma2_s = 0
-    w_group_mean = 2.5e-4
-    w_sigma2_g = 1.3e-7
+    w_group_mean = 0 #2.5e-4
+    w_sigma2_g = 1
     w_sigma2_s = 0
 
-    alpha = np.exp(8)
+    alpha = np.exp(2)
 
     all_w_hat = np.zeros((Q, P, n_simulation))
     all_var_w_hat = np.zeros((P, n_simulation))
@@ -251,17 +257,18 @@ def simulate_variance():
                                      scale_params=scale_params,
                                      shape=(S, P))
     
-    X_i, X_group = create_dataset(data_mean=x_group_mean, data_var=x_sigma2_g, data_ind_var=x_sigma2_s, shape=(S, N, Q))
-    X_i = normalize_dataset(dataset=X_i, std_method='parcel')
-    X_group = normalize_dataset(dataset=X_group, std_method='parcel')
+    X_i, X_group = create_dataset(data_mean=x_group_mean, data_var=x_sigma2_g, data_ind_var=x_sigma2_s, shape=(S, N//2, Q), same_half=True)
+    # X_i = normalize_dataset(dataset=X_i, std_method='parcel')
+    # X_group = normalize_dataset(dataset=X_group, std_method='parcel')
     W_i, W_group = create_dataset(data_mean=w_group_mean, data_var=w_sigma2_g, data_ind_var=w_sigma2_s, shape=(S, Q, P))
     
     for n in range(n_simulation):
-        Y1_subjects, _ = generate_Y(X_subjects=X_i,
-                                    W_subjects=W_i,
-                                    sigma2_epss=sigma2_epss,
-                                    shape=(S, N, P))
+        Y1_subjects, Y_star_subjects = generate_Y(X_subjects=X_i,
+                                                  W_subjects=W_i,
+                                                  sigma2_epss=sigma2_epss,
+                                                  shape=(S, N, P))
         # Y1_subjects = normalize_dataset(dataset=Y1_subjects, std_method='global')
+        SNR_db = calc_SNR(Y1_subjects, Y_star_subjects)
         
         W_hat_subjects, Var_W_hat_subjects, true_Var_W_hat_subjects = estimate_W(X_subjects=X_i,
                                                         Y_subjects=Y1_subjects,
@@ -274,7 +281,7 @@ def simulate_variance():
         all_true_var_w_hat[:, n] = np.squeeze(true_Var_W_hat_subjects)
 
     df = pd.DataFrame()
-    df["simulation_points"] = np.repeat(np.unique(np.logspace(0, 3, 20, dtype=int)), 3*P)
+    df["simulation_points"] = np.repeat(np.unique(np.logspace(0, np.ceil(np.log10(n_simulation)), 20, dtype=int)), 3*P)
     w_var = []
     label = []
     for point in np.unique(df["simulation_points"]):
@@ -293,7 +300,7 @@ def simulate_variance():
     ax = sns.lineplot(data=df, x='simulation_points', y='w_var', hue='mode', errorbar='se')
     ax.spines["right"].set_visible(False)
     ax.spines["top"].set_visible(False)
-    plt.title(f'Simulation Results Over Iterations (P={P})')
+    plt.title(f'Simulation Results Over Iterations (P={P}, SNR={np.mean(SNR_db):.2f} db)')
     plt.xscale('log')
     plt.xlabel('Number of Simulations')
     plt.ylabel('Var(W)')
