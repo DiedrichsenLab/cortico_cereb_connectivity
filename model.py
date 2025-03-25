@@ -120,16 +120,15 @@ class L2reg(Model):
             dataframe = pd.DataFrame([1]*(Y.shape[0]//2) + [2]*(Y.shape[0]-Y.shape[0]//2), columns=["half"])
 
         Y_list = []
-        for i in np.unique(dataframe["half"]):
-            Y_list.append(Y[dataframe["half"] == i, :])
+        for half in np.unique(dataframe["half"]):
+            Y_list.append(Y[dataframe["half"] == half, :])
 
         Y_mean = np.nanmean(Y_list, axis=0)
 
         sigma2eps = np.zeros(Y_mean.shape[1])
-        for i in np.unique(dataframe["half"]):
-            Y_i = Y[dataframe["half"] == i, :]
-            sigma2eps += np.diag((Y_i-Y_mean).T @ (Y_i-Y_mean)) / (Y_mean.shape[0])
-        self.sigma2eps = sigma2eps
+        for i, half in enumerate(np.unique(dataframe["half"])):
+            sigma2eps += np.nansum((Y_list[i]-Y_mean)**2, axis=0) / (Y_mean.shape[0])
+        self.sigma2eps = sigma2eps / i
         return self.sigma2eps
 
     def fit(self, X, Y, dataframe=None):
@@ -140,6 +139,37 @@ class L2reg(Model):
         self.coef_ = (pseudoinverse @ Y).T
         self.coef_var = self.sigma2eps * np.nansum(pseudoinverse**2)
         return self.coef_.T
+    
+    def predict(self, X):
+        Xs = np.nan_to_num(X)
+        return Xs @ self.coef_.T
+    
+
+class L2reghalf(Model):
+    def __init__(self, alpha=1):
+        self.alpha = alpha
+
+    def fit(self, X, Y):
+        Xs = np.nan_to_num(X)
+        N = Xs.shape[0]
+        if N/2 != N//2:
+            raise ValueError("X cannot be splitted to 2 halves")
+        Xs_1 = Xs[:N//2]
+        Xs_2 = Xs[N//2:]
+
+        Y_1 = Y[:N//2]
+        Y_2 = Y[N//2:]
+
+        Xs_1_T = Xs_1.T
+        Xs_2_T = Xs_2.T
+
+        pseudoinverse_1 = np.linalg.inv(Xs_1_T @ Xs_1 + self.alpha * np.identity(Xs_1.shape[1])) @ Xs_1_T
+        pseudoinverse_2 = np.linalg.inv(Xs_2_T @ Xs_2 + self.alpha * np.identity(Xs_2.shape[1])) @ Xs_2_T
+
+        self.coef_1 = (pseudoinverse_1 @ Y_1).T
+        self.coef_2 = (pseudoinverse_2 @ Y_2).T
+        self.coef_ = (self.coef_1 + self.coef_2) / 2
+        return self.coef_1, self.coef_2
     
     def predict(self, X):
         Xs = np.nan_to_num(X)
