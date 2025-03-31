@@ -8,6 +8,7 @@ from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
 import cortico_cereb_connectivity.evaluation as ev
 import cortico_cereb_connectivity.cio as cio
+import cortico_cereb_connectivity.run_model as rm
 import warnings
 import nibabel as nb
 """
@@ -149,10 +150,10 @@ class L2reghalf(Model):
     def __init__(self, alpha=1):
         self.alpha = alpha
 
-    def fit(self, X, Y):
+    def fit(self, X, Y, config):
         Xs = np.nan_to_num(X)
         N = Xs.shape[0]
-        if N/2 != N//2:
+        if N % 2 != 0:
             raise ValueError("X cannot be splitted to 2 halves")
         Xs_1 = Xs[:N//2]
         Xs_2 = Xs[N//2:]
@@ -160,14 +161,24 @@ class L2reghalf(Model):
         Y_1 = Y[:N//2]
         Y_2 = Y[N//2:]
 
+        #Definitely subtract intercept across all conditions
+        Xs_1 = (Xs_1 - Xs_1.mean(axis=0))
+        Xs_2 = (Xs_2 - Xs_2.mean(axis=0))
+        Y_1 = (Y_1 - Y_1.mean(axis=0))
+        Y_2 = (Y_2 - Y_2.mean(axis=0))
+
+        if 'std_cortex' in config.keys():
+            Xs_1 = rm.std_data(Xs_1,config['std_cortex'])
+            Xs_2 = rm.std_data(Xs_2,config['std_cortex'])
+        if 'std_cerebellum' in config.keys():
+            Y_1 = rm.std_data(Y_1,config['std_cerebellum'])
+            Y_2 = rm.std_data(Y_2,config['std_cerebellum'])
+
         Xs_1_T = Xs_1.T
         Xs_2_T = Xs_2.T
 
-        pseudoinverse_1 = np.linalg.inv(Xs_1_T @ Xs_1 + self.alpha * np.identity(Xs_1.shape[1])) @ Xs_1_T
-        pseudoinverse_2 = np.linalg.inv(Xs_2_T @ Xs_2 + self.alpha * np.identity(Xs_2.shape[1])) @ Xs_2_T
-
-        self.coef_1 = (pseudoinverse_1 @ Y_1).T
-        self.coef_2 = (pseudoinverse_2 @ Y_2).T
+        self.coef_1 = np.linalg.solve(Xs_1_T @ Xs_1 + self.alpha * np.identity(Xs_1.shape[1]), Xs_1_T @ Y_1).T
+        self.coef_2 = np.linalg.solve(Xs_2_T @ Xs_2 + self.alpha * np.identity(Xs_2.shape[1]), Xs_2_T @ Y_2).T
         self.coef_ = (self.coef_1 + self.coef_2) / 2
         return self.coef_1, self.coef_2
     
