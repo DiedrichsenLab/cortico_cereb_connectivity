@@ -406,10 +406,12 @@ def train_model(config, save_path=None, mname=None):
          # Fit model, get train and validate metrics
          if config["method"] == 'L2reg':
             conn_model.fit(X, Y, info)
+         elif config["method"] == 'L2reghalf':
+            conn_model.fit(X, Y, config)
          else:
             conn_model.fit(X, Y)
          R_train,R2_train = train_metrics(conn_model, X, Y)
-         conn_model_list.append(conn_model)
+         # conn_model_list.append(conn_model)
 
          # collect train metrics ( R)
          model_info = {
