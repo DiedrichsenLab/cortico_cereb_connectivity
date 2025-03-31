@@ -250,7 +250,10 @@ def add_rest(Y,info):
    Y_list = []
    info_list = []
    if not('cond_name' in info.columns):
-      info['cond_name']=info.task_name
+      if ('task_name' in info.columns):
+         info['cond_name']=info.task_name
+      elif ('taskName' in info.columns):
+         info['cond_name']=info.taskName
    for s in np.unique(info.sess):
       for h in np.unique(info.half):
          indx = (info.sess==s) & (info.half==h)
@@ -407,7 +410,7 @@ def train_model(config, save_path=None, mname=None):
          if config["method"] == 'L2reg':
             conn_model.fit(X, Y, info)
          elif config["method"] == 'L2reghalf':
-            conn_model.fit(X, Y, config)
+            conn_model.fit(X, Y, config, info)
          else:
             conn_model.fit(X, Y)
          R_train,R2_train = train_metrics(conn_model, X, Y)

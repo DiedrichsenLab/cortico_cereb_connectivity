@@ -150,18 +150,15 @@ class L2reghalf(Model):
     def __init__(self, alpha=1):
         self.alpha = alpha
 
-    def fit(self, X, Y, config):
+    def fit(self, X, Y, config, info):
         Xs = np.nan_to_num(X)
-        N = Xs.shape[0]
-        if N % 2 != 0:
-            raise ValueError("X cannot be splitted to 2 halves")
-        Xs_1 = Xs[:N//2]
-        Xs_2 = Xs[N//2:]
+        Xs_1 = Xs[info['half']==1, :]
+        Xs_2 = Xs[info['half']==2, :]
 
-        Y_1 = Y[:N//2]
-        Y_2 = Y[N//2:]
+        Y_1 = Y[info['half']==1, :] # if config['crossed']=='half', then info['half']==1 is Y of half 2
+        Y_2 = Y[info['half']==2, :]
 
-        #Definitely subtract intercept across all conditions
+        # Definitely subtract intercept across all conditions
         Xs_1 = (Xs_1 - Xs_1.mean(axis=0))
         Xs_2 = (Xs_2 - Xs_2.mean(axis=0))
         Y_1 = (Y_1 - Y_1.mean(axis=0))
