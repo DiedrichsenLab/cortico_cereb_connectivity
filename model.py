@@ -98,7 +98,7 @@ class L2regression(Ridge, Model):
         return super().fit(Xs, Y)
 
     def predict(self, X):
-        # Xs = X / self.scale_
+        Xs = X / self.scale_
         Xs = X
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         return Xs @ self.coef_.T # weights need to be transposed (throws error otherwise)
@@ -119,6 +119,11 @@ class L2reg(Model):
             return self.sigma2eps
         elif isinstance(dataframe, str) and dataframe == 'half':
             dataframe = pd.DataFrame([1]*(Y.shape[0]//2) + [2]*(Y.shape[0]-Y.shape[0]//2), columns=["half"])
+
+        if len(dataframe[dataframe['half']==1]) != len(dataframe[dataframe['half']==2]):
+            print('sigma2_eps estimation cannot be done. Data has inconsistent length of halves.')
+            self.sigma2eps =  np.ones(Y.shape[1])
+            return self.sigma2eps
 
         Y_list = []
         for half in np.unique(dataframe["half"]):
