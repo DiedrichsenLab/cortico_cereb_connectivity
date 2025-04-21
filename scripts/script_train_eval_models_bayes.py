@@ -1,24 +1,19 @@
 """
 script for training models
-@ Ali Shahbazi, Ladan Shahshahani, Joern Diedrichsen
+@ Ali Shahbazi
 """
 import os
 import numpy as np
-import deepdish as dd
-import pathlib as Path
 import pandas as pd
-import re
-import sys
 from collections import defaultdict
-import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
-import cortico_cereb_connectivity.model as cm
 import cortico_cereb_connectivity.cio as cio
+import cortico_cereb_connectivity.scripts.script_fuse_models as sfm
 import json
 
-def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
+def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
@@ -211,20 +206,21 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
    return df,df_voxels
 
 
-def fuse_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto'],
-                train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all'],
-                eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto'],
-                eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all'],
-                logalpha=[4, 6, 2, 6, 2, 8],
-                model='avg',   # "avg" or "bayes"
-                method='L2reghalf',
-                parcellation='Icosahedron1002',
-                cerebellum='MNISymC3',
-                eval_id='avg-Fus'):
+def fuse_models_loo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
+                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
+                    eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    logalpha=[8, 8, 8, 8, 8, 10, 8],
+                    weight=[1, 1, 1, 1, 1, 1, 1],
+                    model='avg',   # "avg" or "bayes"
+                    method='L2reghalf',
+                    parcellation='Icosahedron1002',
+                    cerebellum='MNISymC3',
+                    eval_id='Fus-avg'):
     
    # First load all basic dataset models
    coef_list = []
-   train_info = [] 
+   num_subj = []
    for i, (la,tdata, tses) in enumerate(zip(logalpha, train_datasets, train_ses)):
       mname = f"{tdata}_{tses}_{parcellation}_{method}"
       model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
@@ -232,6 +228,10 @@ def fuse_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotop
       fname = model_path + f"/{m}"
       conn_mo, info = cio.load_model(fname)
       coef_list.append(conn_mo.coef_)
+
+      T = fdata.get_dataset_class(gl.base_dir, dataset=tdata).get_participants()
+      # Get the number of subjects in the dataset
+      num_subj.append(len(T.participant_id))      
 
    for i, edata in enumerate(eval_datasets):
       # Next get all individual models from the evaluation dataset  
@@ -245,10 +245,10 @@ def fuse_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotop
                                   eval_ses=eval_ses[i],
                                   parcellation=parcellation,
                                   crossed='half', # "half", # or None
-                                  type=['CondHalf'],
+                                  type='CondHalf',
                                   cerebellum=cerebellum,
                                   add_rest=True,
-                                  std_cortex='parcel',
+                                  std_cortex='parcel' if edata=='MDTB' else 'global',
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
                                   model='loo')
@@ -258,49 +258,96 @@ def fuse_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotop
       # Get the first (and only) model
       ind_models = ind_models[0]
       info = info[0]
+      
+      # adjust the evaluation dataset weight with loo
+      if weight == 'num_subj':
+         loo_weights = num_subj.copy()
+         loo_weights[indx] -= 1
+         loo_weights /= np.sum(loo_weights)
+         loo_weights *= len(train_datasets)
+      else:
+         loo_weights = weight
 
+      # Get the model for the fused dataset
+      loo_fuse_models = []
+      Coef = np.stack(coef_list,axis=0)
+      for s,m in enumerate(ind_models):
+         print('Fuse model for subject',T.participant_id.iloc[s])
+         Coef_dup = Coef.copy()
+         # Find where train_data is equal to ed
+         Coef_dup[indx,:,:] = m.coef_
+      
+         weight_norm = np.sqrt(np.nansum((Coef_dup**2),axis=(1,2),keepdims=True))
+         wCoef = Coef_dup/weight_norm
+         wCoef = wCoef * np.array(loo_weights).reshape(-1,1,1)
+         setattr(m,'coef_',np.nanmean(wCoef,axis=0))
+         loo_fuse_models.append(m)
+
+      # Needs to be wrapped in a list, as it is one model with a specific model per subject
+      config['model'] = [loo_fuse_models]
+      info['extension'] = eval_id
+      info['logalpha'] = logalpha
+      info['weight'] = loo_weights
+
+      config['train_info'] = [info]
+      df, df_voxels = rm.eval_model(None,None,config)
+      save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+
+      ename = config['eval_dataset']
+      if config['eval_ses'] != 'all':
+         ses_code = config['eval_ses'].split('-')[1]
+         ename = config['eval_dataset'] + ses_code
+      file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
+      df['train_dataset'] = 'Fusion'*df.shape[0]
+      df['model'] = ['loo']*df.shape[0]
+      df['logalpha'] = [logalpha]*df.shape[0]
+      df['weight'] = [loo_weights]*df.shape[0]
+      df.to_csv(file_name, index = False, sep='\t')
       
 
 if __name__ == "__main__":
-   do_train = True
-   do_eval = True
+   do_train = False
+   do_eval = False
    do_fuse = False
-   eval_cross_dataset = True
-   method = 'L2reghalf'
+   method = 'L2reg'
+   
    # models = ["loo", "bayes", "bayes_vox"]
    # models = ["ind"]
    # models = ["avg", "bayes"]
-   models = [["avg"], ["bayes"]]
+   # models = [["avg"], ["bayes"]]
+   # models = [['avg']]
    # models = ["loo", "bayes-loo"]
+   models = ['avg']
+   # models = ['loo']
 
    train_types = {
-      'MDTB':        'all',
-      'Language':    'ses-localizer_cond',
-      'WMFS':        'all',
-      'Demand':      'all',
-      'Somatotopic': 'all',
-      'Nishimoto':   'all',
-      # 'IBC':         'all',
+      'MDTB':        ('all',                 8),
+      # 'Language':    ('ses-localizer_cond',  8),
+      'WMFS':        ('all',                 8),
+      'Demand':      ('all',                 8),
+      'Somatotopic': ('all',                 8),
+      'Nishimoto':   ('all',                 10),
+      'IBC':         ('all',                 8),
    }
 
    eval_types = {
       'MDTB':        ('all',                 models),
-      'Language':    ('ses-localizer_cond',  models),
+      # 'Language':    ('ses-localizer_cond',  models),
       'WMFS':        ('all',                 models),
       'Demand':      ('all',                 models),
       'Somatotopic': ('all',                 models),
       'Nishimoto':   ('all',                 models),
-      # 'IBC':         ('all',                 models),
+      'IBC':         ('all',                 models),
    }
 
-   for train_dataset, train_ses in train_types.items():
+   for train_dataset, (train_ses, best_la) in train_types.items():
       if do_train:
          print(f'Train: {train_dataset} - individual')
          train_models(dataset=train_dataset, train_ses=train_ses, method=method)
          print(f'Train: {train_dataset} - avg')
          avrg_model(train_data=train_dataset, train_ses=train_ses, method=method)
-         print(f'Train: {train_dataset} - bayes')
-         bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method)
+         # print(f'Train: {train_dataset} - bayes')
+         # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method)
 
       if do_eval:
          for eval_dataset, (eval_ses, models) in eval_types.items():
@@ -327,13 +374,21 @@ if __name__ == "__main__":
                
    if do_fuse:
       for model in models:
-         eval_id = model + "-Fus"
-         fuse_models(train_datasets=train_types.keys(),
-                           train_ses=train_types.values(),
-                           eval_datasets=eval_types.keys(),
-                           eval_ses=[value[0] for value in eval_types.values()],
-                           ext_list=[4, 6, 2, 6, 2, 8],
-                           model=model,   # "avg" or "bayes"
-                           method=method,
-                           eval_id=eval_id)
+         eval_id = "Fus06-bestSTD-" + model
+         fuse_models_loo(train_datasets=list(train_types.keys()),
+                         train_ses=[value[0] for value in train_types.values()],
+                         eval_datasets=list(eval_types.keys()),
+                         eval_ses=[value[0] for value in eval_types.values()],
+                         logalpha=[value[1] for value in train_types.values()],
+                         weight=[1]*len(train_types),
+                        #  weight='num_subj',
+                        #  model=model,   # "avg" or "bayes"
+                         method=method,
+                         parcellation='Icosahedron1002',
+                         cerebellum='MNISymC3',
+                         eval_id=eval_id)
 
+   # ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
+   # ED=['Somatotopic']
+   # for ed in ED:
+   #    sfm.eval_fusion_loo(eval_data=ed,weight=[1,0,1,1,1,1,1],eval_id='Fu06-loo-replication')
