@@ -10,10 +10,11 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
+import cortico_cereb_connectivity.model as c_model
 import cortico_cereb_connectivity.scripts.script_fuse_models as sfm
 import json
 
-def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
+def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
@@ -23,7 +24,12 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  subj_list = "all",
                  cerebellum='MNISymC3',
                  method = "L2reg",
-                 validate_model = False):
+                 validate_model = False,
+                 std_cortex = None,
+                 std_cerebellum = 'global'):
+
+   if std_cortex is None:
+      std_cortex = 'global' if train_dataset=='Somatotopic' or train_dataset=='WMFS' else 'parcel'
 
    config = rm.get_train_config(log_alpha=logalpha_list,
                                  crossed=crossed,
@@ -37,8 +43,8 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                  train_run='all',
                                  add_rest=add_rest,
                                  validate_model=validate_model,
-                                 std_cortex='parcel',
-                                 std_cerebellum='global',
+                                 std_cortex=std_cortex,
+                                 std_cerebellum=std_cerebellum,
                                  append=False)
    
    dataset = fdata.get_dataset_class(gl.base_dir, dataset=config["train_dataset"])
@@ -133,7 +139,7 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
                 eval_id = 'MD_s1',
                 crossed = 'half',
                 add_rest = True,
-                std_cortex = 'parcel',
+                std_cortex = None,
                 std_cerebellum = 'global',
                 subj_list = "all",
                 model_subj_list = "all",
@@ -162,7 +168,11 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
    Returns:
        _type_: _description_
    """
+
    for i,ed in enumerate(eval_dataset):
+      if std_cortex is None:
+         std_cortex = 'global' if ed=='Somatotopic' or ed=='WMFS' else 'parcel'
+
       config = rm.get_eval_config(train_dataset=train_dataset,
                                  eval_dataset=ed,
                                  eval_ses=eval_ses,
@@ -222,6 +232,7 @@ def fuse_models_loo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
    coef_list = []
    num_subj = []
    for i, (la,tdata, tses) in enumerate(zip(logalpha, train_datasets, train_ses)):
+      print(f'Loading avg model for {tdata} - {tses}')
       mname = f"{tdata}_{tses}_{parcellation}_{method}"
       model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
       m = mname + f"_A{la}_{model}"
@@ -231,9 +242,10 @@ def fuse_models_loo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
       T = fdata.get_dataset_class(gl.base_dir, dataset=tdata).get_participants()
       # Get the number of subjects in the dataset
-      num_subj.append(len(T.participant_id))      
+      num_subj.append(len(T.participant_id))
 
    for i, edata in enumerate(eval_datasets):
+      print(f'\n Fusing models for {edata}')
       # Next get all individual models from the evaluation dataset  
       indx = train_datasets.index(edata)
       dataset = fdata.get_dataset_class(gl.base_dir, dataset=edata)
@@ -248,7 +260,7 @@ def fuse_models_loo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
                                   type='CondHalf',
                                   cerebellum=cerebellum,
                                   add_rest=True,
-                                  std_cortex='parcel' if edata=='MDTB' else 'global',
+                                  std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
                                   model='loo')
@@ -298,27 +310,139 @@ def fuse_models_loo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
          ses_code = config['eval_ses'].split('-')[1]
          ename = config['eval_dataset'] + ses_code
       file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
-      df['train_dataset'] = 'Fusion'*df.shape[0]
+      df['train_dataset'] = ['Fusion'] * df.shape[0]
       df['model'] = ['loo']*df.shape[0]
       df['logalpha'] = [logalpha]*df.shape[0]
       df['weight'] = [loo_weights]*df.shape[0]
       df.to_csv(file_name, index = False, sep='\t')
       
 
+def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
+                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
+                    eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    logalpha=[8, 8, 8, 8, 8, 10, 8],
+                    model='avg',   # "avg" or "bayes"
+                    method='L2reghalf',
+                    parcellation='Icosahedron1002',
+                    cerebellum='MNISymC3',
+                    eval_id='Fus-avg'):
+   
+   # get other datasets models and weights
+   if model == 'avg':
+      coef_list = []
+      for i, (la, tdata, tses) in enumerate(zip(logalpha, train_datasets, train_ses)):
+         print(f'Loading avg model for {tdata} - {tses}')
+         mname = f"{tdata}_{tses}_{parcellation}_{method}"
+         model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+         m = mname + f"_A{la}_{model}"
+         fname = model_path + f"/{m}"
+         conn_mo, info = cio.load_model(fname)
+         coef_list.append(conn_mo.coef_)
+   elif model == 'bayes':
+      # Decompose Variances and get weights
+      data = np.load("/home/UWO/ashahb7/Github/bayes_temp/bestSTD_product_matrix.npz", allow_pickle=True)
+      indices = []
+      for ds, la in zip(train_datasets, logalpha):
+         indices.append(np.where((data['dataset_vec'] == ds) & (data['logalpha_vec'] == la))[0])
+      indices = np.concatenate(indices)
+      product_la = data['product_matrix'][np.ix_(indices, indices)]
+      dataset_vec_la = data['dataset_vec'][indices]
+      sub_vec_la = data['sub_vec'][indices]
+      part_vec_la = data['part_vec'][indices]
+      # Solve
+      print('Decomposing variances ...')
+      full_var_decom_df = rm.decompose_variance_from_SS_2(product_la, dataset_vec_la, sub_vec_la, part_vec_la)
+
+      # Get the models
+      coef_list = []
+      for i, (la, tdata, tses) in enumerate(zip(logalpha, train_datasets, train_ses)):
+         print(f'\nLoading models for {tdata} - {la} - {tses} ...')
+         mname = f"{tdata}_{tses}_{parcellation}_{method}"
+         model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+         T = fdata.get_dataset_class(gl.base_dir, dataset=tdata).get_participants()
+
+         for s,subj in enumerate(T.participant_id):
+            print('  subject -',subj)
+            m = mname + f"_A{la}_{subj}"
+            fname = model_path + f"/{m}"
+            conn_mo, info = cio.load_model(fname)
+
+            # find the corresponding weight in the decomposition
+            row = full_var_decom_df[
+               (full_var_decom_df['train_dataset'] == tdata) &
+               (full_var_decom_df['subj_id'] == subj)
+            ]
+
+            if row['v_m'].values[0] > 0 and row['v_s'].values[0] > 0 and row['v_d'].values[0] > 0:
+               weight = 1 / (row['sc'].values[0]) / (row['v_m'].values[0] + row['v_s'].values[0] + row['v_d'].values[0])
+            else:
+               weight = 0
+
+            if s == 0:
+               dataset_coef = conn_mo.coef_ * weight
+            else:
+               dataset_coef += conn_mo.coef_ * weight
+
+         coef_list.append(dataset_coef)
+
+   all_df = pd.DataFrame()
+   for i, edata in enumerate(eval_datasets):
+      print(f'\nFusing models for {edata} ...')
+      T = fdata.get_dataset_class(gl.base_dir, dataset=edata).get_participants()
+      config = rm.get_eval_config(eval_dataset=edata,
+                                  eval_ses=eval_ses[i],
+                                  parcellation=parcellation,
+                                  crossed='half', # "half", # or None
+                                  type='CondHalf',
+                                  cerebellum=cerebellum,
+                                  add_rest=True,
+                                  std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
+                                  std_cerebellum='global',
+                                  subj_list=list(T.participant_id),
+                                  model='lodo')
+
+      # sum over the models of other datasets
+      indx = train_datasets.index(edata)
+      coef_to_sum = coef_list.copy()
+      coef_to_sum[indx] = np.zeros_like(coef_to_sum[indx])
+
+      fuse_model = getattr(c_model, method)()
+      setattr(fuse_model,'coef_',np.nansum(coef_to_sum, axis=0))
+      config['model'] = [fuse_model]
+      info['extension'] = eval_id
+      info['logalpha'] = logalpha
+      config['train_info'] = [info]
+      df, _ = rm.eval_model(None,None,config)
+      df['train_dataset'] = ['Fusion'] * df.shape[0]
+      df['model'] = ['lodo']*df.shape[0]
+      df['logalpha'] = [logalpha]*df.shape[0]
+
+      all_df = pd.concat([all_df, df], ignore_index=True)
+
+   save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+   file_name = save_path + f"/all_{method}_{eval_id}.tsv"
+   all_df.to_csv(file_name, index = False, sep='\t')
+      
+
 if __name__ == "__main__":
-   do_train = False
+   do_train = True
    do_eval = False
    do_fuse = False
-   method = 'L2reg'
+   do_lodo_fuse = False
+   method = 'L2regression'
+   cereb_atlas = 'SUIT3'
    
    # models = ["loo", "bayes", "bayes_vox"]
    # models = ["ind"]
    # models = ["avg", "bayes"]
+   # models = ["bayes"]
    # models = [["avg"], ["bayes"]]
    # models = [['avg']]
+   # models = [['avg'], 'loo']
    # models = ["loo", "bayes-loo"]
-   models = ['avg']
-   # models = ['loo']
+   # models = ['avg']
+   models = ['loo']
 
    train_types = {
       'MDTB':        ('all',                 8),
@@ -343,9 +467,9 @@ if __name__ == "__main__":
    for train_dataset, (train_ses, best_la) in train_types.items():
       if do_train:
          print(f'Train: {train_dataset} - individual')
-         train_models(dataset=train_dataset, train_ses=train_ses, method=method)
+         train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
          print(f'Train: {train_dataset} - avg')
-         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method)
+         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method)
 
@@ -385,8 +509,22 @@ if __name__ == "__main__":
                         #  model=model,   # "avg" or "bayes"
                          method=method,
                          parcellation='Icosahedron1002',
-                         cerebellum='MNISymC3',
+                         cerebellum=cereb_atlas,
                          eval_id=eval_id)
+         
+   if do_lodo_fuse:
+      for model in models:
+         eval_id = "Fus-lodo-" + model
+         fuse_models_lodo(train_datasets=list(train_types.keys()),
+                          train_ses=[value[0] for value in train_types.values()],
+                          eval_datasets=list(eval_types.keys()),
+                          eval_ses=[value[0] for value in eval_types.values()],
+                          logalpha=[6, 6, 6, 2, 2, 8, 6],
+                          model=model,   # "avg" or "bayes"
+                          method=method,
+                          parcellation='Icosahedron1002',
+                          cerebellum=cereb_atlas,
+                          eval_id=eval_id)
 
    # ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
    # ED=['Somatotopic']
