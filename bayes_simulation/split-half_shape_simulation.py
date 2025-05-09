@@ -7,27 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-def simulate_iid_noise_shape():
-    """
-    Generate iid noise for shape simulation
-    """
-    S = 1
-    N = 29
-    Q = 1500
-    P = 3000
-
-    _, W1 = create_dataset(0, 1, 0, (S, Q, P))
-    _, W2 = create_dataset(0, 1, 0, (S, Q, P))
-
-    sns.scatterplot(x=W1.flatten(), y=W2.flatten())
-    plt.xlabel('W1')
-    plt.ylabel('W2')
-    plt.title('iid noise')
-    plt.axis('square')
-    plt.show()
-
-
-def simulate_ridge_shape():
+def simulate_ridge_shape(correlation_strength=None):
     """
     Generate ridge for shape simulation
     """
@@ -35,13 +15,16 @@ def simulate_ridge_shape():
     N = 29
     Q = 50
     P = 150
-    alpha_1 = [4, 2]
+    alpha_1 = [4, 6]
     alpha_2 = [4, 6]
 
     _, X = create_dataset(0, 1, 0, (S, N, Q))
 
     _, W1 = create_dataset(0, 1, 0, (S, Q, P))
-    _, W2 = create_dataset(0, 1, 0, (S, Q, P))
+    if correlation_strength is not None:
+        W2 = correlation_strength * W1 + np.sqrt(1 - correlation_strength**2) * np.random.normal(0, 1, W1.shape)
+    else:
+        _, W2 = create_dataset(0, 1, 0, (S, Q, P))
 
     sigma2epss = generate_sigma2eps(np.array([0]), np.array([0]), (S, P))
     Y1, _ = generate_Y(X.reshape((1, N, Q)), W1.reshape((1, Q, P)), sigma2epss, (S, N, P))
@@ -68,5 +51,4 @@ def simulate_ridge_shape():
 
 
 if __name__ == "__main__":
-    # simulate_iid_noise_shape()
-    simulate_ridge_shape()
+    simulate_ridge_shape(correlation_strength=0.3)
