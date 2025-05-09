@@ -38,6 +38,7 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
    """
    # Total number of models
    total_n_models = len(model_info)
+   print(f"Total number of models: {total_n_models}")
    total_n_coef = total_n_models * 2  # Each subject has two coefficients and 6 logalpha values
    
    # Initialize the interaction matrix
@@ -64,6 +65,7 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
       batch_indices = range(batch_start, batch_end)
       
       # Load current batch
+      print(f"Loading models from {batch_start} to {batch_end}")
       batch_coefs = []
       for idx in batch_indices:
          _, _, _, rel_path = model_info[idx]
@@ -78,6 +80,8 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
       batch_coefs = np.array(batch_coefs)  # Shape: (batch_size*2, coef_length)
       
       # Compute interactions within the batch (i vs i)
+      print(f"Computing interactions within the batch {batch_start} to {batch_end}")
+      # Compute the covariance matrix for the current batch                
       size_coef = len(coef_1)
       batch_matrix = np.dot(batch_coefs, batch_coefs.T) / size_coef  # Shape: (batch_size*2, batch_size*2)
       global_start = batch_start * 2
@@ -90,6 +94,7 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
          prev_batch_indices = range(prev_batch_start, prev_batch_end)
          
          # Load previous batch
+         print(f"Loading previous models from {prev_batch_start} to {prev_batch_end}")
          prev_batch_coefs = []
          for idx in prev_batch_indices:
             _, _, _, rel_path = model_info[idx]
@@ -103,6 +108,7 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
          prev_batch_coefs = np.array(prev_batch_coefs)
          
          # Compute cross-batch interactions
+         print(f"Computing cross-batch interactions between {batch_start} to {batch_end} and {prev_batch_start} to {prev_batch_end}")
          cross_matrix = np.dot(batch_coefs, prev_batch_coefs.T) / size_coef  # Shape: (batch_size*2, prev_batch_size*2)
          prev_global_start = prev_batch_start * 2
          prev_global_end = prev_batch_end * 2
@@ -114,24 +120,28 @@ def compute_product_matrix(model_info, batch_size, model_base_path):
 
 if __name__ == "__main__":
    # Example model_info: list of (dataset_id, subject_id, logalpha, model_path)
-   dataset_list = ["MDTB", "Language", "WMFS", "Demand", "Somatotopic", "Nishimoto"]
+   dataset_list = ["MDTB", "Language", "WMFS", "Demand", "Somatotopic", "Nishimoto", "IBC"]
    logalpha_list = [2, 4, 6, 8, 10, 12]
    model_info = []
+   method = 'L2reghalf'
+   cereb_atlas = 'MNISymC3'
+   name = "bestSTD_product_matrix"
+   batch_size = 40
+
+   model_base_path = gl.conn_dir + f"/{cereb_atlas}/train/"
 
    # Fill the metadata list with dataset, subject, logalpha, and model path
+   print("Filling the metadata list...")
    for dataset in dataset_list:
       sub_list = fdata.get_dataset_class(gl.base_dir, dataset=dataset).get_participants().participant_id
       for sub_id in sub_list:
          for la in logalpha_list:
                if dataset == "Language":
-                  mname_base = f"{dataset}_ses-localizer_cond_Icosahedron1002_L2reghalf"
+                  mname_base = f"{dataset}_ses-localizer_cond_Icosahedron1002_{method}"
                else:
-                  mname_base = f"{dataset}_all_Icosahedron1002_L2reghalf"
+                  mname_base = f"{dataset}_all_Icosahedron1002_{method}"
                mname_base = mname_base + f"/{mname_base}_A{la}_{sub_id}"
                model_info.append((dataset, sub_id, la, mname_base))
-
-   batch_size = 30
-   model_base_path = gl.conn_dir + "/MNISymC3/train/"
 
    product_matrix, dataset_vec, sub_vec, logalpha_vec, part_vec = compute_product_matrix(model_info,
                                                                                          batch_size,
@@ -139,7 +149,7 @@ if __name__ == "__main__":
 
    # Save the product matrix and metadata vectors for future variance decomposition use
    np.savez(
-      "/home/UWO/ashahb7/Github/bayes_temp/product_matrix.npz",
+      f"/home/UWO/ashahb7/Github/bayes_temp/{name}.npz",
       product_matrix=product_matrix,
       dataset_vec=dataset_vec,
       sub_vec=sub_vec,
