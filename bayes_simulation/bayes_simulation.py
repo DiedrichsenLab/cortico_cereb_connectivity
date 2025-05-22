@@ -9,6 +9,7 @@ import cortico_cereb_connectivity.evaluation as ev
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
 from cortico_cereb_connectivity.bayes_simulation.simulation_functions import *
+import cortico_cereb_connectivity.bayes_simulation.simulate_var_decomp as var_dec
 import Functional_Fusion.dataset as ds
 from scipy import stats
 from statannotations.Annotator import Annotator
@@ -16,11 +17,11 @@ from IPython.display import display
 
 
 # Set global parameters
-N = 58  # Number of tasks
-Q = 100  # Number of cortical regions
-P = 400  # Number of cerebellar voxels
-S = 24  # Number of subjects
-n_simulation = 50 # Number of simulations
+# N = 58  # Number of tasks
+# Q = 100  # Number of cortical regions
+# P = 400  # Number of cerebellar voxels
+# S = 24  # Number of subjects
+# n_simulation = 50 # Number of simulations
 
 
 def simulate_all():
@@ -598,12 +599,82 @@ def simulate_sigma_estimation():
     print(f'mean error for sigma2_e: {np.mean((ve - sigma2_e*(scales**2)) / (sigma2_e*(scales**2))) * 100:.2f}%')
 
 
+def simulate_sigma_estimation_from_SS():
+    S = 50
+    A = 100
+    B = 200
+    sigma2_g = 1
+    sigma2_s = sigma2_g*1.3
+    X_i, _ = create_dataset(0, sigma2_g, sigma2_s, shape=(S, A, B))
+
+    X_i_hat_1 = np.empty_like(X_i)
+    X_i_hat_2 = np.empty_like(X_i)
+    sigma2_e = np.random.uniform(4*sigma2_s, 8*sigma2_s, (S,))
+    scales = np.random.uniform(2, 20, (S,))
+
+    for s in range(S):
+        noise1 = np.random.normal(0, np.sqrt(sigma2_e[s]), (A, B))
+        noise2 = np.random.normal(0, np.sqrt(sigma2_e[s]), (A, B))
+        X_i_hat_1[s] = (X_i[s] + noise1) * scales[s]
+        X_i_hat_2[s] = (X_i[s] + noise2) * scales[s]
+
+    vg, vs, vm = decompose_variance(np.stack((X_i_hat_1, X_i_hat_2), axis=1))
+    # SS
+    product_matrix = np.zeros((2*S, 2*S))
+    dataset_vec = []
+    sub_vec = []
+    part_vec = []
+    for s1 in range(S):
+        dataset_vec.append('Synthetic')
+        dataset_vec.append('Synthetic')
+        sub_vec.append("sub-" + str(s1))
+        sub_vec.append("sub-" + str(s1))
+        part_vec.append('1')
+        part_vec.append('2')
+        for s2 in range(s1, S):
+            i_indx = s1 * 2
+            j_indx = s2 * 2
+
+            product = np.dot(X_i_hat_1[s1].flatten(), X_i_hat_1[s2].flatten().T) / len(X_i_hat_1[s1].flatten())
+            product_matrix[i_indx, j_indx] = product
+            product_matrix[j_indx, i_indx] = product
+            
+            product = np.dot(X_i_hat_2[s1].flatten(), X_i_hat_1[s2].flatten().T) / len(X_i_hat_2[s1].flatten())
+            product_matrix[i_indx+1, j_indx] = product
+            product_matrix[j_indx, i_indx+1] = product
+
+            product = np.dot(X_i_hat_1[s1].flatten(), X_i_hat_2[s2].flatten().T) / len(X_i_hat_1[s1].flatten())
+            product_matrix[i_indx, j_indx+1] = product
+            product_matrix[j_indx+1, i_indx] = product
+
+            product = np.dot(X_i_hat_2[s1].flatten(), X_i_hat_2[s2].flatten().T) / len(X_i_hat_2[s1].flatten())
+            product_matrix[i_indx+1, j_indx+1] = product
+            product_matrix[j_indx+1, i_indx+1] = product
+
+    dataset_vec = np.array(dataset_vec)
+    sub_vec = np.array(sub_vec)
+    part_vec = np.array(part_vec)
+
+    # estimate the sigma2_g, sigma2_s, and sigma2_m
+    df = rm.decompose_variance_from_SS(product_matrix, dataset_vec, sub_vec, part_vec)
+
+    v_d = np.array(df['v_d'])
+    v_s = np.array(df['v_s'])
+    v_m = np.array(df['v_m'])
+    print(f'mean error for sigma2_d: {np.mean((v_d - sigma2_g*(scales**2)) / (sigma2_g*(scales**2))) * 100:.2f}%')
+    print(f'mean error for sigma2_s: {np.mean((v_s - sigma2_s*(scales**2)) / (sigma2_s*(scales**2))) * 100:.2f}%')
+    print(f'mean error for sigma2_m: {np.mean((v_m - sigma2_e*(scales**2)) / (sigma2_e*(scales**2))) * 100:.2f}%')
+    print('------------------------')
+    print(f'mean error for sigma2_s: {np.mean((v_d - vg) / (vg)) * 100:.2f}%')
+    print(f'mean error for sigma2_s: {np.mean((v_s - vs) / (vs)) * 100:.2f}%')
+    print(f'mean error for sigma2_m: {np.mean((v_m - vm) / (vm)) * 100:.2f}%')
 
 if __name__ == "__main__":
-    simulate_all()
+    # simulate_all()
     # simulate_variance()
     # simulate_normalized_bayes()
     # simulate_W_normalization()
     # simulate_cheat_model()
     # simulate_sigma_estimation()
+    simulate_sigma_estimation_from_SS()
 
