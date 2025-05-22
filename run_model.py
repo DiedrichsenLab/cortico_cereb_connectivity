@@ -411,6 +411,8 @@ def train_model(config, save_path=None, mname=None):
             conn_model.fit(X, Y, info)
          elif config["method"] == 'L2reghalf':
             conn_model.fit(X, Y, config, info)
+         elif config["method"] == 'L2reg2':
+            conn_model.fit(X, Y, info)
          else:
             conn_model.fit(X, Y)
          R_train,R2_train = train_metrics(conn_model, X, Y)
@@ -640,6 +642,14 @@ def eval_model(model_dirs,model_names,config):
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
 
+      # eval only on some runs?
+      if config["eval_run"]!='all':
+         if isinstance(config["eval_run"], list):
+            run_mask = info['run'].isin(config["eval_run"])
+            Y = Y[run_mask.values, :]
+            X = X[run_mask.values, :]
+            info = info[run_mask]
+
       #Definitely subtract intercept across all conditions
       X = (X - X.mean(axis=0))
       Y = (Y - Y.mean(axis=0))
@@ -652,14 +662,6 @@ def eval_model(model_dirs,model_names,config):
       # cross the halves within each session
       if config["crossed"] is not None:
          Y = cross_data(Y,info,config["crossed"])
-
-      # eval only on some runs?
-      if config["eval_run"]!='all':
-         if isinstance(config["eval_run"], list):
-            run_mask = info['run'].isin(config["eval_run"])
-            Y = Y[run_mask.values, :]
-            X = X[run_mask.values, :]
-            info = info[run_mask]
 
       # Loop over models
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
@@ -1033,6 +1035,242 @@ def decompose_variance_half(data):
     vs = SS_2 - vg
 
     return vg, vs, vm
+
+
+def decompose_variance_scaled_from_SS(
+    covariance_matrix: np.ndarray,
+    dataset_vec: np.ndarray,
+    sub_vec: np.ndarray,
+    part_vec: np.ndarray
+) -> pd.DataFrame:
+    """
+    Decomposes variance components from a covariance matrix.
+    Args:
+        covariance_matrix (np.ndarray): A square covariance matrix.
+        dataset_vec (np.ndarray): A vector containing dataset names for each row/column of the covariance matrix.
+        sub_vec (np.ndarray): A vector containing subject IDs for each row/column of the covariance matrix.
+        part_vec (np.ndarray): A vector containing partition IDs for each row/column of the covariance matrix.
+    Returns:
+        Q_df (pandas.DataFrame): DataFrame containing variance components:
+            - train_dataset: Dataset names.
+            - subj_id: Subject IDs.
+            - sc: Scale factors for each subject.
+            - v_u: Universal variance component.
+            - v_d: Dataset variance component (dataset-specific).
+            - v_s: Subject variance component (dataset-specific).
+            - v_m: Measurement noise variance component (subject-specific).
+    """
+
+    N_SS = covariance_matrix.shape[0]
+
+    # Identify unique subjects, datasets, and partitions
+    subjects = [(dataset_vec[i], sub_vec[i]) for i in range(N_SS)]
+    unique_subjects = list(dict.fromkeys(subjects))
+    N_subj = len(unique_subjects)
+
+    unique_datasets = list(dict.fromkeys(dataset_vec))
+    N_datasets = len(unique_datasets)
+
+    N_part = len(np.unique(part_vec))
+
+    # ------------------------------
+    # ------- Ckeck inputs ---------
+    # ------------------------------
+    if covariance_matrix.size == 0:
+        raise ValueError("covariance_matrix cannot be empty.")
+
+    if covariance_matrix.ndim != 2 or covariance_matrix.shape[0] != covariance_matrix.shape[1]:
+        raise ValueError("The covariance_matrix must be a square 2D array.")
+
+    if len(dataset_vec) != N_SS or len(sub_vec) != N_SS or len(part_vec) != N_SS:
+        raise ValueError("Input vectors (dataset_vec, sub_vec, part_vec) must have the same length as the covariance matrix dimensions.")
+
+    if N_part == 1:
+        print(
+            "The number of unique parts is 1. Subject variance (v_s) and measurement noise variance (v_m) cannot be distinguished. "
+            "Returning v_i as v_s + v_m."
+        )
+
+    if N_datasets == 1:
+        print(
+            "The number of unique datasets is 1. Universal Variance (v_u) cannot be estimated. "
+            "Returning v_g as v_u + v_d."
+        )
+
+
+    # Map (dataset, sub_id) to index
+    subject_map = {sid: idx for idx, sid in enumerate(unique_subjects)}
+
+    # ---------------------------------------
+    # ----- Compute pairs and bad pairs -----
+    # ---------------------------------------
+    pairs_1 = []
+    pairs_2 = []
+    pairs_3 = []
+    pairs_4 = []
+    bad_pair_1 = 0
+    bad_pair_2 = 0
+    bad_pair_3 = 0
+    bad_pair_4 = 0
+    for i in range(N_SS):
+        for k in range(i, N_SS):
+            # cross-dataset pairs
+            if dataset_vec[i] != dataset_vec[k]:
+                if covariance_matrix[i, k] <= 0:
+                    bad_pair_1 += 1
+                    continue
+                pairs_1.append((i, k))
+
+            # same-dataset
+            else:
+                # cross-subject pairs
+                if (sub_vec[i] != sub_vec[k]):
+                    if covariance_matrix[i, k] <= 0:
+                        bad_pair_2 += 1
+                        continue
+                    pairs_2.append((i, k))
+
+                # same-subject
+                else:
+                    # cross-partition pairs
+                    if (part_vec[i] != part_vec[k]):
+                        if covariance_matrix[i, k] <= 0:
+                            bad_pair_3 += 1
+                            continue
+                        pairs_3.append((i, k))
+
+                    # same-partition pairs
+                    else:
+                        if covariance_matrix[i, k] <= 0:
+                            bad_pair_4 += 1
+                            continue
+                        pairs_4.append((i, k))
+
+    pairs_1 = np.array(pairs_1)
+    pairs_2 = np.array(pairs_2)
+    pairs_3 = np.array(pairs_3)
+    pairs_4 = np.array(pairs_4)
+    M_1 = len(pairs_1)
+    M_2 = len(pairs_2)
+    M_3 = len(pairs_3)
+    M_4 = len(pairs_4)
+    M = M_1 + M_2 + M_3 + M_4
+
+    if N_datasets != 1:
+        print(f"Bad pairs (cross-dataset): {bad_pair_1 / (M_1 + bad_pair_1) * 100:.2f}%")
+    print(f"Bad pairs (cross-subject): {bad_pair_2 / (M_2 + bad_pair_2) * 100:.2f}%")
+    if N_part != 1:
+        print(f"Bad pairs (cross-partition): {bad_pair_3 / (M_3 + bad_pair_3) * 100:.2f}%")
+    print(f"Bad pairs (same-partition): {bad_pair_4 / (M_4 + bad_pair_4) * 100:.2f}%")
+
+
+    # -----------------------------------------------
+    # ----- Construct A and y for least squares -----
+    # -----------------------------------------------
+    if N_part == 1:
+       A = np.zeros((M, N_subj + N_datasets + N_subj))
+    else:
+       A = np.zeros((M, N_subj + N_datasets + N_datasets + N_subj))
+    y = np.zeros(M)
+
+    # cross-dataset pairs
+    for m, (i, k) in enumerate(pairs_1):
+        # Get subject IDs
+        s_i = (dataset_vec[i], sub_vec[i])
+        s_k = (dataset_vec[k], sub_vec[k])
+        # Set 1s for s_i, s_k, v_u
+        A[m, subject_map[s_i]] = 1
+        A[m, subject_map[s_k]] = 1
+        # Set y_m = ln(A_{i,k})
+        y[m] = np.log(covariance_matrix[i, k])
+
+    # same-dataset, cross-subject pairs
+    for m, (i, k) in enumerate(pairs_2, start=M_1):
+        # Get subject IDs
+        s_i = (dataset_vec[i], sub_vec[i])
+        s_k = (dataset_vec[k], sub_vec[k])
+        # Set 1s for s_i, s_k
+        A[m, subject_map[s_i]] = 1
+        A[m, subject_map[s_k]] = 1
+        # Set 1s for v_u + v_d
+        d = unique_datasets.index(dataset_vec[i])
+        A[m, N_subj+d] = 1
+        # Set y_m = ln(A_{i,k})
+        y[m] = np.log(covariance_matrix[i, k])
+
+    # same-dataset, same-subject, cross-partition pairs
+    for m, (i, k) in enumerate(pairs_3, start=M_1 + M_2):
+        # Get subject IDs
+        s_i = (dataset_vec[i], sub_vec[i])
+        # Set 1s for s_i, s_k
+        A[m, subject_map[s_i]] = 2
+        # Set 1s for v_u + v_d + v_s
+        d = unique_datasets.index(dataset_vec[i])
+        A[m, N_subj+N_datasets+d] = 1
+        # Set y_m = ln(A_{i,k})
+        y[m] = np.log(covariance_matrix[i, k])
+
+    # same-dataset, same-subject, same-partition pairs
+    for m, (i, k) in enumerate(pairs_4, start=M_1 + M_2 + M_3):
+        # Get subject IDs
+        s_i = (dataset_vec[i], sub_vec[i])
+        # Set 1s for s_i, s_k
+        A[m, subject_map[s_i]] = 2
+        # Set 1s for v_u + v_d + v_s + v_m
+        A[m, -(N_subj-subject_map[s_i])] = 1
+      #   A[m, N_subj+N_datasets+N_datasets+subject_map[s_i]] = 1
+        # Set y_m = ln(A_{i,k})
+        y[m] = np.log(covariance_matrix[i, k])
+
+
+    # -------------------------------------------------------
+    # ----- Solve least squares and extract components ------
+    # -------------------------------------------------------
+    x, _, _, _ = np.linalg.lstsq(A, y, rcond=None)
+
+    # Extract parameters
+    sc = np.exp(x[:N_subj])                                          # scales
+    type_1 = np.exp(x[N_subj:N_subj+N_datasets])                     # V_u + V_d
+    type_2 = np.exp(x[N_subj+N_datasets:N_subj+N_part*N_datasets])   # V_u + V_d + V_s
+    type_3 = np.exp(x[N_subj+N_part*N_datasets:])                    # V_u + V_d + V_s + V_m
+
+    if N_datasets == 1:
+        v_g = type_1
+    else:
+        v_u = 1
+        v_d = type_1 - v_u
+    if N_part == 1:
+        v_i = type_3 - type_1[[unique_datasets.index(ds) for ds,_ in unique_subjects]]
+    else:
+        v_s = type_2 - type_1
+        v_m = type_3 - type_2[[unique_datasets.index(ds) for ds,_ in unique_subjects]]
+
+
+    # ----------------------------------
+    # -------- Create DataFrame --------
+    # ----------------------------------
+    train_dataset = [sid[0] for sid in subject_map.keys()]
+    subj_id = [sid[1] for sid in subject_map.keys()]
+
+    data_dict = {
+        'train_dataset': train_dataset,
+        'subj_id': subj_id,
+        'sc': sc
+    }
+    if N_datasets == 1:
+        data_dict['v_g'] = v_g[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
+    else:
+        data_dict['v_u'] = v_u
+        data_dict['v_d'] = v_d[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
+    if N_part == 1:
+        data_dict['v_i'] = v_i
+    else:
+        data_dict['v_s'] = v_s[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
+        data_dict['v_m'] = v_m
+
+    Q_df = pd.DataFrame(data_dict)
+
+    return Q_df
 
 
 def decompose_variance(data, vm_hat, model_type=None):
