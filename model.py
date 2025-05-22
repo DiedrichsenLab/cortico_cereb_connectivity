@@ -151,17 +151,99 @@ class L2reg(Model):
         return Xs @ self.coef_.T
     
 
+class L2reg2(Model):
+    """
+    Model for L2 (Ridge) regression, assuming normalized data.
+    Estimates measurement noise variance for Y ('sigma2eps_Y') and X ('sigma2eps_X') per feature.
+    Computes uncertainty of connectivity weights ('coef_var') accounting for noise in both X and Y.
+    """
+
+    def __init__(self, alpha=1):
+        self.alpha = alpha
+
+    def estimate_sigma2eps(self, data, dataframe=None):
+        """
+        Estimate noise variance for each feature in the input data (X or Y) using two halves.
+        Returns a vector of variances, one per feature (column).
+        """
+        if dataframe is None:
+            return np.ones(data.shape[1])
+        elif isinstance(dataframe, str) and dataframe == 'half':
+            dataframe = pd.DataFrame([1]*(data.shape[0]//2) + [2]*(data.shape[0]-data.shape[0]//2), columns=["half"])
+
+        if len(dataframe[dataframe['half']==1]) != len(dataframe[dataframe['half']==2]):
+            print('sigma2eps estimation cannot be done. Data has inconsistent length of halves.')
+            return np.ones(data.shape[1])
+
+        data_list = []
+        for half in np.unique(dataframe["half"]):
+            data_list.append(data[dataframe["half"] == half, :])
+
+        data_mean = np.nanmean(data_list, axis=0)
+        sigma2eps = np.zeros(data_mean.shape[1])
+        for i, half in enumerate(np.unique(dataframe["half"])):
+            sigma2eps += np.nansum((data_list[i] - data_mean)**2, axis=0) / (data_mean.shape[0])
+        return sigma2eps / i
+
+    def fit(self, X, Y, dataframe=None):
+        """
+        Fit the Ridge regression model and compute coefficient variance.
+        Accounts for noise in both X and Y.
+        """
+        Xs = np.nan_to_num(X)
+        Xs_T = Xs.T
+        # Estimate noise variances (vectors of variances per feature)
+        self.sigma2eps_Y = self.estimate_sigma2eps(Y, dataframe)  # Shape: (n_voxels,)
+        self.sigma2eps_X = self.estimate_sigma2eps(Xs, dataframe)  # Shape: (n_regions,)
+        
+        # Compute Ridge regression coefficients
+        A_inv = np.linalg.inv(Xs_T @ Xs + self.alpha * np.identity(Xs.shape[1]))
+        pseudoinverse = A_inv @ Xs_T
+        self.coef_ = (pseudoinverse @ Y).T  # Shape: (n_voxels, n_regions)
+        
+        # Compute coefficient variance for each voxel
+        # Term 1: Y noise contribution
+        y_noise_var = np.trace(pseudoinverse @ pseudoinverse.T)  # Scalar, trace of pseudoinverse product
+        
+        # Term 2: X noise contribution
+        # Compute W_j^T Sigma_X W_j = sum(W_j,i^2 * sigma2_X,i) for all voxels
+        x_noise_var = np.sum(self.coef_**2 * self.sigma2eps_X, axis=1)  # Shape: (n_voxels,)
+        term2 = np.trace(A_inv)  # Scalar, trace of A_inv
+        
+        # Total variance per voxel
+        self.coef_var = self.sigma2eps_Y * y_noise_var + x_noise_var * term2
+        
+        return self.coef_.T
+
+    def predict(self, X):
+        """
+        Predict Y using the fitted model.
+        """
+        Xs = np.nan_to_num(X)
+        return Xs @ self.coef_.T
+    
+
 class L2reghalf(Model):
     def __init__(self, alpha=1):
         self.alpha = alpha
 
     def fit(self, X, Y, config, info):
         Xs = np.nan_to_num(X)
+
+        if len(info['half']==1) != len(info['half']==2):
+            print('Splitting data cannot be done. Data has inconsistent length of halves. Trimming to the smallest length...')
+            min_len = min(len(info['half']==1), len(info['half']==2))
+        else:
+            min_len = len(info['half']==1)
         Xs_1 = Xs[info['half']==1, :]
+        Xs_1 = Xs_1[:min_len, :]
         Xs_2 = Xs[info['half']==2, :]
+        Xs_2 = Xs_2[:min_len, :]
 
         Y_1 = Y[info['half']==1, :] # if config['crossed']=='half', then info['half']==1 is Y of half 2
+        Y_1 = Y_1[:min_len, :]
         Y_2 = Y[info['half']==2, :]
+        Y_2 = Y_2[:min_len, :]
 
         # Definitely subtract intercept across all conditions
         Xs_1 = (Xs_1 - Xs_1.mean(axis=0))
