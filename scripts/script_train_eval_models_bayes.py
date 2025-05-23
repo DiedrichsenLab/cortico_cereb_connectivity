@@ -329,7 +329,7 @@ def eval_region_models(ext_list = [2, 4, 6, 8, 10, 12],
       conn_info_list = []
       for d,m in zip(dirname,mname):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_avg-half"
+         fname = model_path + f"/{m}_{config['model']}"
          mo,inf = cio.load_model(fname)
          conn_model_list.append(mo)
          conn_info_list.append(inf)
@@ -402,7 +402,8 @@ def eval_region_models(ext_list = [2, 4, 6, 8, 10, 12],
                # make a subset of Y based on regions
                Y_region = Y[:, atlas_labels == r+1]
                # make a subset of W based on regions
-               conn_mo.coef_ = (conn_mo.coef_1 + conn_mo.coef_2) / 2
+               if config['model'] == 'avg-half':
+                  conn_mo.coef_ = (conn_mo.coef_1 + conn_mo.coef_2) / 2
                W_region = conn_mo.coef_[atlas_labels == r+1, :]
 
                Y_pred = X @ W_region.T
@@ -738,7 +739,7 @@ if __name__ == "__main__":
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_region_lodo_fuse = False
-   method = 'L2reghalf'
+   method = 'L2reg'
    cereb_atlas = 'MNISymC3'
    
    # models = ["loo", "bayes", "bayes_vox"]
@@ -749,13 +750,13 @@ if __name__ == "__main__":
    # models = [['avg']]
    # models = [['avg'], 'loo']
    # models = ["loo", "bayes-loo"]
-   # models = ['avg']
+   models = ['avg']
    # models = ['loo']
-   models = ['avg-half']
+   # models = ['avg-half']
 
    train_types = {
       'MDTB':        ('all',                 6),
-      'Language':    ('ses-localizer_cond',  6),
+      # 'Language':    ('ses-localizer_cond',  6),
       'WMFS':        ('all',                 6),
       'Demand':      ('all',                 2),
       'Somatotopic': ('all',                 2),
