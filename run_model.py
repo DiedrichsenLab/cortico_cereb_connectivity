@@ -913,6 +913,8 @@ def calc_avrg_model(train_dataset,
       parameters = ['coef_', 'coef_var']
    elif avrg_mode.startswith('bayes') & ('half' in avrg_mode):
       parameters = ['coef_', 'coef_1', 'coef_2']
+   elif avrg_mode=='avg-half':
+      parameters = ['coef_1', 'coef_2']
    param_lists={}
    for p in parameters:
       param_lists[p]=[]
@@ -934,6 +936,7 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          setattr(avrg_model,p,P.mean(axis=0))
+
    elif avrg_mode=='loo_sep':
       avrg_model = []
       subj_ind = np.arange(len(subject_list))
@@ -944,6 +947,7 @@ def calc_avrg_model(train_dataset,
          for s,sub in enumerate(model_subject_list):
             sel_ind = list(subject_list).index(sub)
             setattr(avrg_model[s],p,P[subj_ind!=sel_ind].mean(axis=0))
+
    elif avrg_mode=='mix':
       avrg_model = []
       portion_value = mix_param / 100
@@ -959,6 +963,7 @@ def calc_avrg_model(train_dataset,
                sel_subj.remove(s)
             attr_value = P[sel_subj].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
+
    elif avrg_mode.startswith('bayes'):
       param_w_opt = calc_bayes_avrg(parameters=parameters,
                               param_lists=param_lists,
@@ -975,6 +980,12 @@ def calc_avrg_model(train_dataset,
          avrg_model = fitted_model
          setattr(avrg_model, 'coef_', param_w_opt['coef_'])
          setattr(avrg_model, 'coef_var', param_w_opt['coef_var'])
+
+   elif avrg_mode=='avg-half':
+      for p in parameters:
+         P = np.stack(param_lists[p],axis=0)
+         setattr(avrg_model,p,P.mean(axis=0))
+
          
    # Assemble the summary
    ## first fill in NoneTypes with Nans. This is a specific case for WTA
