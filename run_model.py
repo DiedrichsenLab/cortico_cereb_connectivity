@@ -25,6 +25,7 @@ import warnings
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
                      train_run = 'all',
+                     train_cond_num = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -64,6 +65,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
    train_config['train_run'] = train_run
+   train_config['train_cond_num'] = train_cond_num
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -88,6 +90,8 @@ def get_train_config(train_dataset = "MDTB",
 
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
+            eval_run = 'all',
+            eval_cond_num = 'all',
             subj_list = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
@@ -105,6 +109,8 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config = {}
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
+   eval_config['eval_run'] = eval_run
+   eval_config['eval_cond_num'] = eval_cond_num
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -360,6 +366,14 @@ def train_model(config, save_path=None, mname=None):
             X = X[run_mask.values, :]
             info = info[run_mask]
 
+      # train only on some conds?
+      if config['train_cond_num']!='all':
+         if isinstance(config["train_cond_num"], list):
+            cond_mask = info['cond_num'].isin(config["train_cond_num"])
+            Y = Y[cond_mask.values, :]
+            X = X[cond_mask.values, :]
+            info = info[cond_mask]
+
       #Definitely subtract intercept across all conditions
       X = (X - X.mean(axis=0))
       Y = (Y - Y.mean(axis=0))
@@ -572,6 +586,22 @@ def eval_model(model_dirs,model_names,config):
       if config["add_rest"]:
          Y,_ = add_rest(Y,info)
          X,info = add_rest(X,info)
+
+      # eval only on some runs?
+      if config["eval_run"]!='all':
+         if isinstance(config["eval_run"], list):
+            run_mask = info['run'].isin(config["eval_run"])
+            Y = Y[run_mask.values, :]
+            X = X[run_mask.values, :]
+            info = info[run_mask]
+
+      # eval only on some conds?
+      if config['eval_cond_num']!='all':
+         if isinstance(config["eval_cond_num"], list):
+            cond_mask = info['cond_num'].isin(config["eval_cond_num"])
+            Y = Y[cond_mask.values, :]
+            X = X[cond_mask.values, :]
+            info = info[cond_mask]
 
       #Definitely subtract intercept across all conditions
       X = (X - X.mean(axis=0))
