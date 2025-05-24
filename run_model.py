@@ -212,6 +212,15 @@ def cross_data(Y,info,mode):
          Y_list.append(Y[(info.sess==s) & (info.half==2),:])
          Y_list.append(Y[(info.sess==s) & (info.half==1),:])
       Ys = np.concatenate(Y_list,axis=0)
+   elif mode=='run':
+      unique_runs = sorted(info.run.unique())
+      first_runs = unique_runs[:len(unique_runs)//2]
+      second_runs = unique_runs[len(unique_runs)//2:]
+      Y_list = []
+      for s in np.unique(info.sess):
+         Y_list.append(Y[(info.sess==s) & (info.run.isin(second_runs)),:])
+         Y_list.append(Y[(info.sess==s) & (info.run.isin(first_runs)),:])
+      Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
 def add_rest(Y,info):
