@@ -200,7 +200,7 @@ def eval_metrics(Y, Y_pred, info):
       warnings.simplefilter("ignore", category=RuntimeWarning)
 
       data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
-      data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"] * np.sqrt(data["noise_X_R_vox"]))
+      data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"]) * np.sqrt(data["noise_X_R_vox"])
     return data
 
 def cross_data(Y,info,mode):
