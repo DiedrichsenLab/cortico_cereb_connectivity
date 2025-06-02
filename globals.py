@@ -1,6 +1,6 @@
 from pathlib import Path
 
-base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion'
+base_dir = '/Volumes/diedrichsen_data$/data/FunctionalFusion_new'
 if not Path(base_dir).exists():
     base_dir = '/srv/diedrichsen/data/FunctionalFusion'
 if not Path(base_dir).exists():
