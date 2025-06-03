@@ -38,7 +38,7 @@ def get_train_config(train_dataset = "MDTB",
                      crossed = "half", # or None
                      validate_model = True,
                      cv_fold = 4,
-                     add_rest = False,
+                     add_rest = True,
                      append = False,
                      std_cortex = None,
                      std_cerebellum = None
@@ -58,7 +58,7 @@ def get_train_config(train_dataset = "MDTB",
       crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
       validate_model (bool): Do cross-validation in training set for hyperparameter tuning? Defaults to True.
       cv_fold (int): Number of validation folds. Defaults to 4.
-      add_rest (bool): Add rest condition to each session and half. Defaults to False.
+      add_rest (bool): Add rest condition to each session and half. Defaults to True.
       std_cortex(): z-Standardize the cortical data. (Defaults to None)
       std_cerebelum(): z-Standardize the cortical data. (Defaults to None)
    Returns:
@@ -103,7 +103,7 @@ def get_eval_config(train_dataset = None,
             crossed = "half", # or None
             type = "CondHalf",
             splitby = None,
-            add_rest = False,
+            add_rest = True,
             model_subj_list = "all",
             std_cortex = 'parcel',
             std_cerebellum = 'global',
@@ -544,9 +544,14 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          ext = '_' + m.split('_')[-1]
-         fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
-                                 cerebellum=config['cerebellum'],
-                                 avrg_mode='loo_sep')
+         if 'L2reghalf' in d:
+            fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
+                                    cerebellum=config['cerebellum'],
+                                    avrg_mode='loo-half')
+         else:
+            fm,fi = calc_avrg_model(config['train_dataset'],d,ext,
+                                    cerebellum=config['cerebellum'],
+                                    avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
    elif config['model']=='mix':
@@ -934,7 +939,11 @@ def calc_avrg_model(train_dataset,
    elif avrg_mode.startswith('bayes') & ('half' in avrg_mode):
       parameters = ['coef_', 'coef_1', 'coef_2']
    elif avrg_mode=='avg-half':
-      parameters = ['coef_1', 'coef_2']
+      parameters = ['coef_', 'coef_1', 'coef_2']
+      avrg_mode = 'avrg_sep'
+   elif avrg_mode=='loo-half':
+      parameters = ['coef_', 'coef_1', 'coef_2']
+      avrg_mode = 'loo_sep'
    param_lists={}
    for p in parameters:
       param_lists[p]=[]
@@ -1005,6 +1014,7 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          setattr(avrg_model,p,P.mean(axis=0))
+      setattr(avrg_model, 'coef_', (avrg_model.coef_1 + avrg_model.coef_2)/2)
 
          
    # Assemble the summary
