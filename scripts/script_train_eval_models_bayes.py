@@ -754,7 +754,7 @@ def fuse_voxel_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
 def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
                     train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
-                    logalpha=[6, 6, 6, 2, 2, 8, 6],
+                    logalpha=[6, 6, 4, 4, 2, 8, 6],
                     weight=[1, 1, 1, 1, 1, 1, 1],
                     method='L2reghalf',
                     parcellation='Icosahedron1002',
