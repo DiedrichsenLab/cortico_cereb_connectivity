@@ -1,8 +1,6 @@
 """
-script for training models (Better to use run_model.py directly - 
-these are just examples of how to use the functions in run_model.py)
-
-@ Ladan Shahshahani, Joern Diedrichsen Jan 30 2023 12:57
+Script for evaluating group models using either the average cortical activity or individual cortical activity 
+Also calcualtes the leave-one-out (loo) reliability of cerebellar activity for each subject
 """
 import os
 import pandas as pd
@@ -10,6 +8,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
+import numpy as np 
 
 
 
@@ -19,15 +18,16 @@ def eval_models_script(ext_list = ['A8'],
                 method = "L2reg",
                 parcellation = "Icosahedron1002",
                 cerebellum='MNISymC3',
-                eval_dataset = ["HCP_tfMRI"],
-                eval_type = ["CondRun"],
-                eval_ses  = "all",
-                eval_id = 'HCPt',
-                crossed = 'half',
-                add_rest = True,
-                subj_list = "all",
                 model_subj_list = "all",
                 model = 'avg',
+                eval_dataset = ["HCPur100"],
+                eval_type = ["CondRun"],
+                eval_ses  = "all",
+                eval_id = 'MDTBavg',
+                subj_list = "all",
+                crossed = 'half',
+                add_rest = True,
+                cortical_act = 'avg',  # 'ind','avg','loo'                                
                 mix_param = [],
                 append = False
                 ):
@@ -53,7 +53,8 @@ def eval_models_script(ext_list = ['A8'],
        _type_: _description_
    """
    for i,ed in enumerate(eval_dataset):
-      config = rm.get_eval_config(eval_dataset = ed,
+      config = rm.get_eval_config(train_dataset=train_dataset,
+                                 eval_dataset = ed,
                                  eval_ses = eval_ses,
                                  parcellation = parcellation,
                                  crossed = crossed, # "half", # or None
@@ -64,6 +65,7 @@ def eval_models_script(ext_list = ['A8'],
                                  subj_list = subj_list,
                                  model_subj_list = model_subj_list,
                                  model = model,
+                                 cortical_act = cortical_act,
                                  mix_param = mix_param)
 
       dirname,mname = rm.get_model_names(train_dataset,train_ses,parcellation,method,ext_list)
@@ -87,7 +89,14 @@ def eval_models_script(ext_list = ['A8'],
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
+def calculate_group_noise_ceiling(eval_dataset,space='MNISymC3',sess='all',type='CondHalf',add_rest=True): 
+   YY, info, _ = fdata.get_dataset(gl.base_dir,eval_dataset, space,sess,type=type)
+   Y = np.nan_to_num(YY)
 
+   # Add explicit rest to sessions
+   if add_rest:
+      Y,info = rm.add_rest(Y,info)
+   pass
 
 if __name__ == "__main__":
    """
@@ -103,8 +112,9 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   eval_models_script()
-
+   # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
+   # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
+   calculate_group_noise_ceiling(eval_dataset='HCPur100',space='MNISymC3',sess='all',type='CondRun',add_rest=True)
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])

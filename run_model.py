@@ -108,9 +108,33 @@ def get_eval_config(train_dataset = None,
             std_cortex = 'parcel',
             std_cerebellum = 'global',
             model = 'avg',
+            cortical_act = 'ind',
             mix_param = []):
    """
    create a config file for evaluation
+   Args:
+      train_dataset (str): training dataset. Defaults to None.
+      eval_dataset (str): evaluation dataset. Defaults to 'MDTB'.
+      eval_ses (str): evaluation session. Defaults to 'ses-s2'.
+      subj_list (str or list): List of subjects to evaluate. Defaults to 'all'.
+      eval_run (str or list): List of runs to evaluate. Defaults to 'all'.
+      eval_cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
+      cerebellum (str): Atlas for cerebellum. Defaults to 'SUIT3'.
+      cortex (str): Atlas for neocortex. Defaults to "fs32k".
+      parcellation (str): Parcellation for cortex. Defaults to "Icosahedron1002".
+      crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
+      type (str): Type of evaluation. Defaults to "CondHalf".
+      splitby (str): Split evaluation by 'sess', 'run', or None. Defaults to None.
+      add_rest (bool): Add rest condition to each session and half. Defaults to True.
+      model_subj_list (str or list): List of subjects for the model. Defaults to 'all'.
+      std_cortex (str): Standardization method for cortex. Defaults to 'parcel'.
+      std_cerebellum (str): Standardization method for cerebellum. Defaults to 'global'.
+      model (str): Model type to evaluate. Defaults to 'avg'.
+      cortical_act (str): Type of cortical activity to use. ['ind', 'avg', 'loo'].
+      mix_param (list): Percentage of subject weights if model mix. Defaults to [].
+
+   Returns:
+      dict: Dictionary containing the evaluation configuration
    """
    eval_config = {}
    if train_dataset is None:
@@ -131,11 +155,11 @@ def get_eval_config(train_dataset = None,
    eval_config["splitby"] = splitby
    eval_config["type"] = type
    eval_config['subj_list'] = subj_list
+   eval_config['cortical_act'] = cortical_act
    eval_config['model_subj_list'] = model_subj_list
    eval_config['model'] = model
    eval_config['mix_param'] = mix_param
    
-
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
    for hemi in ['L', 'R']:
@@ -245,37 +269,35 @@ def add_rest(Y,info):
    """Add rest to each session and half
    Subtract the mean across all conditions
    Args:
-       Y (_type_): _description_
-       info (_type_): _description_
+       Y (ndarray): Data matrix (n_cond,n_vox) or (n_subj,n_cond,n_vox)
+       info (pd.DataFrame): Information dataframe with columns: sess, half, task_code; n_cond rows
 
    Returns:
-       _type_: _description_
+       Y (ndarray): Data with rest condition added, mean per session and half removed
+       info (pd.DataFrame): Information dataframe with rest condition added
    """
    Y_list = []
    info_list = []
-   if not('cond_name' in info.columns):
-      if ('task_name' in info.columns):
-         info['cond_name']=info.task_name
-      elif ('taskName' in info.columns):
-         info['cond_name']=info.taskName
    for s in np.unique(info.sess):
       for h in np.unique(info.half):
          indx = (info.sess==s) & (info.half==h)
-         if any([i.startswith('rest') for i in info[indx].cond_name]):
-            Y_list.append(Y[indx,:])
+         if any([i.startswith('rest') for i in info[indx].task_code]):
+            Y_list.append(Y[...,indx,:]-Y[...,indx,:].mean(axis=-2,keepdims=True))
             info_list.append(info[indx])
          else:
-            Yp = np.zeros((indx.sum()+1,Y.shape[1]))
-            Yp[0:-1,:] = Y[indx,:]
-            Yp = Yp - Yp.mean(axis=0)
+            Yshape = np.array(Y.shape)
+            Yshape[-2]=indx.sum()+1
+            Yp = np.zeros(Yshape)
+            Yp[...,0:-1,:] = Y[...,indx,:]
+            Yp = Yp - Yp.mean(axis=-2,keepdims=True) # subtract mean across all conditions
             Y_list.append(Yp)
             inf = info[indx]
-            newD = {'cond_name':['rest'],
+            newD = {'task_code':['rest'],
                     'sess':[inf.sess.iloc[0]],
                     'half':[inf.half.iloc[0]]}
             inf = pd.concat([inf,pd.DataFrame(newD)],ignore_index=True)
             info_list.append(inf)
-   Ys = np.concatenate(Y_list,axis=0)
+   Ys = np.concatenate(Y_list,axis=-2)
    infos = pd.concat(info_list,ignore_index=True)
    return Ys,infos
 
@@ -637,22 +659,31 @@ def eval_model(model_dirs,model_names,config):
                                     sess=config["eval_ses"],
                                     type=config["type"],
                                     subj=str(sub))
-      XX, info, _ = fdata.get_dataset(gl.base_dir,
+      if config["cortical_act"] == 'ind':
+         XX, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["eval_dataset"],
                                     atlas=config["cortex"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
                                     subj=str(sub))
+      elif (config["cortical_act"] == 'avg') and i==0:
+         XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                    config["eval_dataset"],
+                                    atlas=config["cortex"],
+                                    sess=config["eval_ses"],
+                                    type=config["type"],
+                                    subj=config["subj_list"].tolist())
+         XX = XX.mean(axis=0,keepdims=True)
       # Average the cortical data over parcels
       X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
       # get the vector containing tessel labels
       X_atlas.get_parcel(config['label_img'], unite_struct = False)
       # get the mean across tessels for cortical data
-      XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+      XXp, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
       # Remove Nans
       Y = np.nan_to_num(YY[0,:,:])
-      X = np.nan_to_num(XX[0,:,:])
+      X = np.nan_to_num(XXp[0,:,:])
 
       # Add explicit rest to sessions
       if config["add_rest"]:
