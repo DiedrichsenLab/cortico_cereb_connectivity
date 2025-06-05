@@ -712,7 +712,8 @@ def eval_model(model_dirs,model_names,config):
          YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
 
    # Caluclated group reliability of subjects 
-   between_subj_rel = frel.between_subj_loo(YY)
+   group_noiseceil_lower = frel.between_subj_loo(YY)
+   group_noiseceil_upper = frel.between_subj_avrg(YY)
 
    for i, sub in enumerate(config["subj_list"]):
       print(f'- Evaluate {sub}')
@@ -762,7 +763,8 @@ def eval_model(model_dirs,model_names,config):
                eval_sub[k]=v
 
          # Add group noise ceiling 
-         eval_sub['group_noise_Y_R'] = between_subj_rel[i]
+         eval_sub['group_noiseceil_Y_upper'] = group_noiseceil_upper[i]
+         eval_sub['group_noiseceil_Y_lower'] = group_noiseceil_lower[i]
          # don't save voxel data to summary
          eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub,index=[0])],ignore_index= True)
 
