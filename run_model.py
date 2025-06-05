@@ -14,6 +14,8 @@ from collections import defaultdict
 from sklearn.model_selection import cross_val_score
 import Functional_Fusion.atlas_map as at # from functional fusion module
 import Functional_Fusion.dataset as fdata # from functional fusion module
+import Functional_Fusion.reliability as frel # from functional fusion module
+
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.model as model
 import cortico_cereb_connectivity.cio as cio
@@ -650,76 +652,78 @@ def eval_model(model_dirs,model_names,config):
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,config)
 
    # loop over subjects
-   for i, sub in enumerate(config["subj_list"]):
-      print(f'- Evaluate {sub}')
-
-      YY, info, _ = fdata.get_dataset(gl.base_dir,
+   YY, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["eval_dataset"],
                                     atlas=config["cerebellum"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
-                                    subj=str(sub))
-      if config["cortical_act"] == 'ind':
-         XX, info, _ = fdata.get_dataset(gl.base_dir,
-                                    config["eval_dataset"],
-                                    atlas=config["cortex"],
-                                    sess=config["eval_ses"],
-                                    type=config["type"],
-                                    subj=str(sub))
-      elif (config["cortical_act"] == 'avg') and i==0:
-         XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                    subj=config["subj_list"].tolist())
+   XX, info, _ = fdata.get_dataset(gl.base_dir,
                                     config["eval_dataset"],
                                     atlas=config["cortex"],
                                     sess=config["eval_ses"],
                                     type=config["type"],
                                     subj=config["subj_list"].tolist())
-         XX = XX.mean(axis=0,keepdims=True)
-      # Average the cortical data over parcels
-      X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
-      # get the vector containing tessel labels
-      X_atlas.get_parcel(config['label_img'], unite_struct = False)
-      # get the mean across tessels for cortical data
-      XXp, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+   # Average the cortical data over parcels
+   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
+   # get the vector containing tessel labels
+   X_atlas.get_parcel(config['label_img'], unite_struct = False)
+   # get the mean across tessels for cortical data
+   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+   
+   # Remove Nans
+   YY = np.nan_to_num(YY)
+   XX = np.nan_to_num(XX)
 
-      # Remove Nans
-      Y = np.nan_to_num(YY[0,:,:])
-      X = np.nan_to_num(XXp[0,:,:])
+   # Add explicit rest to sessions
+   if config["add_rest"]:
+      YY,_ = add_rest(YY,info)
+      XX,info = add_rest(XX,info)
 
-      # Add explicit rest to sessions
-      if config["add_rest"]:
-         Y,_ = add_rest(Y,info)
-         X,info = add_rest(X,info)
+   # eval only on some runs?
+   if config["eval_run"]!='all':
+      if isinstance(config["eval_run"], list):
+         run_mask = info['run'].isin(config["eval_run"])
+         YY = YY[...,run_mask.values, :]
+         XX = XX[...,run_mask.values, :]
+         info = info[run_mask]
 
-      # eval only on some runs?
-      if config["eval_run"]!='all':
-         if isinstance(config["eval_run"], list):
-            run_mask = info['run'].isin(config["eval_run"])
-            Y = Y[run_mask.values, :]
-            X = X[run_mask.values, :]
-            info = info[run_mask]
+   # eval only on some conds?
+   if config['eval_cond_num']!='all':
+      if isinstance(config["eval_cond_num"], list):
+         cond_mask = info['cond_num'].isin(config["eval_cond_num"])
+         YY = YY[...,cond_mask.values, :]
+         XX = XX[...,cond_mask.values, :]
+         info = info[cond_mask]
 
-      # eval only on some conds?
-      if config['eval_cond_num']!='all':
-         if isinstance(config["eval_cond_num"], list):
-            cond_mask = info['cond_num'].isin(config["eval_cond_num"])
-            Y = Y[cond_mask.values, :]
-            X = X[cond_mask.values, :]
-            info = info[cond_mask]
+   #Definitely subtract intercept across all conditions
+   XX = (XX - XX.mean(axis=-2,keepdims=True))
+   YY = (YY - YY.mean(axis=-2,keepdims=True))
 
-      #Definitely subtract intercept across all conditions
-      X = (X - X.mean(axis=0))
-      Y = (Y - Y.mean(axis=0))
-
+   for i in range(XX.shape[0]):
       if 'std_cortex' in config.keys():
-         X = std_data(X,config['std_cortex'])
+         # Standardize the cortical data
+         XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
       if 'std_cerebellum' in config.keys():
-         Y = std_data(Y,config['std_cerebellum'])
+         YY[i,:,:] = std_data(YY[i,:,:],config['std_cerebellum'])
 
       # cross the halves within each session
       if config["crossed"] is not None:
-         Y = cross_data(Y,info,config["crossed"])
+         YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
 
+   # Caluclated group reliability of subjects 
+   between_subj_rel = frel.between_subj_loo(YY)
+
+   for i, sub in enumerate(config["subj_list"]):
+      print(f'- Evaluate {sub}')
       # Loop over models
+      if config['cortical_act'] == 'ind':
+         X=XX[i,:,:] # get the data for the subject
+      elif config['cortical_act'] == 'avg':
+         X=XX.mean(axis=0) # get average cortical data
+      Y=YY[i,:,:] # get the data for the subject
+
+
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
 
          # Use subject-specific model? (indiv or loo or mix)
@@ -757,6 +761,8 @@ def eval_model(model_dirs,model_names,config):
             else:
                eval_sub[k]=v
 
+         # Add group noise ceiling 
+         eval_sub['group_noise_Y_R'] = between_subj_rel[i]
          # don't save voxel data to summary
          eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub,index=[0])],ignore_index= True)
 

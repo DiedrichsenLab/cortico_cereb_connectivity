@@ -5,6 +5,7 @@ Also calcualtes the leave-one-out (loo) reliability of cerebellar activity for e
 import os
 import pandas as pd
 import Functional_Fusion.dataset as fdata # from functional fusion module
+import Functional_Fusion.reliability as frel # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
@@ -89,14 +90,6 @@ def eval_models_script(ext_list = ['A8'],
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
-def calculate_group_noise_ceiling(eval_dataset,space='MNISymC3',sess='all',type='CondHalf',add_rest=True): 
-   YY, info, _ = fdata.get_dataset(gl.base_dir,eval_dataset, space,sess,type=type)
-   Y = np.nan_to_num(YY)
-
-   # Add explicit rest to sessions
-   if add_rest:
-      Y,info = rm.add_rest(Y,info)
-   pass
 
 if __name__ == "__main__":
    """
@@ -112,9 +105,8 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
-   # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
-   calculate_group_noise_ceiling(eval_dataset='HCPur100',space='MNISymC3',sess='all',type='CondRun',add_rest=True)
+   eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
+   eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
