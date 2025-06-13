@@ -22,8 +22,8 @@ def eval_models_script(ext_list = ['A8'],
                 model_subj_list = "all",
                 model = 'avg',
                 eval_dataset = ["HCPur100"],
-                eval_type = ["CondRun"],
-                eval_ses  = "all",
+                eval_type = ["CondHalf"],
+                eval_ses  = "ses-task",
                 eval_id = 'MDTBavg',
                 subj_list = "all",
                 crossed = 'half',
@@ -105,8 +105,9 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
-   eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
+   # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
+   # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
+   eval_models_script(eval_id = 'MDTB_Cloo',cortical_act = 'loo')
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
