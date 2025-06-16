@@ -17,7 +17,7 @@ import cortico_cereb_connectivity.evaluation as ev
 import cortico_cereb_connectivity.scripts.script_fuse_models as sfm
 import json
 
-def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
+def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
@@ -52,17 +52,8 @@ def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
                                  std_cerebellum=std_cerebellum,
                                  append=False)
    
-   dataset = fdata.get_dataset_class(gl.base_dir, dataset=config["train_dataset"])
-   # get the list of trained connectivity models and training summary
-   T = dataset.get_participants()
-   if subj_list is None:
-      config["subj_list"] = T.participant_id
-   elif subj_list=='all':
-      config["subj_list"] = T.participant_id
-   elif isinstance(subj_list[0],str):
-      config["subj_list"] = subj_list
-   else:
-      config["subj_list"] = T.participant_id.iloc[subj_list]
+   # get the subject list
+   config["subj_list"] = rm.get_subj_list(subj_list, dataset)
 
    if mname is None:
       config, conn_list, df_tmp = rm.train_model(config)
@@ -71,7 +62,7 @@ def train_models(logalpha_list = [2, 4, 6, 8, 10, 12],
    return df_tmp
 
 
-def avrg_model(logalpha_list = [2, 4, 6, 8, 10, 12],
+def avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                train_data = "MDTB",
                train_ses= "all",
                train_run='all',
@@ -105,7 +96,7 @@ def avrg_model(logalpha_list = [2, 4, 6, 8, 10, 12],
       cio.save_model(avrg_model,info,model_path + f"/{mname_base}{mname_ext}_{avg_id}")
 
 
-def bayes_avrg_model(logalpha_list = [2, 4, 6, 8, 10, 12],
+def bayes_avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                train_data = "MDTB",
                train_ses= "all",
                train_run='all',
@@ -137,7 +128,7 @@ def bayes_avrg_model(logalpha_list = [2, 4, 6, 8, 10, 12],
       cio.save_model(avrg_model,info,model_path + f"/{mname_base}{mname_ext}_{avg_id}")
 
 
-def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
+def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "all",
                 train_run = 'all',
@@ -153,10 +144,10 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
                 add_rest = True,
                 std_cortex = None,
                 std_cerebellum = 'global',
+                cortical_act = 'avg',
                 subj_list = "all",
                 model_subj_list = "all",
                 model = 'avg',
-                mix_param = [],
                 append = False
                 ):
    """_summary_
@@ -185,50 +176,51 @@ def eval_models(ext_list = [2, 4, 6, 8, 10, 12],
       if std_cortex is None:
          std_cortex = 'global' if ed=='Somatotopic' or ed=='WMFS' else 'parcel'
 
-      config = rm.get_eval_config(train_dataset=train_dataset,
-                                 eval_dataset=ed,
-                                 eval_ses=eval_ses,
-                                 eval_run=eval_run,
-                                 parcellation=parcellation,
-                                 crossed=crossed, # "half", # or None
-                                 type=eval_type[i],
-                                 cerebellum=cerebellum,
-                                 splitby=None,
-                                 add_rest=add_rest,
-                                 std_cortex=std_cortex,
-                                 std_cerebellum=std_cerebellum,
-                                 subj_list=subj_list,
-                                 model_subj_list=model_subj_list,
-                                 model=model,
-                                 mix_param=mix_param)
+      eval_config = rm.get_eval_config(eval_dataset=ed,
+                                       eval_ses=eval_ses,
+                                       eval_run=eval_run,
+                                       parcellation=parcellation,
+                                       crossed=crossed, # "half", # or None
+                                       type=eval_type[i],
+                                       cerebellum=cerebellum,
+                                       splitby=None,
+                                       add_rest=add_rest,
+                                       std_cortex=std_cortex,
+                                       std_cerebellum=std_cerebellum,
+                                       subj_list=subj_list,
+                                       cortical_act=cortical_act)
+      
+      model_config = rm.get_model_config(dataset=train_dataset,
+                                         subj_list=model_subj_list,
+                                         model=model,
+                                         cerebellum=cerebellum)
 
       dirname=[]
       mname=[]
       for a in ext_list:
-         dirname.append(f"{train_dataset}_{train_ses}_{config['parcellation']}_{method}")
-         mname.append(f"{train_dataset}_{train_ses}_{config['parcellation']}_{method}_A{a}")
+         dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}")
+         mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}_A{a}")
 
-      df, df_voxels = rm.eval_model(dirname,mname,config)
+      df, df_voxels = rm.eval_model(dirname,mname,eval_config,model_config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
       if not os.path.isdir(save_path):
          os.mkdir(save_path)
       else:
          pass
-      ename = config['eval_dataset']
-      if config['eval_ses'] != 'all':
-         ses_code = config['eval_ses'].split('-')[1]
-         ename = config['eval_dataset'] + ses_code
+      ename = eval_config['eval_dataset']
+      if eval_config['eval_ses'] != 'all':
+         ses_code = eval_config['eval_ses'].split('-')[1]
+         ename = eval_config['eval_dataset'] + ses_code
       file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
       if os.path.isfile(file_name) & append:
          dd = pd.read_csv(file_name, sep='\t')
          df = pd.concat([dd, df], ignore_index=True)
-         # df = df.append(dd,ignore_index=True) # pd.append is deprecated
       df.to_csv(file_name, index = False, sep='\t')
    return df,df_voxels
 
 
-def eval_region_models(ext_list = [2, 4, 6, 8, 10, 12],
+def eval_region_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                        train_dataset = "MDTB",
                        train_ses = "all",
                        train_run = 'all',
@@ -444,9 +436,9 @@ def eval_region_models(ext_list = [2, 4, 6, 8, 10, 12],
 
 
 def fuse_models_loso(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    eval_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     logalpha=[8, 8, 8, 8, 8, 10, 8],
                     weight=[1, 1, 1, 1, 1, 1, 1],
                     model='avg',   # "avg" or "bayes"
@@ -493,7 +485,7 @@ def fuse_models_loso(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                                   crossed='half', # "half", # or None
                                   type='CondHalf',
                                   cerebellum=cerebellum,
-                                  add_rest=False,
+                                  add_rest=True,
                                   std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
@@ -572,9 +564,9 @@ def fuse_models_loso(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
       
 
 def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    eval_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     logalpha=[8, 8, 8, 8, 8, 10, 8],
                     model='avg',   # "avg" or "bayes"
                     method='L2reghalf',
@@ -680,9 +672,9 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
 
 
 def fuse_voxel_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    eval_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    eval_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     logalpha=[6, 6, 6, 2, 2, 8, 6],
                     method='L2reghalf',
                     parcellation='Icosahedron1002',
@@ -707,24 +699,27 @@ def fuse_voxel_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
    for i, edata in enumerate(eval_datasets):
       print(f'\nVoxel fusing models for {edata} ...')
       T = fdata.get_dataset_class(gl.base_dir, dataset=edata).get_participants()
-      config = rm.get_eval_config(eval_dataset=edata,
+      eval_config = rm.get_eval_config(eval_dataset=edata,
                                   eval_ses=eval_ses[i],
                                   parcellation=parcellation,
                                   crossed='half', # "half", # or None
-                                  type='CondHalf',
+                                  type='CondRun',
                                   cerebellum=cerebellum,
-                                  add_rest=False,
+                                  add_rest=True,
                                   std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
-                                  model='voxel-fusion')
+                                  cortical_act='avg')
 
+      model_config = rm.get_model_config()
+                                        
       # sum over the models of other datasets
-      indx = train_datasets.index(edata)
       coef_to_sum = np.stack(coef_list, axis=0)
       rel_map_to_sum = np.stack(rel_map_list, axis=0)
-      coef_to_sum[indx] = np.zeros_like(coef_to_sum[indx])     # shape: (n_datasets, n_voxels, n_regions)
-      rel_map_to_sum[indx] = np.zeros_like(rel_map_to_sum[indx])
+      if edata in train_datasets:
+         indx = train_datasets.index(edata)
+         coef_to_sum[indx] = np.zeros_like(coef_to_sum[indx])     # shape: (n_datasets, n_voxels, n_regions)
+         rel_map_to_sum[indx] = np.zeros_like(rel_map_to_sum[indx])
 
       # Normalize rel_map_to_sum columns to sum to 1
       rel_map_to_sum /= np.nansum(rel_map_to_sum, axis=0, keepdims=True)   # shape: (n_datasets, n_voxels)
@@ -735,11 +730,11 @@ def fuse_voxel_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
       setattr(voxel_fuse_model, 'coef_', wCoef)
 
       # Evaluate
-      config['model'] = [voxel_fuse_model]
+      model_config['model'] = [voxel_fuse_model]
       info['extension'] = eval_id
       info['logalpha'] = logalpha
-      config['train_info'] = [info]
-      df, _ = rm.eval_model(None, None, config)
+      model_config['train_info'] = [info]
+      df, _ = rm.eval_model(None, None, eval_config, model_config)
       df['train_dataset'] = ['Fusion'] * df.shape[0]
       df['model'] = ['voxel-fusion']*df.shape[0]
       df['logalpha'] = [logalpha]*df.shape[0]
@@ -753,7 +748,7 @@ def fuse_voxel_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
 
 def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
-                    train_ses=['all', 'ses-localizer_cond', 'all', 'all', 'all', 'all', 'all'],
+                    train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     logalpha=[6, 6, 4, 4, 2, 8, 6],
                     weight=[1, 1, 1, 1, 1, 1, 1],
                     method='L2reghalf',
@@ -800,14 +795,14 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
 if __name__ == "__main__":
    do_train = False
-   do_eval = False
+   do_eval = True
    do_region_eval = False
    do_loso_fuse = False
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
-   do_fuse_all = True
+   do_fuse_all = False
 
-   method = 'L2reghalf'
+   method = 'L2reg'
    cereb_atlas = 'MNISymC3'
    
    # models = ["loo", "bayes", "bayes_vox"]
@@ -815,39 +810,42 @@ if __name__ == "__main__":
    # models = ["avg", "bayes"]
    # models = ["bayes"]
    # models = [["avg"], ["bayes"]]
-   # models = [['avg']]
+   models = [['avg']]
    # models = [['avg'], 'loo']
    # models = ["loo", "bayes-loo"]
-   models = ['avg']
+   # models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
 
    train_types = {
-      'MDTB':        ('all',                 6),
-      'Language':    ('ses-localizer_cond',  6),
-      'WMFS':        ('all',                 4),
-      'Demand':      ('all',                 4),
-      'Somatotopic': ('all',                 2),
-      'Nishimoto':   ('all',                 8),
+      'MDTB':        ('all',                 8),
+      'Language':    ('ses-localizer',       8),
+      'WMFS':        ('all',                 8),
+      'Demand':      ('all',                 8),
+      'Somatotopic': ('all',                 8),
+      'Nishimoto':   ('all',                 10),
       'IBC':         ('all',                 6),
    }
 
    eval_types = {
-      'MDTB':        ('all',                 models),
-      # 'Language':    ('ses-localizer_cond',  models),
-      'WMFS':        ('all',                 models),
-      'Demand':      ('all',                 models),
-      'Somatotopic': ('all',                 models),
-      'Nishimoto':   ('all',                 models),
-      'IBC':         ('all',                 models),
+      # 'MDTB':        ('all',                 models),
+      # 'Language':    ('ses-localizer',       models),
+      # 'WMFS':        ('all',                 models),
+      # 'Demand':      ('all',                 models),
+      # 'Somatotopic': ('all',                 models),
+      # 'Nishimoto':   ('all',                 models),
+      # 'IBC':         ('all',                 models),
+      'HCPur100':    ('ses-task',            models),
    }
 
    for train_dataset, (train_ses, best_la) in train_types.items():
       if do_train:
-         # print(f'Train: {train_dataset} - individual')
-         # train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas, logalpha_list=[best_la])
+         print(f'Train: {train_dataset} - individual')
+         train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
+                     #  mname=f"MDTB_all_Icosahedron1002_L2reg_old")
+                     #  logalpha_list=[best_la])
          print(f'Train: {train_dataset} - avg')
-         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas, avrg_mode='avg-half')
+         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
                   #   logalpha_list=[best_la], avrg_mode='avg-half')
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
@@ -855,7 +853,7 @@ if __name__ == "__main__":
       for eval_dataset, (eval_ses, models) in eval_types.items():
          if do_eval:
             for model in models:
-               if (train_dataset == eval_dataset) & isinstance(model, list):
+               if (train_dataset == eval_dataset) & (isinstance(model, list)) & (model[0]=='avg'):
                   continue
                elif (train_dataset != eval_dataset) & ("loo" in model):
                   continue
@@ -873,7 +871,7 @@ if __name__ == "__main__":
                   model = list(T['participant_id'])
                
                eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                           model=model, method=method, ext_list=[2, 4, 6, 8, 10, 12], eval_id=eval_id)
+                           model=model, method=method, cortical_act='avg', eval_id=eval_id+"-Cavg")
          
          if do_region_eval:
             if train_dataset != eval_dataset:
@@ -889,7 +887,7 @@ if __name__ == "__main__":
                
    if do_loso_fuse:
       for model in models:
-         eval_id = "Fus06-bestSTD-nomean-norest-voxel-WTA"# + model
+         eval_id = "Fus06-bestSTD-voxel-WTA"# + model
          fuse_models_loso(train_datasets=list(train_types.keys()),
                          train_ses=[value[0] for value in train_types.values()],
                          eval_datasets=list(eval_types.keys()),
@@ -936,8 +934,5 @@ if __name__ == "__main__":
                       method=method,
                       parcellation='Icosahedron1002',
                       cerebellum=cereb_atlas)
-
    
-   # ED=['Demand','IBC','MDTB','Somatotopic','WMFS','Nishimoto']
-   # for ed in ED:
-   #    Jorn_eval_fusion_loo(eval_data=ed, eval_id='Nette2024-rep-addrest')
+

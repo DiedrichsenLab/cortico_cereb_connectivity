@@ -135,19 +135,19 @@ if __name__ == "__main__":
     # Example model_info: list of (dataset_id, subject_id, logalpha, model_path)
     logalpha_list = [2, 4, 6, 8, 10, 12]
     dataset_type = {
-        "MDTB":           [8],
-        "Language":       [8],
-        "WMFS":           [8],
-        "Demand":         [8],
-        "Somatotopic":    [8],
-        "Nishimoto":      [10],
-        "IBC":            [8]
+        "MDTB":           [6],
+        "Language":       [6],
+        "WMFS":           [4],
+        "Demand":         [4],
+        "Somatotopic":    [2],
+        "Nishimoto":      [8],
+        "IBC":            [6]
     }
     model_info = []
-    method = 'L2reg'
+    method = 'L2reghalf'
     cereb_atlas = 'MNISymC3'
 
-    name = "L2reg_cov_matrix"
+    name = "bestAlpha_cov"
     batch_size = 40
 
     model_base_path = gl.conn_dir + f"/{cereb_atlas}/train/"
