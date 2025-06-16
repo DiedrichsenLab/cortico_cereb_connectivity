@@ -744,6 +744,10 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
          X=XX[i,:,:] # get the data for the subject
       elif eval_config['cortical_act'] == 'avg':
          X=XX.mean(axis=0) # get average cortical data
+      elif config['cortical_act'] == 'loo':
+         n_subj = len(config['subj_list'])
+         subj_vec = np.arange(n_subj)
+         X=XX[subj_vec!=i,:,:].mean(axis=0) # get average cortical data
       Y=YY[i,:,:] # get the data for the subject
 
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
