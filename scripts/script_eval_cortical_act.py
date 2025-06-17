@@ -28,7 +28,6 @@ def eval_models_script(ext_list = [2,4,6,8,10],
                 crossed = 'half',
                 add_rest = False,
                 cortical_act = 'avg',  # 'ind','avg','loo'                                
-                mix_param = [],
                 append = False
                 ):
    """_summary_
@@ -62,25 +61,24 @@ def eval_models_script(ext_list = [2,4,6,8,10],
                                  splitby = None,
                                  add_rest = add_rest,
                                  subj_list = subj_list,
-                                 cortical_act = cortical_act,
-                                 mix_param = mix_param)
+                                 cortical_act = cortical_act)
 
       # Get the config for the evaluation
-      mconfig = rm.get_train_config(train_dataset=train_dataset,
-      ) 
+      mconfig = rm.get_model_config(model=model)
       dirname,mname = rm.get_model_names(train_dataset,train_ses,parcellation,method,ext_list)
+
       # Evaluate them
-      df, df_voxels = rm.eval_model(dirname,mname,config)
+      df, df_voxels = rm.eval_model(dirname,mname,econfig,mconfig)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
 
       if not os.path.isdir(save_path):
          os.mkdir(save_path)
       else:
          pass
-      ename = config['eval_dataset']
-      if config['eval_ses'] != 'all':
-         ses_code = config['eval_ses'].split('-')[1]
-         ename = config['eval_dataset'] + ses_code
+      ename = econfig['eval_dataset']
+      if econfig['eval_ses'] != 'all':
+         ses_code = econfig['eval_ses'].split('-')[1]
+         ename = econfig['eval_dataset'] + ses_code
       file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
       if os.path.isfile(file_name) & append:
          dd = pd.read_csv(file_name, sep='\t')
@@ -106,7 +104,7 @@ if __name__ == "__main__":
    """
    # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
    # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
-   eval_models_script(eval_id = 'MDTB_Cloo',cortical_act = 'loo')
+   eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method='NNLS')
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
