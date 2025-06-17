@@ -13,21 +13,20 @@ import numpy as np
 
 
 
-def eval_models_script(ext_list = ['A8'],
+def eval_models_script(ext_list = [2,4,6,8,10],
                 train_dataset = "MDTB",
                 train_ses = "all",
                 method = "L2reg",
-                parcellation = "Icosahedron1002",
+                parcellation = "Icosahedron162",
                 cerebellum='MNISymC3',
-                model_subj_list = "all",
-                model = 'avg',
-                eval_dataset = ["HCPur100"],
+                model = 'group',
+                eval_dataset = ["MDTB"],
                 eval_type = ["CondHalf"],
                 eval_ses  = "all",
-                eval_id = 'MDTBavg',
+                eval_id = 'MDTBgrp',
                 subj_list = "all",
                 crossed = 'half',
-                add_rest = True,
+                add_rest = False,
                 cortical_act = 'avg',  # 'ind','avg','loo'                                
                 mix_param = [],
                 append = False
@@ -54,8 +53,7 @@ def eval_models_script(ext_list = ['A8'],
        _type_: _description_
    """
    for i,ed in enumerate(eval_dataset):
-      config = rm.get_eval_config(train_dataset=train_dataset,
-                                 eval_dataset = ed,
+      econfig = rm.get_eval_config(eval_dataset = ed,
                                  eval_ses = eval_ses,
                                  parcellation = parcellation,
                                  crossed = crossed, # "half", # or None
@@ -64,11 +62,12 @@ def eval_models_script(ext_list = ['A8'],
                                  splitby = None,
                                  add_rest = add_rest,
                                  subj_list = subj_list,
-                                 model_subj_list = model_subj_list,
-                                 model = model,
                                  cortical_act = cortical_act,
                                  mix_param = mix_param)
 
+      # Get the config for the evaluation
+      mconfig = rm.get_train_config(train_dataset=train_dataset,
+      ) 
       dirname,mname = rm.get_model_names(train_dataset,train_ses,parcellation,method,ext_list)
       # Evaluate them
       df, df_voxels = rm.eval_model(dirname,mname,config)

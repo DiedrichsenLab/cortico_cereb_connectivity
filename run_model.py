@@ -590,6 +590,13 @@ def get_fitted_models(model_dirs,model_names,config):
          train_info = config['train_info']
       else:
          raise ValueError('config["model"] must be a list of strings or a list of models')
+   elif config['model']=='group':
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         fname = model_path + f"/{m}_group"
+         mo,inf = cio.load_model(fname)
+         fitted_model.append(mo)
+         train_info.append(inf)
    elif config['model']=='avg':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)

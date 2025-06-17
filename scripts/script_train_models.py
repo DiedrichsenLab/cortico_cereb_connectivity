@@ -121,6 +121,7 @@ def train_all_nnls(dataset = "MDTB",
 def train_group_nnls(dataset = "MDTB",
                  logalpha_list = [2,4,6,8,10],
                  subj_list = None,
+                 method = 'NNLS',
                  parcellation="Icosahedron162"):
 
    config = rm.get_train_config(train_dataset=dataset,
@@ -131,7 +132,7 @@ def train_group_nnls(dataset = "MDTB",
                                 type = 'CondHalf',
                                 cerebellum='MNISymC3',
                                 parcellation=parcellation,
-                                method = 'NNLS',
+                                method = method,
                                 add_rest=False,
                                 std_cortex='parcel',
                                 std_cerebellum='global',
@@ -198,7 +199,7 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_group_nnls()
+   train_group_nnls(method='L2reg')
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
