@@ -15,7 +15,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
-from cortico_cereb_connectivity.scripts.script_train_eval_models import eval_models
+from scripts.script_train_models import eval_models
 import json 
 from copy import deepcopy, copy
 
