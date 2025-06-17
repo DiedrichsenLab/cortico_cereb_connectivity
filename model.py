@@ -297,7 +297,7 @@ class L1regression(Lasso, Model):
 class WTA(BaseEstimator, Model):
     """
     WTA model
-    It performs scaling by stdev, but not by mean before fitting and prediction
+    Assumes data is already properly scaled. 
     """
 
     def __init__(self):
@@ -312,8 +312,8 @@ class WTA(BaseEstimator, Model):
         self.coef_: regression coefficient between cortical and cerebellar data for best cortical parcel
         self.labels: 1-based index for the best cortical parcel
         """
-        self.scale_ = np.sqrt(np.sum(X ** 2, 0) / X.shape[0])
-        Xs = X / self.scale_
+        scale = np.sqrt(np.sum(X ** 2, 0) / X.shape[0])
+        Xs = X / scale # Scaling here is only done for comparision purposes... 
         Xs = np.nan_to_num(Xs) # there are 0 values after scaling
         self.coef_ = Y.T @ Xs  # This is the correlation (non-standardized)
         self.labels = np.argmax(self.coef_, axis=1)
@@ -325,8 +325,7 @@ class WTA(BaseEstimator, Model):
         return self.coef_, self.labels
 
     def predict(self, X):
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        Xs = np.nan_to_num(X) # there are 0 values after scaling
         return Xs @ self.coef_.T  # weights need to be transposed (throws error otherwise)
 
 class NNLS(Model):
