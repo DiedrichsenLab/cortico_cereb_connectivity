@@ -42,7 +42,7 @@ def get_train_config(train_dataset = "MDTB",
                      cv_fold = 4,
                      add_rest = True,
                      append = False,
-                     cortical_act = 'ind',
+                     cortical_cerebellar_act = 'ind',
                      std_cortex = None,
                      std_cerebellum = None
                      ):
@@ -83,7 +83,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config["type"] = type
    train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['add_rest'] = add_rest
-   train_config['cortical_act'] = cortical_act
+   train_config['cortical_cerebellar_act'] = cortical_cerebellar_act
    train_config['std_cortex'] = std_cortex
    train_config['std_cerebellum'] = std_cerebellum
    train_config['append'] = append
@@ -372,13 +372,13 @@ def train_model(config, save_path=None, mname=None):
                                  atlas=config["cerebellum"],
                                  sess=config["train_ses"],
                                  type=config["type"],
-                                 subj=config['subj_list'].tolist())
+                                 subj=config['subj_list'])
    XX, info, _ = fdata.get_dataset(gl.base_dir,
                                  config["train_dataset"],
                                  atlas=config["cortex"],
                                  sess=config["train_ses"],
                                  type=config["type"],
-                                 subj=config['subj_list'].tolist())
+                                 subj=config['subj_list'])
    # Average the cortical data over pacels
    X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
    # get the vector containing tessel labels
@@ -426,12 +426,16 @@ def train_model(config, save_path=None, mname=None):
          YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
 
    # loop over subjects and train models
+   break_subj_loop = False
    for i,sub in enumerate(config["subj_list"]):
-      if config['cortical_act'] == 'ind':
+      if config['cortical_cerebellar_act'] == 'ind':
          X=XX[i,:,:] # get the data for the subject
-      elif config['cortical_act'] == 'avg':
+         Y=YY[i,:,:] # get the data for the subject
+      elif config['cortical_cerebellar_act'] == 'avg':
          X=XX.mean(axis=0) # get average cortical data
-      Y=YY[i,:,:] # get the data for the subject
+         Y=YY.mean(axis=0) # get the average cerebellar data
+         sub = 'group'
+         break_subj_loop = True
 
       for la in config["logalpha"]:
          print(f'- Train {sub} {config["method"]} logalpha {la}')
@@ -479,7 +483,11 @@ def train_model(config, save_path=None, mname=None):
          # Save the individuals info files
          cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
-   train_info.to_csv(train_info_name,sep='\t')
+
+      if break_subj_loop:
+         break
+
+   # train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
 def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
@@ -542,6 +550,9 @@ def get_subj_list(subj_list, dataset):
    else:
       raise ValueError('config["subj_list"] must be a list of str, integers or "all"')
    
+   if not isinstance(subj_list, list):
+      subj_list = list(subj_list)
+
    return subj_list
 
 
@@ -679,13 +690,13 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
                                     atlas=eval_config["cerebellum"],
                                     sess=eval_config["eval_ses"],
                                     type=eval_config["type"],
-                                    subj=eval_config["subj_list"].tolist())
+                                    subj=eval_config["subj_list"])
    XX, info, _ = fdata.get_dataset(gl.base_dir,
                                     eval_config["eval_dataset"],
                                     atlas=eval_config["cortex"],
                                     sess=eval_config["eval_ses"],
                                     type=eval_config["type"],
-                                    subj=eval_config["subj_list"].tolist())
+                                    subj=eval_config["subj_list"])
    # Average the cortical data over parcels
    X_atlas, _ = at.get_atlas(eval_config['cortex'],gl.atlas_dir)
    # get the vector containing tessel labels
