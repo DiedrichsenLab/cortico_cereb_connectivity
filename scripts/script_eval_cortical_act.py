@@ -27,7 +27,8 @@ def eval_models_script(ext_list = [0,1,2,3,4,6,8,10],
                 subj_list = "all",
                 crossed = 'half',
                 add_rest = False,
-                cortical_act = 'avg',  # 'ind','avg','loo'                                
+                cortical_act = 'avg',  # 'ind','avg','loo'    
+                std_cortex = 'parcel', # 'global','parcel'                            
                 append = False
                 ):
    """_summary_
@@ -61,7 +62,8 @@ def eval_models_script(ext_list = [0,1,2,3,4,6,8,10],
                                  splitby = None,
                                  add_rest = add_rest,
                                  subj_list = subj_list,
-                                 cortical_act = cortical_act)
+                                 cortical_act = cortical_act,
+                                 std_cortex= std_cortex)
 
       # Get the config for the evaluation
       mconfig = rm.get_model_config(model=model)
@@ -105,15 +107,15 @@ if __name__ == "__main__":
    # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
    # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
    for m in ['L2reg','NNLS']:
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['MDTB'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['WMFS'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['IBC'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Demand'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['HCPur100'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Nishimoto'],add_rest=False)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Somatotopic'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Social'],eval_ses=['ses-social'],add_rest=True)
-      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Language'],eval_ses=['ses-localizer'],add_rest=True)
+      for d,s,r,c in zip(gl.datasets,gl.sessions,gl.add_rest,gl.std_cortex):
+         eval_models_script(train_dataset = "WMFS",
+                            eval_id = 'WMFSgrp',
+                            cortical_act = 'avg',
+                            method=m,
+                            eval_dataset=[d],
+                            eval_ses=s,
+                            add_rest=r,
+                            std_cortex=c)
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])

@@ -119,7 +119,7 @@ def train_all_nnls(dataset = "MDTB",
    return df_tmp
 
 def train_group_nnls(dataset = "MDTB",
-                 logalpha_list = [2,4,6,8,10],
+                 logalpha_list = [0,1,2,3,4,6,8,10],
                  subj_list = None,
                  method = 'NNLS',
                  parcellation="Icosahedron162"):
@@ -140,7 +140,6 @@ def train_group_nnls(dataset = "MDTB",
                                 cortical_cerebellar_act='avg')
    config, conn_list, df_tmp =rm.train_model(config)
    return df_tmp
-
 
 
 def train_all_l2(dataset = "MDTB",
@@ -199,8 +198,8 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_group_nnls(method='L2reg',logalpha_list = [0,1,2,3])
-   train_group_nnls(method='NNLS',logalpha_list = [0,1,2,3])
+   train_group_nnls(dataset='WMFS',method='L2reg',logalpha_list = [4,6,8,10])
+   train_group_nnls(dataset='WMFS',method='NNLS',logalpha_list = [4,6,8,10])
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])

@@ -28,8 +28,8 @@ import matplotlib.pyplot as plt
 
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
-                     train_run = 'all',
-                     train_cond_num = 'all',
+                     run = 'all',
+                     cond_num = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -43,8 +43,8 @@ def get_train_config(train_dataset = "MDTB",
                      add_rest = True,
                      append = False,
                      cortical_cerebellar_act = 'ind',
-                     std_cortex = None,
-                     std_cerebellum = None
+                     std_cortex = 'parcel',
+                     std_cerebellum = 'global'
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
@@ -70,8 +70,8 @@ def get_train_config(train_dataset = "MDTB",
    train_config = {}
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
-   train_config['train_run'] = train_run
-   train_config['train_cond_num'] = train_cond_num
+   train_config['run'] = run
+   train_config['cond_num'] = cond_num
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -123,8 +123,8 @@ def get_model_config(dataset = "MDTB",
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
             subj_list = 'all',
-            eval_run = 'all',
-            eval_cond_num = 'all',
+            run = 'all',
+            cond_num = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -160,8 +160,8 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config = {}
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
-   eval_config['eval_run'] = eval_run
-   eval_config['eval_cond_num'] = eval_cond_num
+   eval_config['run'] = run
+   eval_config['cond_num'] = cond_num
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -330,6 +330,106 @@ def std_data(Y,mode):
    else:
       raise ValueError('std_mode must be None, "voxel" or "global" or "norm"')
 
+def get_cortical_data(dataset,sessions,subj,config):
+   """ Get cortical data according to the training of evaluation config file."""
+   XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                   dataset,
+                                   sess=sessions,
+                                   subj =subj,
+                                 atlas=config["cortex"],
+                                 type=config["type"])
+   # Average the cortical data over pacels
+   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
+   # get the vector containing tessel labels
+   X_atlas.get_parcel(config['label_img'], unite_struct = False)
+   # get the mean across tessels for cortical data
+   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+
+   # Remove Nans
+   XX = np.nan_to_num(XX)
+
+   # Add rest condition?
+   if config["add_rest"]:
+      XX,info = add_rest(XX,info)
+
+   # train only on some runs?
+   if config["run"]!='all':
+      if isinstance(config["run"], list):
+         run_mask = info['run'].isin(config["run"])
+         XX = XX[..., run_mask.values, :]
+         info = info[run_mask]
+
+   # train only on some conds?
+   if config['cond_num']!='all':
+      if isinstance(config["cond_num"], list):
+         cond_mask = info['cond_num'].isin(config["cond_num"])
+         XX = XX[..., cond_mask.values, :]
+         info = info[cond_mask]
+
+   #Definitely subtract intercept across all conditions
+   XX = (XX - XX.mean(axis=-2,keepdims=True))
+
+   for i in range(XX.shape[0]):
+      if 'std_cortex' in config.keys():
+         XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
+
+   return XX, info
+
+def get_cerebellar_data(dataset,sessions,subj,config):
+   """Get cerebellar data for training or evaluation.
+
+   Args:
+      dataset (str): Name of the dataset to load.
+      sessions (str or list): Session(s) to load data from.
+      config (dict): Configuration dictionary containing 
+         add_res, run, cond_num, cerebellum, std_cerebellum, type, crossed, 
+
+   Returns:
+      YY (ndarray): Cerebellar data.
+      info (pd.DataFrame): Information dataframe.
+   """
+   # Load the cerebellar data
+   YY, info, _ = fdata.get_dataset(gl.base_dir,
+                                 dataset,
+                                 sess=sessions,
+                                 subj = subj,
+                                 atlas=config["cerebellum"],
+                                 type=config["type"])
+   
+   # Remove Nans
+   YY = np.nan_to_num(YY)
+
+   # Add rest condition?
+   if config["add_rest"]:
+      YY,info = add_rest(YY,info)
+
+   # Include only some runs?
+   if config["run"]!='all':
+      if isinstance(config["run"], list):
+         run_mask = info['run'].isin(config["run"])
+         YY = YY[..., run_mask.values, :]
+         info = info[run_mask]
+
+   # Incliude only on some conds?
+   if config['cond_num']!='all':
+      if isinstance(config["cond_num"], list):
+         cond_mask = info['cond_num'].isin(config["cond_num"])
+         YY = YY[..., cond_mask.values, :]
+         info = info[cond_mask]
+
+   #Definitely subtract intercept across all conditions
+   YY = (YY - YY.mean(axis=-2,keepdims=True))
+
+   for i in range(YY.shape[0]):
+      if 'std_cerebellum' in config.keys():
+         YY[i,:,:] = std_data(YY[i,:,:],config['std_cerebellum'])
+
+      # cross the halves within each session
+      if config["crossed"] is not None:
+         YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
+   return YY, info 
+
+
 def train_model(config, save_path=None, mname=None):
    """
    training a specific model based on the config file created
@@ -343,7 +443,7 @@ def train_model(config, save_path=None, mname=None):
    """
 
    # get list of subjects
-   config['subj_list'] = get_subj_list(config['subj_list'], config["train_dataset"])
+   subj = get_subj_list(config['subj_list'], config["train_dataset"])
 
    # initialize training dict
    conn_model_list = []
@@ -366,76 +466,19 @@ def train_model(config, save_path=None, mname=None):
    else:
       train_info = pd.DataFrame()
 
-   # Load the data
-   YY, info, _ = fdata.get_dataset(gl.base_dir,
-                                 config["train_dataset"],
-                                 atlas=config["cerebellum"],
-                                 sess=config["train_ses"],
-                                 type=config["type"],
-                                 subj=config['subj_list'])
-   XX, info, _ = fdata.get_dataset(gl.base_dir,
-                                 config["train_dataset"],
-                                 atlas=config["cortex"],
-                                 sess=config["train_ses"],
-                                 type=config["type"],
-                                 subj=config['subj_list'])
-   # Average the cortical data over pacels
-   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
-   # get the vector containing tessel labels
-   X_atlas.get_parcel(config['label_img'], unite_struct = False)
-   # get the mean across tessels for cortical data
-   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+   # Get cerebellar abd cortical data
+   YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],subj,config)
+   XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],subj,config)
 
-   # Remove Nans
-   YY = np.nan_to_num(YY)
-   XX = np.nan_to_num(XX)
+   # average cortical and cerebellar data across subjects, if needed
+   if config['cortical_cerebellar_act'] == 'avg':
+      XX=XX.mean(axis=0,keepdims=True) # get average cortical data
+      YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
+      subj = ['group']
 
-   # Add rest condition?
-   if config["add_rest"]:
-      YY,_ = add_rest(YY,info)
-      XX,info = add_rest(XX,info)
-
-   # train only on some runs?
-   if config["train_run"]!='all':
-      if isinstance(config["train_run"], list):
-         run_mask = info['run'].isin(config["train_run"])
-         YY = YY[..., run_mask.values, :]
-         XX = XX[..., run_mask.values, :]
-         info = info[run_mask]
-
-   # train only on some conds?
-   if config['train_cond_num']!='all':
-      if isinstance(config["train_cond_num"], list):
-         cond_mask = info['cond_num'].isin(config["train_cond_num"])
-         YY = YY[..., cond_mask.values, :]
-         XX = XX[..., cond_mask.values, :]
-         info = info[cond_mask]
-
-   #Definitely subtract intercept across all conditions
-   XX = (XX - XX.mean(axis=-2,keepdims=True))
-   YY = (YY - YY.mean(axis=-2,keepdims=True))
-
-   for i in range(XX.shape[0]):
-      if 'std_cortex' in config.keys():
-         XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
-      if 'std_cerebellum' in config.keys():
-         YY[i,:,:] = std_data(YY[i,:,:],config['std_cerebellum'])
-
-      # cross the halves within each session
-      if config["crossed"] is not None:
-         YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
-
-   # loop over subjects and train models
-   break_subj_loop = False
-   for i,sub in enumerate(config["subj_list"]):
-      if config['cortical_cerebellar_act'] == 'ind':
-         X=XX[i,:,:] # get the data for the subject
-         Y=YY[i,:,:] # get the data for the subject
-      elif config['cortical_cerebellar_act'] == 'avg':
-         X=XX.mean(axis=0) # get average cortical data
-         Y=YY.mean(axis=0) # get the average cerebellar data
-         sub = 'group'
-         break_subj_loop = True
+   for i,sub in enumerate(subj):
+      X=XX[i,:,:] # get the data for the subject
+      Y=YY[i,:,:] # get the data for the subject
 
       for la in config["logalpha"]:
          print(f'- Train {sub} {config["method"]} logalpha {la}')
@@ -484,11 +527,129 @@ def train_model(config, save_path=None, mname=None):
          cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
-      if break_subj_loop:
-         break
+   # train_info.to_csv(train_info_name,sep='\t')
+   return config, conn_model_list, train_info
+
+def train_group_model(config, save_path=None, mname=None):
+   """
+   training a specific model based on the config file created
+   model will be trained on cerebellar voxels and average within cortical tessels.
+   Args:
+      config (dict)      - dictionary with configuration parameters
+   Returns:
+      conn_model_list (list)    - list of trained models on the list of subjects / log-alphas
+      config (dict)             - dictionary containing info for training. Can be saved as json
+      train_df (pd.DataFrame)   - dataframe containing training information
+   """
+
+   # get list of datasets - interpret them over globals.dscode 
+   num_ds = int(len(config['train_dataset'])/2)
+   datasets = []   
+   sessions = []
+   add_rest = [] 
+   std_cortex = [] 
+   for i in range(num_ds):
+      code = config['train_dataset'][i*2:i*2+2]
+      if code in gl.dscode:
+         indx = gl.dscode.index(code)
+         datasets.append(gl.datasets[indx])
+         sessions.append(gl.sessions[indx])
+         add_rest.append(gl.add_rest[indx])
+         std_cortex.append(gl.std_cortex[indx])
+      else:
+         raise ValueError(f"Dataset code {code} not found in globals.dscode")   
+   # Compile lists of activity patterns 
+   XX = []
+   YY = []
+
+   subj = get_subj_list(config['subj_list'], config["train_dataset"])
+
+   # initialize training dict
+   conn_model_list = []
+
+   # Generate model name and create directory
+   if mname is None:
+      mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
+   if save_path is None:
+      save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',mname)
+   # check if the directory exists
+   try:
+      os.makedirs(save_path)
+   except OSError:
+      pass
+
+   # Check if training file already exists:
+   train_info_name = save_path + "/" + mname + ".tsv"
+   if os.path.isfile(train_info_name) and config["append"]:
+      train_info = pd.read_csv(train_info_name, sep="\t")
+   else:
+      train_info = pd.DataFrame()
+
+   # Get cerebellar abd cortical data
+   YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],subj,config)
+   XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],subj,config)
+
+   # average cortical and cerebellar data across subjects, if needed
+   if config['cortical_cerebellar_act'] == 'avg':
+      XX=XX.mean(axis=0,keepdims=True) # get average cortical data
+      YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
+      subj = ['group']
+
+   for i,sub in enumerate(subj):
+      X=XX[i,:,:] # get the data for the subject
+      Y=YY[i,:,:] # get the data for the subject
+
+      for la in config["logalpha"]:
+         print(f'- Train {sub} {config["method"]} logalpha {la}')
+
+         if la is not None:
+            # Generate new model
+            alpha = np.exp(la) # get alpha
+            conn_model = getattr(model, config["method"])(alpha)
+            mname_spec = f"{mname}_A{la}_{sub}"
+         else:
+            conn_model = getattr(model, config["method"])()
+            mname_spec = f"{mname}_{sub}"
+
+         # Fit model, get train and validate metrics
+         if config["method"] == 'L2reg':
+            conn_model.fit(X, Y, info)
+         elif config["method"] == 'L2reghalf':
+            conn_model.fit(X, Y, config, info)
+         elif config["method"] == 'L2reg2':
+            conn_model.fit(X, Y, info)
+         else:
+            conn_model.fit(X, Y)
+         R_train,R2_train = train_metrics(conn_model, X, Y)
+         # conn_model_list.append(conn_model)
+
+         # collect train metrics ( R)
+         model_info = {
+                        "subj_id": sub,
+                        "mname": mname_spec,
+                        "R_train": R_train,
+                        "R2_train": R2_train,
+                        "num_regions": X.shape[1],
+                        "logalpha": la
+                        }
+
+         # run cross validation and collect metrics (rmse and R)
+         if config['validate_model']:
+            R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
+            model_info.update({"R_cv": conn_model.R_cv})
+
+         # Copy over all scalars or strings from config to eval dict:
+         for key, value in config.items():
+            if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
+               model_info.update({key: value})
+         # Save the individuals info files
+         cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
+         train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
    # train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
+
+
 
 def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
    """ Makes a list of model dirs and model names, based on training set, etc.
@@ -683,79 +844,23 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
    eval_voxels = defaultdict(list)
 
    # get list of subjects
-   eval_config["subj_list"] = get_subj_list(eval_config["subj_list"], eval_config["eval_dataset"])
+   eval_subj = get_subj_list(eval_config["subj_list"], eval_config["eval_dataset"])
    
    # get list of subject for model
-   model_config["subj_list"] = get_subj_list(model_config["subj_list"], model_config["dataset"])
+   model_subj = get_subj_list(model_config["subj_list"], model_config["dataset"])
 
    # Get the list of fitted models
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,model_config)
 
-   # Load the data
-   YY, info, _ = fdata.get_dataset(gl.base_dir,
-                                    eval_config["eval_dataset"],
-                                    atlas=eval_config["cerebellum"],
-                                    sess=eval_config["eval_ses"],
-                                    type=eval_config["type"],
-                                    subj=eval_config["subj_list"])
-   XX, info, _ = fdata.get_dataset(gl.base_dir,
-                                    eval_config["eval_dataset"],
-                                    atlas=eval_config["cortex"],
-                                    sess=eval_config["eval_ses"],
-                                    type=eval_config["type"],
-                                    subj=eval_config["subj_list"])
-   # Average the cortical data over parcels
-   X_atlas, _ = at.get_atlas(eval_config['cortex'],gl.atlas_dir)
-   # get the vector containing tessel labels
-   X_atlas.get_parcel(eval_config['label_img'], unite_struct = False)
-   # get the mean across tessels for cortical data
-   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
-   
-   # Remove Nans
-   YY = np.nan_to_num(YY)
-   XX = np.nan_to_num(XX)
-
-   # Add explicit rest to sessions
-   if eval_config["add_rest"]:
-      YY,_ = add_rest(YY,info)
-      XX,info = add_rest(XX,info)
-
-   # eval only on some runs?
-   if eval_config["eval_run"]!='all':
-      if isinstance(eval_config["eval_run"], list):
-         run_mask = info['run'].isin(eval_config["eval_run"])
-         YY = YY[...,run_mask.values, :]
-         XX = XX[...,run_mask.values, :]
-         info = info[run_mask]
-
-   # eval only on some conds?
-   if eval_config['eval_cond_num']!='all':
-      if isinstance(eval_config["eval_cond_num"], list):
-         cond_mask = info['cond_num'].isin(eval_config["eval_cond_num"])
-         YY = YY[...,cond_mask.values, :]
-         XX = XX[...,cond_mask.values, :]
-         info = info[cond_mask]
-
-   #Definitely subtract intercept across all conditions
-   XX = (XX - XX.mean(axis=-2,keepdims=True))
-   YY = (YY - YY.mean(axis=-2,keepdims=True))
-
-   for i in range(XX.shape[0]):
-      if 'std_cortex' in eval_config.keys():
-         # Standardize the cortical data
-         XX[i,:,:] = std_data(XX[i,:,:],eval_config['std_cortex'])
-      if 'std_cerebellum' in eval_config.keys():
-         YY[i,:,:] = std_data(YY[i,:,:],eval_config['std_cerebellum'])
-
-      # cross the halves within each session
-      if eval_config["crossed"] is not None:
-         YY[i,:,:] = cross_data(YY[i,:,:],info,eval_config["crossed"])
+   # Get cerebellar abd cortical data
+   YY,info = get_cerebellar_data(eval_config["eval_dataset"],eval_config["eval_ses"],eval_subj,eval_config)
+   XX,info = get_cortical_data(eval_config["eval_dataset"],eval_config["eval_ses"],eval_subj,eval_config)
 
    # Caluclated group reliability of subjects 
    group_noiseceil_lower = frel.between_subj_loo(YY)
    group_noiseceil_upper = frel.between_subj_avrg(YY)
 
-   for i, sub in enumerate(eval_config["subj_list"]):
+   for i, sub in enumerate(eval_subj):
       print(f'- Evaluate {sub}')
       # Loop over models
       if eval_config['cortical_act'] == 'ind':
