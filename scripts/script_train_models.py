@@ -199,7 +199,8 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_group_nnls(method='L2reg')
+   train_group_nnls(method='L2reg',logalpha_list = [0,1,2,3])
+   train_group_nnls(method='NNLS',logalpha_list = [0,1,2,3])
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])
