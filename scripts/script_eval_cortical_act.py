@@ -13,7 +13,7 @@ import numpy as np
 
 
 
-def eval_models_script(ext_list = [2,4,6,8,10],
+def eval_models_script(ext_list = [0,1,2,3,4,6,8,10],
                 train_dataset = "MDTB",
                 train_ses = "all",
                 method = "L2reg",
@@ -105,14 +105,15 @@ if __name__ == "__main__":
    # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
    # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
    for m in ['L2reg','NNLS']:
+      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['MDTB'],add_rest=True)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['WMFS'],add_rest=True)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['IBC'],add_rest=True)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Demand'],add_rest=True)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['HCPur100'],add_rest=True)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Nishimoto'],add_rest=False)
       eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Somatotopic'],add_rest=True)
-      # eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Social'],eval_ses=['ses-social'],add_rest=True)
-      # eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Language'],eval_ses=['ses-localizer'],add_rest=True)
+      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Social'],eval_ses=['ses-social'],add_rest=True)
+      eval_models_script(eval_id = 'MDTBgrp',cortical_act = 'avg',method=m,eval_dataset=['Language'],eval_ses=['ses-localizer'],add_rest=True)
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
