@@ -527,7 +527,7 @@ def train_model(config, save_path=None, mname=None):
          cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
          train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
-   # train_info.to_csv(train_info_name,sep='\t')
+   train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
 def train_global_model(config, save_path=None, mname=None):
@@ -648,7 +648,7 @@ def train_global_model(config, save_path=None, mname=None):
       cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
       train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
-   # train_info.to_csv(train_info_name,sep='\t')
+   train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
 
