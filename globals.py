@@ -22,5 +22,5 @@ atlas_dir = base_dir + '/Atlases'
 datasets = ['MDTB',     'WMFS',     'IBC',  'Demand', 'HCPur100','Nishimoto','Somatotopic','Social','Language']
 sessions = ['all',      'all',     'all',   'all'  ,  'all',     'all',       'all',       ['ses-social'], ['ses-localizer']]
 add_rest = [False,      True ,     True,     True,     True,      False,       True,        False,  False]
-std_cortex = ['parcel', 'parcel', 'parcel', 'global', 'parcel', 'parcel',   'global',       'parcel', 'parcel']
+std_cortex = ['parcel', 'global', 'parcel', 'parcel', 'parcel', 'parcel',   'global',       'parcel', 'parcel']
 dscode   = ['Md',      'Wf',        'Ib',   'De',     'Ht',      'Ni',        'So',         'Sc',     'La']
