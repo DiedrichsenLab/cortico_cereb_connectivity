@@ -530,10 +530,10 @@ def train_model(config, save_path=None, mname=None):
    # train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
-def train_group_model(config, save_path=None, mname=None):
+def train_global_model(config, save_path=None, mname=None):
    """
-   training a specific model based on the config file created
-   model will be trained on cerebellar voxels and average within cortical tessels.
+   train a model based on the concatination of multiple datasets from functional fusion.
+   Data is group-averaged across subjects. 
    Args:
       config (dict)      - dictionary with configuration parameters
    Returns:
@@ -561,15 +561,29 @@ def train_group_model(config, save_path=None, mname=None):
    # Compile lists of activity patterns 
    XX = []
    YY = []
+   info_list = [] 
+   for i in range(num_ds):
+      print(f'Loading data for {datasets[i]}')
+      subj = get_subj_list('all', datasets[i])
+      # Get cerebellar and cortical data
+      config['add_rest'] = add_rest[i]
+      config['std_cortex'] = std_cortex[i]
+      Y,info = get_cerebellar_data(datasets[i],sessions[i],subj,config)
+      X,_ = get_cortical_data(datasets[i],sessions[i],subj,config)
+      info['dataset'] = datasets[i]
+      XX.append(X.mean(axis=0))
+      YY.append(Y.mean(axis=0))
+      info_list.append(info)
+   
+   XX = np.concatenate(XX,axis=0)
+   YY = np.concatenate(YY,axis=0)
+   info = pd.concat(info_list,ignore_index=True)
 
-   subj = get_subj_list(config['subj_list'], config["train_dataset"])
-
-   # initialize training dict
    conn_model_list = []
 
    # Generate model name and create directory
    if mname is None:
-      mname = f"{config['train_dataset']}_{config['train_ses']}_{config['parcellation']}_{config['method']}"
+      mname = f"{config['train_dataset']}_{config['parcellation']}_{config['method']}"
    if save_path is None:
       save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',mname)
    # check if the directory exists
@@ -585,66 +599,54 @@ def train_group_model(config, save_path=None, mname=None):
    else:
       train_info = pd.DataFrame()
 
-   # Get cerebellar abd cortical data
-   YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],subj,config)
-   XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],subj,config)
 
-   # average cortical and cerebellar data across subjects, if needed
-   if config['cortical_cerebellar_act'] == 'avg':
-      XX=XX.mean(axis=0,keepdims=True) # get average cortical data
-      YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
-      subj = ['group']
 
-   for i,sub in enumerate(subj):
-      X=XX[i,:,:] # get the data for the subject
-      Y=YY[i,:,:] # get the data for the subject
+   for la in config["logalpha"]:
+      print(f'- Train {config["method"]} logalpha {la}')
 
-      for la in config["logalpha"]:
-         print(f'- Train {sub} {config["method"]} logalpha {la}')
+      if la is not None:
+         # Generate new model
+         alpha = np.exp(la) # get alpha
+         conn_model = getattr(model, config["method"])(alpha)
+         mname_spec = f"{mname}_A{la}_group"
+      else:
+         conn_model = getattr(model, config["method"])()
+         mname_spec = f"{mname}_group"
 
-         if la is not None:
-            # Generate new model
-            alpha = np.exp(la) # get alpha
-            conn_model = getattr(model, config["method"])(alpha)
-            mname_spec = f"{mname}_A{la}_{sub}"
-         else:
-            conn_model = getattr(model, config["method"])()
-            mname_spec = f"{mname}_{sub}"
+      # Fit model, get train and validate metrics
+      if config["method"] == 'L2reg':
+         conn_model.fit(XX, YY, info)
+      elif config["method"] == 'L2reghalf':
+         conn_model.fit(XX, YY, config, info)
+      elif config["method"] == 'L2reg2':
+         conn_model.fit(XX, YY, info)
+      else:
+         conn_model.fit(XX, YY)
+      R_train,R2_train = train_metrics(conn_model, XX, YY)
+      # conn_model_list.append(conn_model)
 
-         # Fit model, get train and validate metrics
-         if config["method"] == 'L2reg':
-            conn_model.fit(X, Y, info)
-         elif config["method"] == 'L2reghalf':
-            conn_model.fit(X, Y, config, info)
-         elif config["method"] == 'L2reg2':
-            conn_model.fit(X, Y, info)
-         else:
-            conn_model.fit(X, Y)
-         R_train,R2_train = train_metrics(conn_model, X, Y)
-         # conn_model_list.append(conn_model)
+      # collect train metrics ( R)
+      model_info = {
+                     "subj_id": 'group',
+                     "mname": mname_spec,
+                     "R_train": R_train,
+                     "R2_train": R2_train,
+                     "num_regions": XX.shape[1],
+                     "logalpha": la
+                     }
 
-         # collect train metrics ( R)
-         model_info = {
-                        "subj_id": sub,
-                        "mname": mname_spec,
-                        "R_train": R_train,
-                        "R2_train": R2_train,
-                        "num_regions": X.shape[1],
-                        "logalpha": la
-                        }
+      # run cross validation and collect metrics (rmse and R)
+      if config['validate_model']:
+         R_cv = validate_metrics(conn_model, XX, YY, config["cv_fold"][0])
+         model_info.update({"R_cv": conn_model.R_cv})
 
-         # run cross validation and collect metrics (rmse and R)
-         if config['validate_model']:
-            R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
-            model_info.update({"R_cv": conn_model.R_cv})
-
-         # Copy over all scalars or strings from config to eval dict:
-         for key, value in config.items():
-            if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
-               model_info.update({key: value})
-         # Save the individuals info files
-         cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
-         train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
+      # Copy over all scalars or strings from config to eval dict:
+      for key, value in config.items():
+         if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
+            model_info.update({key: value})
+      # Save the individuals info files
+      cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
+      train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
    # train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info

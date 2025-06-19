@@ -118,7 +118,7 @@ def train_all_nnls(dataset = "MDTB",
    config, conn_list, df_tmp =rm.train_model(config)
    return df_tmp
 
-def train_group_nnls(dataset = "MDTB",
+def train_group_model(dataset = "MDTB",
                  logalpha_list = [0,1,2,3,4,6,8,10],
                  subj_list = None,
                  method = 'NNLS',
@@ -139,6 +139,24 @@ def train_group_nnls(dataset = "MDTB",
                                 validate_model=False,
                                 cortical_cerebellar_act='avg')
    config, conn_list, df_tmp =rm.train_model(config)
+   return df_tmp
+
+def train_global_model(dataset = 'MdSoScLa',
+                 logalpha_list = [0,1,2,3,4,6,8,10],
+                 method = 'NNLS',
+                 parcellation="Icosahedron162"):
+
+   config = rm.get_train_config(train_dataset=dataset,
+                                subj_list=None,
+                                log_alpha = logalpha_list,
+                                crossed = 'half',
+                                type = 'CondHalf',
+                                cerebellum='MNISymC3',
+                                parcellation=parcellation,
+                                method = method,
+                                std_cerebellum='global',
+                                validate_model=False)
+   config, conn_list, df_tmp =rm.train_global_model(config)
    return df_tmp
 
 
@@ -198,8 +216,10 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_group_nnls(dataset='WMFS',method='L2reg',logalpha_list = [4,6,8,10])
-   train_group_nnls(dataset='WMFS',method='NNLS',logalpha_list = [4,6,8,10])
+   train_global_model(dataset='MdWfIbDeNiSoScLa',method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
+   train_global_model(dataset='MdWfIbDeNiSoScLa',method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
+   # train_group_model(dataset='WMFS',method='L2reg',logalpha_list = [4,6,8,10])
+   # train_group_model(dataset='WMFS',method='NNLS',logalpha_list = [4,6,8,10])
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
    # eval_mdtb(method='L2regression',ext_list=[0,2,4,6,8,10,12])

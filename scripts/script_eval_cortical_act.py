@@ -108,8 +108,8 @@ if __name__ == "__main__":
    # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
    for m in ['L2reg','NNLS']:
       for d,s,r,c in zip(gl.datasets,gl.sessions,gl.add_rest,gl.std_cortex):
-         eval_models_script(train_dataset = "WMFS",
-                            eval_id = 'WMFSgrp',
+         eval_models_script(train_dataset = "MdWfIbDeNiSoScLa",
+                            eval_id = 'Loo_Ht',
                             cortical_act = 'avg',
                             method=m,
                             eval_dataset=[d],
