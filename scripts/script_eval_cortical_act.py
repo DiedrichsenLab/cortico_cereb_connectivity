@@ -15,7 +15,7 @@ import numpy as np
 
 def eval_models_script(ext_list = [0,1,2,3,4,6,8,10],
                 train_dataset = "MDTB",
-                train_ses = "all",
+                train_ses = None,
                 method = "L2reg",
                 parcellation = "Icosahedron162",
                 cerebellum='MNISymC3',
@@ -109,7 +109,7 @@ if __name__ == "__main__":
    for m in ['L2reg','NNLS']:
       for d,s,r,c in zip(gl.datasets,gl.sessions,gl.add_rest,gl.std_cortex):
          eval_models_script(train_dataset = "MdWfIbDeNiSoScLa",
-                            eval_id = 'Loo_Ht',
+                            eval_id = 'LdoHt',
                             cortical_act = 'avg',
                             method=m,
                             eval_dataset=[d],

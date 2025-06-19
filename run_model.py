@@ -669,15 +669,19 @@ def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
    dirname=[] # Model directory name
    mname=[] # Model name - without the individual, average, or loo extension
 
+   if train_ses is None:
+      root_name = f"{train_dataset}"
+   else: 
+      root_name = f"{train_dataset}_{train_ses}"
    # Build list of to-be-evaluated models
    for a in ext_list:
-      dirname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+      dirname.append(f"{root_name}_{parcellation}_{method}")
       if a is None:
-         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}")
+         mname.append(f"{root_name}_{parcellation}_{method}")
       if isinstance(a,int):
-         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_A{a}")
+         mname.append(f"{root_name}_{parcellation}_{method}_A{a}")
       elif isinstance(a,str):
-         mname.append(f"{train_dataset}_{train_ses}_{parcellation}_{method}_{a}")
+         mname.append(f"{root_name}_{parcellation}_{method}_{a}")
    return dirname, mname
 
 
