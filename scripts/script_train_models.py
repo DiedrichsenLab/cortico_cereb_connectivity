@@ -10,6 +10,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
+import numpy as np
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
@@ -201,6 +202,19 @@ def avrg_all_wta():
                  cerebellum='SUIT3',
                  logalpha_list = [None])
 
+def get_ldo_names():
+   num_ds = len(gl.dscode)
+   ldo_names = []
+   for i in range(num_ds):
+      ldo_names.append(''.join(gl.dscode[:i]+gl.dscode[i+1:]))
+   return ldo_names
+
+def train_all_global_ldo(): 
+      names = get_ldo_names()
+      for i,dsstr in enumerate(gl.dscode):
+         print(f"Training global model for {dsstr}")
+         train_global_model(dataset=dsstr,method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
+         train_global_model(dataset=dsstr,method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
 
 if __name__ == "__main__":
    """
@@ -216,8 +230,10 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_global_model(dataset='MdWfIbDeNiSoScLa',method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
-   train_global_model(dataset='MdWfIbDeNiSoScLa',method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
+   train_all_global_ldo() 
+   pass
+   # train_global_model(dataset='MdWfIbDeNiSoScLa',method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
+   # train_global_model(dataset='MdWfIbDeNiSoScLa',method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
    # train_group_model(dataset='WMFS',method='L2reg',logalpha_list = [4,6,8,10])
    # train_group_model(dataset='WMFS',method='NNLS',logalpha_list = [4,6,8,10])
    # avrg_all()
