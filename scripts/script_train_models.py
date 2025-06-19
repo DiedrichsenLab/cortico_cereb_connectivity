@@ -202,15 +202,10 @@ def avrg_all_wta():
                  cerebellum='SUIT3',
                  logalpha_list = [None])
 
-def get_ldo_names():
-   num_ds = len(gl.dscode)
-   ldo_names = []
-   for i in range(num_ds):
-      ldo_names.append(''.join(gl.dscode[:i]+gl.dscode[i+1:]))
-   return ldo_names
+
 
 def train_all_global_ldo(): 
-      names = get_ldo_names()
+      names = gl.get_ldo_names()
       for i,dsstr in enumerate(names):
          print(f"Training global model for {gl.dscode[i]}: {dsstr}")
          train_global_model(dataset=dsstr,method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])

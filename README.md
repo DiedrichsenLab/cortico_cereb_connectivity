@@ -51,7 +51,7 @@ Models are then fused (i.e. simply averaged) using ```ccc.scripts.script_fuse_mo
 * Model 6: all datasets excluding HCP
 * Model 7: all datasets excluding HCP and Somatotopic
 
-The final model evaluation results reported in the paper can be found in ```ccc.notebooks.6.Evaluate_model_int.ipynb```.
+The final model evaluation results reported in the paper can be found in ```ccc/notebooks/2.Nettekoven_2024/6.Evaluate_model_int.ipynb```.
 
 To summarize the connectivity pattern by cerebellar regions:
 

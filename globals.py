@@ -24,3 +24,10 @@ sessions = ['all',      'all',     'all',   'all'  ,  'all',     'all',       'a
 add_rest = [False,      True ,     True,     True,     True,      False,       True,        False,  False]
 std_cortex = ['parcel', 'global', 'parcel', 'parcel', 'parcel', 'parcel',   'global',       'parcel', 'parcel']
 dscode   = ['Md',      'Wf',        'Ib',   'De',     'Ht',      'Ni',        'So',         'Sc',     'La']
+
+def get_ldo_names():
+   num_ds = len(dscode)
+   ldo_names = []
+   for i in range(num_ds):
+      ldo_names.append(''.join(dscode[:i]+dscode[i+1:]))
+   return ldo_names

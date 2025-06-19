@@ -106,16 +106,17 @@ if __name__ == "__main__":
    """
    # eval_models_script(eval_id = 'MDTB_Cavg',cortical_act = 'avg')
    # eval_models_script(eval_id = 'MDTB_Cind',cortical_act = 'ind')
+   train_ds = gl.get_ldo_names()
    for m in ['L2reg','NNLS']:
-      for d,s,r,c in zip(gl.datasets,gl.sessions,gl.add_rest,gl.std_cortex):
-         eval_models_script(train_dataset = "MdWfIbDeNiSoScLa",
-                            eval_id = 'LdoHt',
+      for i,td in enumerate(train_ds):
+         eval_models_script(train_dataset = td,
+                            eval_id = 'Ldo' + gl.dscode[i],
                             cortical_act = 'avg',
                             method=m,
-                            eval_dataset=[d],
-                            eval_ses=s,
-                            add_rest=r,
-                            std_cortex=c)
+                            eval_dataset=[gl.datasets[i]],
+                            eval_ses=gl.sessions[i],
+                            add_rest=gl.add_rest[i],
+                            std_cortex=gl.std_cortex[i])
    # train_all()
    # avrg_all()
    # eval_mdtb(method='NNLS',ext_list=[-4,-2,0,2,4,6,8,10])
