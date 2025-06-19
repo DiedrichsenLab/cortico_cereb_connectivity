@@ -211,8 +211,8 @@ def get_ldo_names():
 
 def train_all_global_ldo(): 
       names = get_ldo_names()
-      for i,dsstr in enumerate(gl.dscode):
-         print(f"Training global model for {dsstr}")
+      for i,dsstr in enumerate(names):
+         print(f"Training global model for {gl.dscode[i]}: {dsstr}")
          train_global_model(dataset=dsstr,method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
          train_global_model(dataset=dsstr,method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
 
