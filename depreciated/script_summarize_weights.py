@@ -164,13 +164,22 @@ def make_avrg_weight_map_NNLS():
     cifti_img = cs.sort_roi_rows(cifti_img)
     nb.save(cifti_img,fname)
 
-def plot_mean_weight(): 
-    cifti_img = cs.stats_weight_map_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
-                                cortex_roi = "Icosahedron1002",
-                                method = 'L2reg',
-                                extension='A6_group')
+def comp_weight_stats(): 
+    traindata = 'MdWfIbDeHtNiSoScLa'
+    cortex_roi = "Icosahedron1002"
+    method = 'NNLS'
+    stats = 'prob'
+    cifti_img = cs.stats_weight_map_cortex(traindata = traindata,
+                                cortex_roi = cortex_roi,
+                                method = method,
+                                extension='A2_group',
+                                stats = stats)
+
+
+    fname = gl.conn_dir + f'/maps/{traindata}_{cortex_roi}_{method}_{stats}.pscalar.nii'
+    nb.save(cifti_img,fname)
+
     data = nt.surf_from_cifti(cifti_img) 
-    
     cs.plot_cortical_inflated(axes=None,data=data)
     pass 
 
@@ -181,7 +190,7 @@ def plot_surface_stats(traindata,cortex_roi='Icosahedron1002', method='L2reg',ex
 
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-    plot_mean_weight()
+    comp_weight_stats()
     # make_avrg_weight_map_NNLS()
     # make_all_weight_maps_WTA()
     # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')

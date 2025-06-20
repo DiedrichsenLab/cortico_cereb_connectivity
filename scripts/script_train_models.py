@@ -157,7 +157,7 @@ def train_global_model(dataset = 'MdSoScLa',
                                 method = method,
                                 std_cerebellum='global',
                                 validate_model=False)
-   config, conn_list, df_tmp =rm.train_global_model(config)
+   config, conn_list, df_tmp =rm.train_global_model(config,save_data_name=f'{dataset}_data')
    return df_tmp
 
 

@@ -51,10 +51,13 @@ def stats_weight_map_cortex(traindata,
                     cortex_roi = "Icosahedron1002",
                     method = 'L2reg',
                     extension='A8_avg',
-                    stats = np.mean):
+                    stats = 'mean'):
     """ returns cifti image of average cortical input weight"""
     model,info = get_model(traindata,cortex_roi,method,extension)
-    result = stats(model.coef_,axis=0,keepdims=True)
+    if stats == 'mean':
+        result = np.mean(model.coef_,axis=0,keepdims=True)
+    if stats == 'prob':
+        result = np.mean(model.coef_>0,axis=0,keepdims=True)
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
     cifti_img = cio.model_to_cifti(result,src_roi = label_fs)
     return cifti_img
@@ -170,22 +173,40 @@ def plot_cortical_flatmap(axes, data):
                 borders=border[h],
             )
 
-def plot_cortical_inflated(axes,data):
+def plot_cortical_inflated(axes,data,cscale=None):
     adir = am.default_atlas_dir 
     vinf = [f"{adir}/tpl-fs32k/tpl-fs32k_hemi-L_veryinflated.surf.gii",
             f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"] 
-    depth = f"{adir}/tpl-fs32k_sulc.dscalar.nii"
-    
+    depth = f"{adir}/tpl-fs32k/tpl-fs32k_sulc.dscalar.nii"
+
+    surf_data = []
+    for hem in range(2):
+        gifti = nb.load(vinf[hem])
+        surf_data.append([gifti.darrays[0].data,gifti.darrays[1].data])
+    Depth = nb.load(depth)
+    depth_data = nt.surf_from_cifti(Depth)
     if axes is None:
-        fig, axes = plt.subplots(2, 2, figsize=(12, 6))
+        fig, axes = plt.subplots(2, 2, subplot_kw={'projection': '3d'},figsize=(7, 7))
     
-    npl.plot_surf(
-        vinf[0],
-        data[0],
-        depth,
-        hemi = 'left',
-        view = 'lateral',
-        cmap="hot",
-        vmin=0,
-        vmax=0.03) 
-    pass
+    hemi = ['left', 'right']
+    view = ['lateral', 'medial']
+
+    if cscale is None:
+        data_min = np.nanmin(data[0])
+        data_max = np.nanmax(data[0])
+        cscale = [data_min, data_max]
+        
+    for hem in range(2):
+        for row in range(2):
+            npl.plot_surf(
+                surf_data[hem],
+                data[hem],
+                depth_data[hem],
+                hemi=hemi[hem],
+                view=view[row],
+                cmap="hot",
+                vmin=cscale[0],
+                vmax=cscale[1],
+                axes=axes[row, hem] 
+            )
+

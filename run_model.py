@@ -10,6 +10,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
+import nibabel as nb
 from collections import defaultdict
 from sklearn.model_selection import cross_val_score
 import Functional_Fusion.atlas_map as at # from functional fusion module
@@ -530,7 +531,7 @@ def train_model(config, save_path=None, mname=None):
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
-def train_global_model(config, save_path=None, mname=None):
+def train_global_model(config, save_path=None, mname=None,save_data_name=None):
    """
    train a model based on the concatination of multiple datasets from functional fusion.
    Data is group-averaged across subjects. 
@@ -578,6 +579,20 @@ def train_global_model(config, save_path=None, mname=None):
    XX = np.concatenate(XX,axis=0)
    YY = np.concatenate(YY,axis=0)
    info = pd.concat(info_list,ignore_index=True)
+
+   if save_data_name is not None:
+      Yatlas,_ = at.get_atlas(config['cerebellum'])
+      row_axis = info.dataset + '_' + info.names 
+      Ycifti = Yatlas.data_to_cifti(YY, row_axis=row_axis)
+      nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_data_name}_cerebellum.dscalar.nii')
+
+      Xatlas,_ = at.get_atlas(config['cortex'])
+      Xatlas.get_parcel(config['label_img'], unite_struct = False)      
+      Xparcelaxis  = Xatlas.get_parcel_axis()
+      Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
+      header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
+      Xcifti = nb.Cifti2Image(XX, header=header)
+      nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_data_name}_cortex.pscalar.nii')
 
    conn_model_list = []
 
