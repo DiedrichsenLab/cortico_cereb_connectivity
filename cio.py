@@ -34,11 +34,11 @@ def save_model(model,info,fname):
         json.dump(info, fp, indent=4)
 
 def model_to_cifti(weight_matrix, 
-                   src_atlas, 
-                   trg_atlas,
+                   src_atlas = "fs32k", 
+                   trg_atlas = None,
                    src_roi = "Icosahedron1002",
                    trg_roi = None,
-                   type = 'conn'
+                   type = 'scalar'
                 ):
     """ Make a cifti image for the connectivity weights
     Src is saved in the axis[1] (columns)

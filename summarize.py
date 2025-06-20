@@ -8,15 +8,33 @@ import deepdish as dd
 import pandas as pd
 import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
+import Functional_Fusion.atlas_map as am
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.data as cdata
 import cortico_cereb_connectivity.cio as cio
-
-import Functional_Fusion.atlas_map as am
+import matplotlib.pyplot as plt
 import nitools as nt
+import nilearn.plotting as npl
 from pathlib import Path
 import warnings
+
+def get_model(traindata,cortex_roi,method,extension,cerebellum_atlas="MNISymC3"): 
+    """ Loads a model 
+    Args:
+        traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
+        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'L2reg'.
+        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+    """
+    mroot = f"{traindata}_{cortex_roi}_{method}"
+    model_name = f"{mroot}_{extension}"
+    fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{mroot}"
+    # load the avg model
+    model,info = cio.load_model(fpath + f"/{model_name}")   
+    return model, info
+
+
 
 def sort_roi_rows(cifti_img):
     """ sort the rows of a cifti image alphabetically by the name of the cerebellar parcel"""
@@ -29,27 +47,42 @@ def sort_roi_rows(cifti_img):
     cifti_img_new = nb.Cifti2Image(data, header=header)
     return cifti_img_new
 
-def avrg_weight_map(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
-                    model_name = "MDTB_all_Icosahedron1002_L2Reg_A8",
+def stats_weight_map_cortex(traindata,
                     cortex_roi = "Icosahedron1002",
+                    method = 'L2reg',
+                    extension='A8_avg',
+                    stats = np.mean):
+    """ returns cifti image of average cortical input weight"""
+    model,info = get_model(traindata,cortex_roi,method,extension)
+    result = stats(model.coef_,axis=0,keepdims=True)
+    label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    cifti_img = cio.model_to_cifti(result,src_roi = label_fs)
+    return cifti_img
+
+def avrg_weight_map_roi(traindata,
+                    cortex_roi = "Icosahedron1002",
+                    method = 'L2reg',
+                    extension='A8_avg',
                     cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "MNISymC3"):
     """ Makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
 
     Args:
-        model_name (str) - name of the model to load. It should be in the format: dataset_ses_cortex_roi_method
-        cortex_roi (str) - cortical tessellation/roi used when training connectivity weights
-        cerebellum_roi (str) - name of the cerebellar roi file you want
-        cerebellum_atlas (str) - cerebellar atlas used in training connectivity model. "SUIT3" or "MNISym2"
+        traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
+        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "
+        Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'L2reg'.
+        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        cerebellum_roi (str, optional): name of the cerebellar parcellation. Defaults to "NettekovenSym32".
+        cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
     Returns:
         cifti_img (nibabel.Cifti2Image) pscalar cifti image for the cortical maps. ready to be saved!
     """
     # make model name
     # load in the connectivity average connectivity model
-    fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{model_dir}"
 
-    # load the avg model
-    model,info = cio.load_model(fpath + f"/{model_name}")
+    # Load model 
+    model,info = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas)
 
     # get the weights
     if hasattr(model,'scale_'):
@@ -82,6 +115,9 @@ def avrg_weight_map(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
     return cifti_img
 
 
+
+
+
 def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     model_name = "MDTB_all_Icosahedron1002_L2Reg_A8",
                     cortex_roi = "Icosahedron1002",
@@ -99,7 +135,7 @@ def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     dtype = 'float32')
     return C 
 
-def plot_connectivity_weights(axes, conn_map): 
+def plot_cortical_flatmap(axes, data): 
     # Now do connectivity maps
     weights = nt.cifti.surf_from_cifti(conn_map)
     sc = conn_map.header.get_axis(0).name
@@ -134,5 +170,22 @@ def plot_connectivity_weights(axes, conn_map):
                 borders=border[h],
             )
 
-
-
+def plot_cortical_inflated(axes,data):
+    adir = am.default_atlas_dir 
+    vinf = [f"{adir}/tpl-fs32k/tpl-fs32k_hemi-L_veryinflated.surf.gii",
+            f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"] 
+    depth = f"{adir}/tpl-fs32k_sulc.dscalar.nii"
+    
+    if axes is None:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 6))
+    
+    npl.plot_surf(
+        vinf[0],
+        data[0],
+        depth,
+        hemi = 'left',
+        view = 'lateral',
+        cmap="hot",
+        vmin=0,
+        vmax=0.03) 
+    pass

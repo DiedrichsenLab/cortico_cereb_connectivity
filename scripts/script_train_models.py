@@ -211,6 +211,14 @@ def train_all_global_ldo():
          train_global_model(dataset=dsstr,method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
          train_global_model(dataset=dsstr,method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
 
+def train_all_global(): 
+      name = ''.join(gl.dscode)
+      print(f"Training global model for {name}")
+      train_global_model(dataset=name,method='L2reg',logalpha_list = [6],parcellation="Icosahedron1002")
+      train_global_model(dataset=name,method='NNLS',logalpha_list = [2],parcellation="Icosahedron1002")
+
+
+
 if __name__ == "__main__":
    """
    TD=["MDTB"] # ["MDTB","WMFS", "Nishimoto", "IBC"]
@@ -225,7 +233,7 @@ if __name__ == "__main__":
                   add_rest=True,
                   train_ses="all",eval_id = tid)
    """
-   train_all_global_ldo() 
+   train_all_global() 
    pass
    # train_global_model(dataset='MdWfIbDeNiSoScLa',method='L2reg',logalpha_list = [0,1,2,3,4,6,8,10])
    # train_global_model(dataset='MdWfIbDeNiSoScLa',method='NNLS',logalpha_list = [0,1,2,3,4,6,8,10])
