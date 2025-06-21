@@ -13,7 +13,7 @@ import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.data as cdata
 import cortico_cereb_connectivity.cio as cio
 import cortico_cereb_connectivity.summarize as cs
-
+import matplotlib.pyplot as plt
 import Functional_Fusion.atlas_map as am
 import nitools as nt
 from pathlib import Path
@@ -179,10 +179,6 @@ def comp_weight_stats():
     fname = gl.conn_dir + f'/maps/{traindata}_{cortex_roi}_{method}_{stats}.pscalar.nii'
     nb.save(cifti_img,fname)
 
-    data = nt.surf_from_cifti(cifti_img) 
-    cs.plot_cortical_inflated(axes=None,data=data)
-    pass 
-
 
 def plot_surface_stats(traindata,cortex_roi='Icosahedron1002', method='L2reg',extension='A8_avg'):
     model, info = cs.get_model(traindata,cortex_roi, method,extension) 
@@ -190,9 +186,16 @@ def plot_surface_stats(traindata,cortex_roi='Icosahedron1002', method='L2reg',ex
 
 if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-    comp_weight_stats()
-    # make_avrg_weight_map_NNLS()
-    # make_all_weight_maps_WTA()
-    # T,colors= get_weight_by_cortex(dataset_name='Fusion',extension='06')
+    # Compute the average connecivity for the model for each cortical parcel
+    traindata = 'MdWfIbDeHtNiSoScLa'
+    cortex_roi = "Icosahedron1002"
+    method = 'NNLS'
+    stats = 'prob'
+    nifti = cs.stats_weight_map_cerebellum(traindata = traindata,
+                                cortex_roi = cortex_roi,
+                                method = method,
+                                extension='A2_group',
+                                cerebellar_space = 'MNISymC3',
+                                stats = stats)
     pass
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],

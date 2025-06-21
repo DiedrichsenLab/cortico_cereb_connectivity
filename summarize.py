@@ -18,6 +18,8 @@ import nitools as nt
 import nilearn.plotting as npl
 from pathlib import Path
 import warnings
+import surfAnalysisPy as surf
+import SUITPy as suit 
 
 def get_model(traindata,cortex_roi,method,extension,cerebellum_atlas="MNISymC3"): 
     """ Loads a model 
@@ -33,8 +35,6 @@ def get_model(traindata,cortex_roi,method,extension,cerebellum_atlas="MNISymC3")
     # load the avg model
     model,info = cio.load_model(fpath + f"/{model_name}")   
     return model, info
-
-
 
 def sort_roi_rows(cifti_img):
     """ sort the rows of a cifti image alphabetically by the name of the cerebellar parcel"""
@@ -61,6 +61,24 @@ def stats_weight_map_cortex(traindata,
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
     cifti_img = cio.model_to_cifti(result,src_roi = label_fs)
     return cifti_img
+
+def stats_weight_map_cerebellum(traindata,
+                    cortex_roi = "Icosahedron1002",
+                    method = 'L2reg',
+                    extension='A8_avg',
+                    cerebellar_space = 'MNISymC3',
+                    stats = 'mean'):
+    """ returns cifti image of average cortical input weight"""
+    model,info = get_model(traindata,cortex_roi,method,extension)
+    myatlas,_ = am.get_atlas(cerebellar_space)
+    if stats == 'mean':
+        result = np.mean(model.coef_,axis=1)
+    if stats == 'prob':
+        result = np.mean(model.coef_>0,axis=1)
+    if stats == 'quant':
+        result = np.mean(model.coef_>0.05,axis=1)
+    nifti_img = myatlas.data_to_nifti(result) 
+    return nifti_img
 
 def avrg_weight_map_roi(traindata,
                     cortex_roi = "Icosahedron1002",
@@ -118,9 +136,6 @@ def avrg_weight_map_roi(traindata,
     return cifti_img
 
 
-
-
-
 def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     model_name = "MDTB_all_Icosahedron1002_L2Reg_A8",
                     cortex_roi = "Icosahedron1002",
@@ -138,42 +153,38 @@ def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     dtype = 'float32')
     return C 
 
-def plot_cortical_flatmap(axes, data): 
-    # Now do connectivity maps
-    weights = nt.cifti.surf_from_cifti(conn_map)
-    sc = conn_map.header.get_axis(0).name
-    cidx = np.empty((2,), dtype=int)
-    for c in range(2):
-        cidx[c] = np.where(sc == labels[iidx[c]])[0][0]
+def plot_cortical_flatmap(data,axes = None, cscale=None,cmap='bwr'): 
+    # determine scaling 
+    if cscale is None:
+        data_min = np.nanmin(data[0])
+        data_max = np.nanmax(data[0])
+        cscale = [data_min, data_max]
+    
+    if axes is None:
+        fig, axes = plt.subplots(1, 2,figsize=(10, 4))
 
     flat = []
     # Use the mirrored flatmap for the left hemisphere
+    surf_dir = surf.plot._surf_dir
     flat.append(nb.load(surf_dir + "/fs_L/fs_LR.32k.Lm.flat.surf.gii"))
     flat.append(nb.load(surf_dir + "/fs_R/fs_LR.32k.R.flat.surf.gii"))
     border = []
     border.append(surf_dir + "/fs_L/fs_LR.32k.L.border")
     border.append(surf_dir + "/fs_R/fs_LR.32k.R.border")
 
-    axH = np.empty((2, 2), dtype=object)
-    axH[0, 0] = fig.add_subplot(spec[0, 0:2])
-    axH[1, 0] = fig.add_subplot(spec[1, 0:2])
-    axH[0, 1] = fig.add_subplot(spec[0, 4:])
-    axH[1, 1] = fig.add_subplot(spec[1, 4:])
-
     for h in range(2):
-        for c in range(2):
-            plt.axes(axH[h, c])
-            surf.plot.plotmap(
-                weights[h][cidx[c], :],
-                flat[h],
-                underlay=None,
-                overlay_type="func",
-                cmap="bwr",
-                cscale=[-0.002, 0.002],
-                borders=border[h],
-            )
+        plt.sca(axes[h])
+        surf.plot.plotmap(
+            data[h].flatten(),
+            flat[h],
+            underlay=None,
+            overlay_type="func",
+            cmap=cmap,
+            cscale=cscale,
+            borders=border[h],
+        )
 
-def plot_cortical_inflated(axes,data,cscale=None):
+def plot_cortical_inflated(data,axes = None, cscale=None):
     adir = am.default_atlas_dir 
     vinf = [f"{adir}/tpl-fs32k/tpl-fs32k_hemi-L_veryinflated.surf.gii",
             f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"] 
@@ -186,7 +197,7 @@ def plot_cortical_inflated(axes,data,cscale=None):
     Depth = nb.load(depth)
     depth_data = nt.surf_from_cifti(Depth)
     if axes is None:
-        fig, axes = plt.subplots(2, 2, subplot_kw={'projection': '3d'},figsize=(7, 7))
+        fig, axes = plt.subplots(1, 4, subplot_kw={'projection': '3d'},figsize=(8, 4))
     
     hemi = ['left', 'right']
     view = ['lateral', 'medial']
@@ -207,6 +218,6 @@ def plot_cortical_inflated(axes,data,cscale=None):
                 cmap="hot",
                 vmin=cscale[0],
                 vmax=cscale[1],
-                axes=axes[row, hem] 
+                axes=axes[row*2 + hem] 
             )
 
