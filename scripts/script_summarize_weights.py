@@ -191,6 +191,7 @@ if __name__ == "__main__":
     cortex_roi = "Icosahedron1002"
     method = 'NNLS'
     stats = 'prob'
+    model = cs.get_model(traindata,cortex_roi, method,extension='A2_group')
     nifti = cs.stats_weight_map_cerebellum(traindata = traindata,
                                 cortex_roi = cortex_roi,
                                 method = method,
