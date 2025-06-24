@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
                      run = 'all',
-                     cond_num = 'all',
+                     cond_code = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -72,7 +72,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
    train_config['run'] = run
-   train_config['cond_num'] = cond_num
+   train_config['cond_code'] = cond_code
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -125,7 +125,7 @@ def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
             subj_list = 'all',
             run = 'all',
-            cond_num = 'all',
+            cond_code = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -143,7 +143,7 @@ def get_eval_config(eval_dataset = 'MDTB',
       eval_ses (str): evaluation session. Defaults to 'ses-s2'.
       subj_list (str or list): List of subjects to evaluate. Defaults to 'all'.
       eval_run (str or list): List of runs to evaluate. Defaults to 'all'.
-      eval_cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
+      eval_cond_code (str or list): List of conditions to evaluate. Defaults to 'all'.
       cerebellum (str): Atlas for cerebellum. Defaults to 'SUIT3'.
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron1002".
@@ -162,7 +162,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
    eval_config['run'] = run
-   eval_config['cond_num'] = cond_num
+   eval_config['cond_code'] = cond_code
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -280,6 +280,36 @@ def cross_data(Y,info,mode):
       Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
+def subset_cond(Y, info, cond_code):
+   if isinstance(cond_code, list):
+      cond_mask = info['cond_code'].isin(cond_code)
+      XX = XX[..., cond_mask.values, :]
+      info = info[cond_mask]
+   else:
+      codes = np.unique(info.cond_code.astype(str))
+      if cond_code == 'train':
+         codes_mask = info.cond_code.isin(codes[:len(codes)//2])
+         Y = Y[..., codes_mask, :]
+         info = info[codes_mask]
+      elif cond_code == 'eval':
+         codes_mask = info.cond_code.isin(codes[len(codes)//2:])
+         Y = Y[..., codes_mask, :]
+         info = info[codes_mask]
+      elif cond_code == 'rnd_train':
+         rng = np.random.default_rng(seed=42)
+         shuffled = rng.permutation(codes)
+         codes_mask = info.cond_code.isin(shuffled[:len(shuffled)//2])
+         Y = Y[..., codes_mask, :]
+         info = info[codes_mask]
+      elif cond_code == 'rnd_eval':
+         rng = np.random.default_rng(seed=42)
+         shuffled = rng.permutation(codes)
+         codes_mask = info.cond_code.isin(shuffled[len(shuffled)//2:])
+         Y = Y[..., codes_mask, :]
+         info = info[codes_mask]
+
+   return Y, info
+
 def add_rest(Y,info):
    """Add rest to each session and half
    Subtract the mean across all conditions
@@ -360,12 +390,9 @@ def get_cortical_data(dataset,sessions,subj,config):
          XX = XX[..., run_mask.values, :]
          info = info[run_mask]
 
-   # train only on some conds?
-   if config['cond_num']!='all':
-      if isinstance(config["cond_num"], list):
-         cond_mask = info['cond_num'].isin(config["cond_num"])
-         XX = XX[..., cond_mask.values, :]
-         info = info[cond_mask]
+   # include only on some conds?
+   if config['cond_code']!='all':
+      XX,info = subset_cond(XX, info, config['cond_code'])
 
    #Definitely subtract intercept across all conditions
    XX = (XX - XX.mean(axis=-2,keepdims=True))
@@ -383,7 +410,7 @@ def get_cerebellar_data(dataset,sessions,subj,config):
       dataset (str): Name of the dataset to load.
       sessions (str or list): Session(s) to load data from.
       config (dict): Configuration dictionary containing 
-         add_res, run, cond_num, cerebellum, std_cerebellum, type, crossed, 
+         add_res, run, cond_code, cerebellum, std_cerebellum, type, crossed, 
 
    Returns:
       YY (ndarray): Cerebellar data.
@@ -411,12 +438,9 @@ def get_cerebellar_data(dataset,sessions,subj,config):
          YY = YY[..., run_mask.values, :]
          info = info[run_mask]
 
-   # Incliude only on some conds?
-   if config['cond_num']!='all':
-      if isinstance(config["cond_num"], list):
-         cond_mask = info['cond_num'].isin(config["cond_num"])
-         YY = YY[..., cond_mask.values, :]
-         info = info[cond_mask]
+   # Include only on some conds?
+   if config['cond_code']!='all':
+      YY,info = subset_cond(YY, info, config['cond_code'])
 
    #Definitely subtract intercept across all conditions
    YY = (YY - YY.mean(axis=-2,keepdims=True))
@@ -751,6 +775,10 @@ def get_fitted_models(model_dirs,model_names,config):
        fitted_models (list): _description_
        train_info (list): information on each trained model
    """
+
+   # get list of subject for model
+   model_subj = get_subj_list(config["subj_list"], config["dataset"])
+
    # Load all the models to evaluate:
    fitted_model = []
    train_info = []
@@ -793,7 +821,7 @@ def get_fitted_models(model_dirs,model_names,config):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          fm=[]
          ti = []
-         for sub in config['subj_list']:
+         for sub in model_subj:
             fname = model_path + f"/{m}_{sub}"
             mo,inf = cio.load_model(fname)
             fm.append(mo)
@@ -806,14 +834,14 @@ def get_fitted_models(model_dirs,model_names,config):
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
          ext = '_' + m.split('_')[-1]
-         if 'L2reghalf' in d:
-            fm,fi = calc_avrg_model(config['dataset'],d,ext,
-                                    cerebellum=config['cerebellum'],
-                                    avrg_mode='loo-half')
-         else:
-            fm,fi = calc_avrg_model(config['dataset'],d,ext,
-                                    cerebellum=config['cerebellum'],
-                                    avrg_mode='loo_sep')
+         # if 'L2reghalf' in d:
+         #    fm,fi = calc_avrg_model(config['dataset'],d,ext,
+         #                            cerebellum=config['cerebellum'],
+         #                            avrg_mode='loo-half')
+         # else:
+         fm,fi = calc_avrg_model(config['dataset'],d,ext,
+                                 cerebellum=config['cerebellum'],
+                                 avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
    elif config['model']=='mix':
@@ -824,7 +852,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
-                                 mix_subj=config['subj_list'],
+                                 mix_subj=model_subj,
                                  avrg_mode=config['model'],
                                  mix_param=config['mix_param'])
          fitted_model.append(fm)
@@ -837,7 +865,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
-                                 mix_subj=config['subj_list'],
+                                 mix_subj=model_subj,
                                  avrg_mode=config['model'])
          fitted_model.append(fm)
          train_info.append(fi)
@@ -866,9 +894,6 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
 
    # get list of subjects
    eval_subj = get_subj_list(eval_config["subj_list"], eval_config["eval_dataset"])
-   
-   # get list of subject for model
-   model_subj = get_subj_list(model_config["subj_list"], model_config["dataset"])
 
    # Get the list of fitted models
    fitted_model,train_info = get_fitted_models(model_dirs,model_names,model_config)
@@ -1117,6 +1142,7 @@ def calc_avrg_model(train_dataset,
    """
    subject_list = get_subj_list(subj, train_dataset)
    model_subject_list = get_subj_list(model_subj, train_dataset)
+   mix_subject_list = get_subj_list(mix_subj, train_dataset)
 
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
@@ -1167,7 +1193,7 @@ def calc_avrg_model(train_dataset,
 
    elif avrg_mode=='mix':
       avrg_model = []
-      portion_value = mix_param / 100
+      portion_value = float(mix_param) / 100
       print(f"portion_value = {portion_value}")
       subj_ind = np.arange(len(subject_list))
       for s,sub in enumerate(subject_list):
@@ -1175,10 +1201,7 @@ def calc_avrg_model(train_dataset,
       for p in parameters:
          P = np.stack(param_lists[p],axis=0)
          for s,sub in enumerate(subject_list):
-            sel_subj = subject_list[subject_list.isin(mix_subj)].index.tolist()
-            if s in sel_subj:
-               sel_subj.remove(s)
-            attr_value = P[sel_subj].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
+            attr_value = P[subj_ind!=s].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
 
    elif avrg_mode.startswith('bayes'):
