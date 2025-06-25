@@ -807,10 +807,7 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
    return fuse_model, fuse_info
 
 
-def train_global_model(train_dscode=gl.dscode,
-                       train_ses=gl.sessions,
-                       add_rest=gl.add_rest,
-                       std_cortex=gl.std_cortex,
+def train_global_model(train_dscode=''.join(gl.dscode),
                        method='L2reg',
                        cerebellum='MNISymC3',
                        mname=None,
@@ -818,16 +815,14 @@ def train_global_model(train_dscode=gl.dscode,
    """Train a global model for the given dataset and session by concatenating dataset models."""
 
    if mname is None:
-      mname = f"{''.join(train_dscode)}_Icosahedron1002_{method}"
+      mname = f"{train_dscode}_Icosahedron1002_{method}"
 
-   config = rm.get_train_config(train_dataset = ''.join(train_dscode),
-                                train_ses = train_ses,
-                                add_rest = add_rest,
-                                std_cortex = std_cortex,
+   config = rm.get_train_config(train_dataset = train_dscode,
                                 method = method,
                                 log_alpha = logalpha_list,
-                                cerebellum = cerebellum)
-
+                                cerebellum = cerebellum,
+                                validate_model = False)
+   
    rm.train_global_model(config, mname=mname)
 
 
@@ -1005,15 +1000,15 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      for model in models:
-         print(f'Training global models for {model}')
-         ds_codes = gl.get_ldo_names()
-         for c, dscode in enumerate(ds_codes):
-            train_global_model(train_dscode=dscode,
-                              train_ses=gl.sessions.pop(c),
-                              add_rest=gl.add_rest.pop(c),
-                              std_cortex=gl.std_cortex.pop(c),
-                              method='L2reg',
-                              cerebellum='MNISymC3',
-                              mname=None,
-                              logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+      print(f'Training global models')
+      for ds in list(train_types.keys()):
+         d = gl.datasets.index(ds)
+         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
+         train_dscode = train_dscode.replace('Ht', '')
+         print(f'{train_dscode}:')
+         train_global_model(train_dscode=train_dscode,
+                           method='L2reg',
+                           cerebellum='MNISymC3',
+                           mname=None,
+                           logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+
