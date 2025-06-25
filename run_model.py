@@ -647,7 +647,7 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
          # Generate new model
          alpha = np.exp(la) # get alpha
          conn_model = getattr(model, config["method"])(alpha)
-         mname_spec = f"{mname}_A{la}_group"
+         mname_spec = f"{mname}_group_A{la}"
       else:
          conn_model = getattr(model, config["method"])()
          mname_spec = f"{mname}_group"

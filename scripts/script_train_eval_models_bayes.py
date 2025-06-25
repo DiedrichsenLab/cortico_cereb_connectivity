@@ -807,15 +807,39 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
    return fuse_model, fuse_info
 
 
+def train_global_model(train_dscode=gl.dscode,
+                       train_ses=gl.sessions,
+                       add_rest=gl.add_rest,
+                       std_cortex=gl.std_cortex,
+                       method='L2reg',
+                       cerebellum='MNISymC3',
+                       mname=None,
+                       logalpha_list=[0, 2, 4, 6, 8, 10, 12]):
+   """Train a global model for the given dataset and session by concatenating dataset models."""
+
+   if mname is None:
+      mname = f"{''.join(train_dscode)}_Icosahedron1002_{method}"
+
+   config = rm.get_train_config(train_dataset = ''.join(train_dscode),
+                                train_ses = train_ses,
+                                add_rest = add_rest,
+                                std_cortex = std_cortex,
+                                method = method,
+                                log_alpha = logalpha_list,
+                                cerebellum = cerebellum)
+
+   rm.train_global_model(config, mname=mname)
+
+
 if __name__ == "__main__":
    do_train = False
    do_eval = False
    do_region_eval = False
    do_loso_fuse = False
-   do_lodo_fuse = True
+   do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
-
+   do_train_global = True
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
    
@@ -827,10 +851,10 @@ if __name__ == "__main__":
    # models = [['avg']]
    # models = ['avg', 'loo']
    # models = ["loo", "bayes-loo"]
-   models = ['avg']
+   # models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
-   # models = ['group']
+   models = ['group']
    # models = ['group', 'avg']
    # models = ['mix']; mix_params = np.linspace(0,100,11)
 
@@ -980,4 +1004,16 @@ if __name__ == "__main__":
                         cerebellum=cereb_atlas,
                         fuse_id=fuse_id)
    
-
+   if do_train_global:
+      for model in models:
+         print(f'Training global models for {model}')
+         ds_codes = gl.get_ldo_names()
+         for c, dscode in enumerate(ds_codes):
+            train_global_model(train_dscode=dscode,
+                              train_ses=gl.sessions.pop(c),
+                              add_rest=gl.add_rest.pop(c),
+                              std_cortex=gl.std_cortex.pop(c),
+                              method='L2reg',
+                              cerebellum='MNISymC3',
+                              mname=None,
+                              logalpha_list=[0, 2, 4, 6, 8, 10, 12])
