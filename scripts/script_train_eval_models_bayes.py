@@ -14,13 +14,13 @@ import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.cio as cio
 import cortico_cereb_connectivity.model as c_model
 import cortico_cereb_connectivity.evaluation as ev
-import cortico_cereb_connectivity.scripts.script_fuse_models as sfm
 import json
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
+                 cond_code = 'all',
                  dataset = "MDTB",
                  add_rest = True,
                  parcellation = "Icosahedron1002",
@@ -30,6 +30,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  validate_model = False,
                  std_cortex = None,
                  std_cerebellum = 'global',
+                 cortical_cerebellar_act = 'ind',
                  save_path=None,
                  mname=None):
 
@@ -39,17 +40,18 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    config = rm.get_train_config(log_alpha=logalpha_list,
                                  crossed=crossed,
                                  type=type,
+                                 cond_code=cond_code,
                                  subj_list=subj_list,
                                  cerebellum=cerebellum,
                                  parcellation=parcellation,
                                  train_dataset=dataset,
                                  method=method,
                                  train_ses=train_ses,
-                                 train_run='all',
                                  add_rest=add_rest,
                                  validate_model=validate_model,
                                  std_cortex=std_cortex,
                                  std_cerebellum=std_cerebellum,
+                                 cortical_cerebellar_act=cortical_cerebellar_act,
                                  append=False)
    
    # get the subject list
@@ -128,17 +130,17 @@ def bayes_avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       cio.save_model(avrg_model,info,model_path + f"/{mname_base}{mname_ext}_{avg_id}")
 
 
-def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
+def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "all",
-                train_run = 'all',
+                cond_code = 'all',
                 method = "L2reg",
                 parcellation = "Icosahedron1002",
                 cerebellum='MNISymC3',
                 eval_dataset = ["MDTB"],
                 eval_type = ["CondHalf"],
-                eval_ses  = "ses-s2",
-                eval_run='all',
+                eval_ses  = "all",
+                run = 'all',
                 eval_id = 'MD_s1',
                 crossed = 'half',
                 add_rest = True,
@@ -148,12 +150,14 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
                 subj_list = "all",
                 model_subj_list = "all",
                 model = 'avg',
-                append = False
+                mix_param = None,
+                append = False,
+                dir_extra = '',
                 ):
    """_summary_
 
    Args:
-       ext_list (list): logalpha or other extension
+       logalpha_list (list): logalpha or other extension
        type (str): _description_. Defaults to "CondHalf".
        train_dataset (str): _description_. Defaults to "MDTB".
        train_ses (str): _description_. Defaults to "ses-s1".
@@ -178,7 +182,8 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
 
       eval_config = rm.get_eval_config(eval_dataset=ed,
                                        eval_ses=eval_ses,
-                                       eval_run=eval_run,
+                                       run=run,
+                                       cond_code=cond_code,
                                        parcellation=parcellation,
                                        crossed=crossed, # "half", # or None
                                        type=eval_type[i],
@@ -193,13 +198,14 @@ def eval_models(ext_list = [0, 2, 4, 6, 8, 10, 12],
       model_config = rm.get_model_config(dataset=train_dataset,
                                          subj_list=model_subj_list,
                                          model=model,
-                                         cerebellum=cerebellum)
+                                         cerebellum=cerebellum,
+                                         mix_param=mix_param)
 
       dirname=[]
       mname=[]
-      for a in ext_list:
-         dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}")
-         mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}_A{a}")
+      for a in logalpha_list:
+         dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
+         mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
 
       df, df_voxels = rm.eval_model(dirname,mname,eval_config,model_config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
@@ -572,6 +578,7 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                     method='L2reghalf',
                     parcellation='Icosahedron1002',
                     cerebellum='MNISymC3',
+                    cortical_act='avg',
                     eval_id='Fus-avg'):
    
    # get other datasets models and weights
@@ -636,7 +643,7 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
    for i, edata in enumerate(eval_datasets):
       print(f'\nFusing models for {edata} ...')
       T = fdata.get_dataset_class(gl.base_dir, dataset=edata).get_participants()
-      config = rm.get_eval_config(eval_dataset=edata,
+      eval_config = rm.get_eval_config(eval_dataset=edata,
                                   eval_ses=eval_ses[i],
                                   parcellation=parcellation,
                                   crossed='half', # "half", # or None
@@ -646,20 +653,26 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                                   std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
-                                  model='lodo')
+                                  cortical_act=cortical_act)
+      
+      model_config = rm.get_model_config(dataset=edata,
+                                         subj_list=T.participant_id,
+                                         model=model,
+                                         cerebellum=cerebellum)
 
       # sum over the models of other datasets
-      indx = train_datasets.index(edata)
       coef_to_sum = coef_list.copy()
-      coef_to_sum[indx] = np.zeros_like(coef_to_sum[indx])
+      if edata in train_datasets:
+         indx = train_datasets.index(edata)
+         coef_to_sum[indx] = np.zeros_like(coef_to_sum[indx])
 
       fuse_model = getattr(c_model, method)()
       setattr(fuse_model,'coef_',np.nansum(coef_to_sum, axis=0))
-      config['model'] = [fuse_model]
+      model_config['model'] = [fuse_model]
       info['extension'] = eval_id
       info['logalpha'] = logalpha
-      config['train_info'] = [info]
-      df, _ = rm.eval_model(None,None,config)
+      model_config['train_info'] = [info]
+      df, _ = rm.eval_model(None,None,eval_config, model_config)
       df['train_dataset'] = ['Fusion'] * df.shape[0]
       df['model'] = ['lodo']*df.shape[0]
       df['logalpha'] = [logalpha]*df.shape[0]
@@ -752,6 +765,7 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
                     logalpha=[6, 6, 4, 4, 2, 8, 6],
                     weight=[1, 1, 1, 1, 1, 1, 1],
                     method='L2reghalf',
+                    model='avg',
                     parcellation='Icosahedron1002',
                     cerebellum='MNISymC3',
                     fuse_id='Fus-all',
@@ -763,7 +777,7 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
       print(f'Loading avg model for {tdata} - {tses}')
       mname = f"{tdata}_{tses}_{parcellation}_{method}"
       model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
-      fname = model_path + f"/{mname}_A{la}_avg"
+      fname = model_path + f"/{mname}_A{la}_{model}"
       conn_mo, conn_inf = cio.load_model(fname)
       coef_list.append(conn_mo.coef_)
 
@@ -778,7 +792,7 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
    # Make the info
    fuse_info = conn_inf.copy()
-   fuse_info['train_dataset'] = 'Fusion' 
+   fuse_info['train_dataset'] = f'Fusion-{model}' 
    fuse_info['extension'] = fuse_id
    fuse_info['logalpha'] = logalpha
    
@@ -795,10 +809,10 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 
 if __name__ == "__main__":
    do_train = False
-   do_eval = True
+   do_eval = False
    do_region_eval = False
    do_loso_fuse = False
-   do_lodo_fuse = False
+   do_lodo_fuse = True
    do_voxel_lodo_fuse = False
    do_fuse_all = False
 
@@ -810,43 +824,59 @@ if __name__ == "__main__":
    # models = ["avg", "bayes"]
    # models = ["bayes"]
    # models = [["avg"], ["bayes"]]
-   models = [['avg']]
-   # models = [['avg'], 'loo']
+   # models = [['avg']]
+   # models = ['avg', 'loo']
    # models = ["loo", "bayes-loo"]
-   # models = ['avg']
+   models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
+   # models = ['group']
+   # models = ['group', 'avg']
+   # models = ['mix']; mix_params = np.linspace(0,100,11)
 
    train_types = {
       'MDTB':        ('all',                 8),
       'Language':    ('ses-localizer',       8),
+      'Social':      ('ses-social',          8),
       'WMFS':        ('all',                 8),
       'Demand':      ('all',                 8),
-      'Somatotopic': ('all',                 8),
+      'Somatotopic': ('all',                 10),
       'Nishimoto':   ('all',                 10),
       'IBC':         ('all',                 6),
    }
 
    eval_types = {
-      # 'MDTB':        ('all',                 models),
-      # 'Language':    ('ses-localizer',       models),
-      # 'WMFS':        ('all',                 models),
-      # 'Demand':      ('all',                 models),
-      # 'Somatotopic': ('all',                 models),
-      # 'Nishimoto':   ('all',                 models),
-      # 'IBC':         ('all',                 models),
-      'HCPur100':    ('ses-task',            models),
+      'MDTB':        ('all',                 models),
+      'Language':    ('ses-localizer',       models),
+      'Social':      ('ses-social',          models),
+      'WMFS':        ('all',                 models),
+      'Demand':      ('all',                 models),
+      'Somatotopic': ('all',                 models),
+      'Nishimoto':   ('all',                 models),
+      'IBC':         ('all',                 models),
+      'HCPur100':    ('all',                 models),
    }
 
    for train_dataset, (train_ses, best_la) in train_types.items():
       if do_train:
+         if models[0] == 'mix':
+            cond_code = 'rnd_train'
+         else:
+            cond_code = 'all'
+
          print(f'Train: {train_dataset} - individual')
-         train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
-                     #  mname=f"MDTB_all_Icosahedron1002_L2reg_old")
-                     #  logalpha_list=[best_la])
-         print(f'Train: {train_dataset} - avg')
-         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
-                  #   logalpha_list=[best_la], avrg_mode='avg-half')
+         train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas, cond_code=cond_code,
+                      mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
+                      logalpha_list=[best_la])
+
+         # print(f'Train: {train_dataset} - avg')
+         # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
+                  #   avrg_mode='avg-half')
+
+         # print(f'Train: {train_dataset} - group')
+         # train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,
+         #              cortical_cerebellar_act='avg',)
+
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
 
@@ -855,7 +885,9 @@ if __name__ == "__main__":
             for model in models:
                if (train_dataset == eval_dataset) & (isinstance(model, list)) & (model[0]=='avg'):
                   continue
-               elif (train_dataset != eval_dataset) & ("loo" in model):
+               elif (train_dataset == eval_dataset) & ((model=='group') | (model=='avg')):
+                  continue
+               elif (train_dataset != eval_dataset) & (("loo" in model) | (model=='mix')):
                   continue
 
                print(f'Train: {train_dataset} - Eval: {eval_dataset} - {model}')
@@ -870,7 +902,13 @@ if __name__ == "__main__":
                   eval_id = train_dataset+"-"+model
                   model = list(T['participant_id'])
                
-               eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
+               if model=='mix':
+                  for p in mix_params:
+                     eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
+                              model=model, method=method, cortical_act='avg', eval_id=eval_id+"-CV-Cavg",
+                              logalpha_list=[best_la], mix_param=p, cond_code='rnd_eval', dir_extra='_CV', append=True)
+               else:
+                  eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
                            model=model, method=method, cortical_act='avg', eval_id=eval_id+"-Cavg")
          
          if do_region_eval:
@@ -903,7 +941,7 @@ if __name__ == "__main__":
          
    if do_lodo_fuse:
       for model in models:
-         eval_id = "Fus-lodo-" + model
+         eval_id = "Fus-lodo-" + model + "-Cavg"
          fuse_models_lodo(train_datasets=list(train_types.keys()),
                            train_ses=[value[0] for value in train_types.values()],
                            eval_datasets=list(eval_types.keys()),
@@ -913,6 +951,7 @@ if __name__ == "__main__":
                            method=method,
                            parcellation='Icosahedron1002',
                            cerebellum=cereb_atlas,
+                           cortical_act='avg',
                            eval_id=eval_id)
 
    if do_voxel_lodo_fuse:
@@ -928,11 +967,17 @@ if __name__ == "__main__":
                         eval_id=eval_id)
       
    if do_fuse_all:
-      fuse_all_models(train_datasets=list(train_types.keys()),
-                      train_ses=[value[0] for value in train_types.values()],
-                      logalpha=[value[1] for value in train_types.values()],
-                      method=method,
-                      parcellation='Icosahedron1002',
-                      cerebellum=cereb_atlas)
+      for model in models:
+         print(f'Fusing all models for {model}')
+         fuse_id = f'Fus-{model}'
+         fuse_all_models(train_datasets=list(train_types.keys()),
+                        train_ses=[value[0] for value in train_types.values()],
+                        logalpha=[value[1] for value in train_types.values()],
+                        weight=[1]*len(train_types),
+                        method=method,
+                        model=model,
+                        parcellation='Icosahedron1002',
+                        cerebellum=cereb_atlas,
+                        fuse_id=fuse_id)
    
 
