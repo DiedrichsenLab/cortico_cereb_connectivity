@@ -826,6 +826,65 @@ def train_global_model(train_dscode=''.join(gl.dscode),
    rm.train_global_model(config, mname=mname)
 
 
+def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
+                      eval_dataset='HCPur100',
+                      parcellation='Icosahedron1002',
+                      cerebellum='MNISymC3',
+                      method='L2reg',
+                      mname=None,
+                      logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                      append=False,
+                      eval_id='MdWfIbDeNiSoScLa-global-Cavg'):
+   """Evaluate a global model for the given dataset and session"""
+   
+   if mname is None:
+      mname = f"{train_dscode}_Icosahedron1002_{method}"
+   
+   indx = gl.datasets.index(eval_dataset)
+
+   eval_config = rm.get_eval_config(eval_dataset=eval_dataset,
+                                    eval_ses=gl.sessions[indx],
+                                    add_rest=gl.add_rest[indx],
+                                    std_cortex=gl.std_cortex[indx],
+                                    cortical_act='avg',
+                                    cerebellum=cerebellum)
+   
+   model_config = rm.get_model_config(dataset=train_dscode,
+                                      cerebellum=cerebellum)
+   
+   df_all = pd.DataFrame()
+   mname = f"{train_dscode}_{parcellation}_{method}"
+   model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+   for la in logalpha_list:
+      m = mname + f"_A{la}_global"
+      fname = model_path + f"/{m}"
+      conn_mo, info = cio.load_model(fname)
+      model_config['model'] = [conn_mo]
+      model_config['logalpha'] = la
+      info['extension'] = eval_id
+      model_config['train_info'] = [info]
+
+      df, _ = rm.eval_model(None, None, eval_config, model_config)
+      df['model'] = ['global']*df.shape[0]
+
+      df_all = pd.concat([df_all, df], ignore_index=True)
+
+   save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+   if not os.path.isdir(save_path):
+      os.mkdir(save_path)
+   else:
+      pass
+   ename = eval_config['eval_dataset']
+   if eval_config['eval_ses'] != 'all':
+      ses_code = eval_config['eval_ses'].split('-')[1]
+      ename = eval_config['eval_dataset'] + ses_code
+   file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
+   if os.path.isfile(file_name) & append:
+      dd = pd.read_csv(file_name, sep='\t')
+      df_all = pd.concat([dd, df_all], ignore_index=True)
+   df_all.to_csv(file_name, index = False, sep='\t')
+
+
 if __name__ == "__main__":
    do_train = False
    do_eval = False
@@ -834,7 +893,8 @@ if __name__ == "__main__":
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
-   do_train_global = True
+   do_train_global = False
+   do_eval_global = True
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
    
@@ -873,7 +933,7 @@ if __name__ == "__main__":
       'Somatotopic': ('all',                 models),
       'Nishimoto':   ('all',                 models),
       'IBC':         ('all',                 models),
-      'HCPur100':    ('all',                 models),
+      # 'HCPur100':    ('all',                 models),
    }
 
    for train_dataset, (train_ses, best_la) in train_types.items():
@@ -1011,4 +1071,20 @@ if __name__ == "__main__":
                            cerebellum='MNISymC3',
                            mname=None,
                            logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+            
+   if do_eval_global:
+      for ds in list(train_types.keys()):
+         print(f'Evaluating global model for {ds}')
+         d = gl.datasets.index(ds)
+         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
+         train_dscode = train_dscode.replace('Ht', '')      # do not train on HCP task
+         eval_id = train_dscode + '-global-Cavg'
+         eval_global_model(train_dscode=train_dscode,
+                           eval_dataset=ds,
+                           cerebellum='MNISymC3',
+                           method='L2reg',
+                           logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                           eval_id=eval_id)
+               
+
 

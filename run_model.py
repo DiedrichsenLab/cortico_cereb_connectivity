@@ -135,7 +135,7 @@ def get_eval_config(eval_dataset = 'MDTB',
             add_rest = True,
             std_cortex = 'parcel',
             std_cerebellum = 'global',
-            cortical_act = 'ind'):
+            cortical_act = 'avg'):
    """
    create a config file for evaluation
    Args:
@@ -647,7 +647,7 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
          # Generate new model
          alpha = np.exp(la) # get alpha
          conn_model = getattr(model, config["method"])(alpha)
-         mname_spec = f"{mname}_group_A{la}"
+         mname_spec = f"{mname}_A{la}_group"
       else:
          conn_model = getattr(model, config["method"])()
          mname_spec = f"{mname}_group"
@@ -776,9 +776,6 @@ def get_fitted_models(model_dirs,model_names,config):
        train_info (list): information on each trained model
    """
 
-   # get list of subject for model
-   model_subj = get_subj_list(config["subj_list"], config["dataset"])
-
    # Load all the models to evaluate:
    fitted_model = []
    train_info = []
@@ -815,6 +812,8 @@ def get_fitted_models(model_dirs,model_names,config):
          fitted_model.append(mo)
          train_info.append(inf)
    elif config['model']=='ind':
+      # get list of subject for model
+      model_subj = get_subj_list(config["subj_list"], config["dataset"])
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
@@ -845,6 +844,8 @@ def get_fitted_models(model_dirs,model_names,config):
          fitted_model.append(fm)
          train_info.append(fi)
    elif config['model']=='mix':
+      # get list of subject for model
+      model_subj = get_subj_list(config["subj_list"], config["dataset"])
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
@@ -858,6 +859,8 @@ def get_fitted_models(model_dirs,model_names,config):
          fitted_model.append(fm)
          train_info.append(fi)
    elif config['model'].startswith('bayes'):
+      # get list of subject for model
+      model_subj = get_subj_list(config["subj_list"], config["dataset"])
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
