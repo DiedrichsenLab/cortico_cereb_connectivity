@@ -28,6 +28,7 @@ def compute_covariance_matrix(model_info, batch_size, model_base_path, N_part=2)
                         model_path (str/Path): Path to model file.
         batch_size (int): Number of models to load at once.
         model_base_path (str/Path): Base directory for model files.
+        N_part (int): Number of coefficients per subject (1 or 2).
         
     Returns:
         product_matrix (np.ndarray): (total_n_sub*N_part, total_n_sub*N_part) matrix of X.T @ Y.
@@ -136,18 +137,19 @@ if __name__ == "__main__":
     logalpha_list = [2, 4, 6, 8, 10, 12]
     dataset_type = {
         "MDTB":           [6],
-        "Language":       [6],
-        "WMFS":           [4],
-        "Demand":         [4],
-        "Somatotopic":    [2],
+        "Language":       [4],
+        "Social":         [6],
+        "WMFS":           [6],
+        "Demand":         [0],
+        "Somatotopic":    [0],
         "Nishimoto":      [8],
-        "IBC":            [6]
+        "IBC":            [4]
     }
     model_info = []
     method = 'L2reghalf'
     cereb_atlas = 'MNISymC3'
 
-    name = "bestAlpha_cov"
+    name = "L2reghalf_cov_matrix"
     batch_size = 40
 
     model_base_path = gl.conn_dir + f"/{cereb_atlas}/train/"
@@ -159,7 +161,9 @@ if __name__ == "__main__":
         for sub_id in sub_list:
             for la in la_list:
                 if dataset == "Language":
-                    mname_base = f"{dataset}_ses-localizer_cond_Icosahedron1002_{method}"
+                    mname_base = f"{dataset}_ses-localizer_Icosahedron1002_{method}"
+                elif dataset == "Social":
+                    mname_base = f"{dataset}_ses-social_Icosahedron1002_{method}"
                 else:
                     mname_base = f"{dataset}_all_Icosahedron1002_{method}"
                 mname_base = mname_base + f"/{mname_base}_A{la}_{sub_id}"
