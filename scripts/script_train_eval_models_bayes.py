@@ -573,6 +573,8 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                     train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
                     eval_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
+                    add_rest=[False, False, True, True, True, False, True],
+                    std_cortex=['parcel', 'parcel', 'global', 'parcel', 'global', 'parcel', 'parcel'],
                     logalpha=[8, 8, 8, 8, 8, 10, 8],
                     model='avg',   # "avg" or "bayes"
                     method='L2reghalf',
@@ -649,8 +651,8 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                                   crossed='half', # "half", # or None
                                   type='CondHalf',
                                   cerebellum=cerebellum,
-                                  add_rest=True,
-                                  std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
+                                  add_rest=add_rest[i],
+                                  std_cortex=std_cortex[i],
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
                                   cortical_act=cortical_act)
@@ -887,10 +889,10 @@ def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
 
 if __name__ == "__main__":
    do_train = False
-   do_eval = True
+   do_eval = False
    do_region_eval = False
    do_loso_fuse = False
-   do_lodo_fuse = False
+   do_lodo_fuse = True
    do_voxel_lodo_fuse = False
    do_fuse_all = False
    do_train_global = False
@@ -904,9 +906,9 @@ if __name__ == "__main__":
    # models = ["bayes"]
    # models = [["avg"], ["bayes"]]
    # models = [['avg']]
-   models = ['avg', 'loo']
+   # models = ['avg', 'loo']
    # models = ["loo", "bayes-loo"]
-   # models = ['avg']
+   models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
    # models = ['group']
@@ -1029,6 +1031,8 @@ if __name__ == "__main__":
                            train_ses=[value[0] for value in train_types.values()],
                            eval_datasets=list(eval_types.keys()),
                            eval_ses=[value[0] for value in eval_types.values()],
+                           add_rest=[value[1] for value in eval_types.values()],
+                           std_cortex=[value[2] for value in eval_types.values()],
                            logalpha=[value[1] for value in train_types.values()],
                            model=model,   # "avg" or "bayes"
                            method=method,
