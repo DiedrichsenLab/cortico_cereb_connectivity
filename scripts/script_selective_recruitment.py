@@ -12,21 +12,21 @@ import numpy as np
 
 outdir = '/Users/jdiedrichsen/Dropbox/Talks/2025/07_Gordon/Gordon_connectivity/figure_parts'
 
-def get_dataset_table():
-    DST= pd.DataFrame()    
+def get_group_activity():
+    data = pd.DataFrame()    
     for i,dataset in enumerate(gl.datasets):
-        D,info,dscl = fdata.get_dataset(gl.base_dir,dataset,sess=gl.sessions[i],type='CondAll',subj='group',atlas='MNISymC3')
+        DCereb,info,dscl = fdata.get_dataset(gl.base_dir,dataset,sess=gl.sessions[i],type='CondAll',subj='group',atlas='MNISymC3')
+        DCortex,info,dscl = fdata.get_dataset(gl.base_dir,dataset,sess=gl.sessions[i],type='CondAll',subj='group',atlas='fs32k')
         info['cond'] = info.task_code + '_' + info.cond_code 
-        n_cond = len(info['cond'].unique())
-        T= dscl.get_participants() 
-        dst ={'dataset':[dataset],
-              'n_subj':[len(T)],
-              'n_cond':[n_cond]}
-        DST = pd.concat([DST,pd.DataFrame(dst)],ignore_index=True)
-    return DST 
+
+        info['cortical_act'] = np.nanmean(DCortex, axis=2).squeeze()
+        info['cerebellar_act'] = np.nanmean(DCereb.mean,axis=2).squeeze()
+
+        data = pd.concat([data,pd.DataFrame(info)],ignore_index=True)
+    return data
 
 if __name__ == "__main__":
     # get the dataset table
-    DST = get_dataset_table()
+    DST = get_group_activity()
     # save it to a csv file
-    DST.to_csv(os.path.join(outdir,'dataset_table.csv'),index=False)
+    DST.to_csv(os.path.join(outdir,'selective_recruitment.tsv'),index=False)
