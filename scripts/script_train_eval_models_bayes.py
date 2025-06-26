@@ -573,6 +573,8 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                     train_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
                     eval_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somatotopic', 'Nishimoto', 'IBC'],
                     eval_ses=['all', 'ses-localizer', 'all', 'all', 'all', 'all', 'all'],
+                    add_rest=[False, False, True, True, True, False, True],
+                    std_cortex=['parcel', 'parcel', 'global', 'parcel', 'global', 'parcel', 'parcel'],
                     logalpha=[8, 8, 8, 8, 8, 10, 8],
                     model='avg',   # "avg" or "bayes"
                     method='L2reghalf',
@@ -649,8 +651,8 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                                   crossed='half', # "half", # or None
                                   type='CondHalf',
                                   cerebellum=cerebellum,
-                                  add_rest=True,
-                                  std_cortex='global' if edata=='Somatotopic' or edata=='WMFS' else 'parcel',
+                                  add_rest=add_rest[i],
+                                  std_cortex=std_cortex[i],
                                   std_cerebellum='global',
                                   subj_list=list(T.participant_id),
                                   cortical_act=cortical_act)
@@ -890,11 +892,11 @@ if __name__ == "__main__":
    do_eval = False
    do_region_eval = False
    do_loso_fuse = False
-   do_lodo_fuse = False
+   do_lodo_fuse = True
    do_voxel_lodo_fuse = False
    do_fuse_all = False
    do_train_global = False
-   do_eval_global = True
+   do_eval_global = False
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
    
@@ -906,37 +908,37 @@ if __name__ == "__main__":
    # models = [['avg']]
    # models = ['avg', 'loo']
    # models = ["loo", "bayes-loo"]
-   # models = ['avg']
+   models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
-   models = ['group']
+   # models = ['group']
    # models = ['group', 'avg']
    # models = ['mix']; mix_params = np.linspace(0,100,11)
 
    train_types = {
-      'MDTB':        ('all',                 8),
-      'Language':    ('ses-localizer',       8),
-      'Social':      ('ses-social',          8),
-      'WMFS':        ('all',                 8),
-      'Demand':      ('all',                 8),
-      'Somatotopic': ('all',                 10),
-      'Nishimoto':   ('all',                 10),
-      'IBC':         ('all',                 6),
+      'MDTB':        ('all',                 False,   'parcel',   8),
+      'Language':    ('ses-localizer',       False,   'parcel',   8),
+      'Social':      ('ses-social',          False,   'parcel',   8),
+      'WMFS':        ('all',                 True,    'global',   8),
+      'Demand':      ('all',                 True,    'parcel',   8),
+      'Somatotopic': ('all',                 True,    'global',   10),
+      'Nishimoto':   ('all',                 False,   'parcel',   10),
+      'IBC':         ('all',                 True,    'parcel',   6),
    }
 
    eval_types = {
-      'MDTB':        ('all',                 models),
-      'Language':    ('ses-localizer',       models),
-      'Social':      ('ses-social',          models),
-      'WMFS':        ('all',                 models),
-      'Demand':      ('all',                 models),
-      'Somatotopic': ('all',                 models),
-      'Nishimoto':   ('all',                 models),
-      'IBC':         ('all',                 models),
-      # 'HCPur100':    ('all',                 models),
+      'MDTB':        ('all',                 False,   'parcel',   models),
+      'Language':    ('ses-localizer',       False,   'parcel',   models),
+      'Social':      ('ses-social',          False,   'parcel',   models),
+      'WMFS':        ('all',                 True,    'global',   models),
+      'Demand':      ('all',                 True,    'parcel',   models),
+      'Somatotopic': ('all',                 True,    'global',   models),
+      'Nishimoto':   ('all',                 False,   'parcel',   models),
+      'IBC':         ('all',                 True,    'parcel',   models),
+      'HCPur100':    ('all',                 True,    'parcel',   models),
    }
 
-   for train_dataset, (train_ses, best_la) in train_types.items():
+   for train_dataset, (train_ses, add_rest, std_cortex, best_la) in train_types.items():
       if do_train:
          if models[0] == 'mix':
             cond_code = 'rnd_train'
@@ -944,22 +946,24 @@ if __name__ == "__main__":
             cond_code = 'all'
 
          print(f'Train: {train_dataset} - individual')
-         train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas, cond_code=cond_code,
-                      mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
-                      logalpha_list=[best_la])
+         train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
+                      method=method, cerebellum=cereb_atlas, cond_code=cond_code,)
+                     #  mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
+                     #  logalpha_list=[best_la])
 
-         # print(f'Train: {train_dataset} - avg')
-         # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
+         print(f'Train: {train_dataset} - avg')
+         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
                   #   avrg_mode='avg-half')
 
          # print(f'Train: {train_dataset} - group')
-         # train_models(dataset=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,
+         # train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
+         # method=method, cerebellum=cereb_atlas,
          #              cortical_cerebellar_act='avg',)
 
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
 
-      for eval_dataset, (eval_ses, models) in eval_types.items():
+      for eval_dataset, (eval_ses, add_rest, std_cortex, models) in eval_types.items():
          if do_eval:
             for model in models:
                if (train_dataset == eval_dataset) & (isinstance(model, list)) & (model[0]=='avg'):
@@ -984,23 +988,25 @@ if __name__ == "__main__":
                if model=='mix':
                   for p in mix_params:
                      eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                              model=model, method=method, cortical_act='avg', eval_id=eval_id+"-CV-Cavg",
-                              logalpha_list=[best_la], mix_param=p, cond_code='rnd_eval', dir_extra='_CV', append=True)
+                              add_rest=add_rest, std_cortex=std_cortex, model=model, method=method,
+                              cortical_act='avg', eval_id=eval_id+"-CV-Cavg", logalpha_list=[best_la],
+                              mix_param=p, cond_code='rnd_eval', dir_extra='_CV', append=True)
                else:
                   eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                           model=model, method=method, cortical_act='avg', eval_id=eval_id+"-Cavg")
+                              add_rest=add_rest, std_cortex=std_cortex, model=model, method=method,
+                              cortical_act='avg', eval_id=eval_id+"-Cavg")
          
          if do_region_eval:
             if train_dataset != eval_dataset:
                print(f'Eval: {train_dataset} - {eval_dataset} - region')
                eval_id = train_dataset+"-avg-region"
                eval_region_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                              method=method, ext_list=[best_la], eval_id=eval_id)
+                                 add_rest=add_rest, std_cortex=std_cortex, method=method, ext_list=[best_la], eval_id=eval_id)
             else:
                print(f'Eval: {train_dataset} - {eval_dataset} - region')
                eval_id = train_dataset+"-loo-region"
                eval_region_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                                 model='loo', method=method, ext_list=[best_la], eval_id=eval_id)
+                                 add_rest=add_rest, std_cortex=std_cortex, model='loo', method=method, ext_list=[best_la], eval_id=eval_id)
                
    if do_loso_fuse:
       for model in models:
@@ -1025,6 +1031,8 @@ if __name__ == "__main__":
                            train_ses=[value[0] for value in train_types.values()],
                            eval_datasets=list(eval_types.keys()),
                            eval_ses=[value[0] for value in eval_types.values()],
+                           add_rest=[value[1] for value in eval_types.values()],
+                           std_cortex=[value[2] for value in eval_types.values()],
                            logalpha=[value[1] for value in train_types.values()],
                            model=model,   # "avg" or "bayes"
                            method=method,
@@ -1066,6 +1074,7 @@ if __name__ == "__main__":
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
          train_dscode = train_dscode.replace('Ht', '')
          print(f'{train_dscode}:')
+         # train_dscode = ''.join(gl.dscode).replace('Ht', '')
          train_global_model(train_dscode=train_dscode,
                            method='L2reg',
                            cerebellum='MNISymC3',
@@ -1078,6 +1087,7 @@ if __name__ == "__main__":
          d = gl.datasets.index(ds)
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
          train_dscode = train_dscode.replace('Ht', '')      # do not train on HCP task
+         # train_dscode = ''.join(gl.dscode).replace('Ht', '')
          eval_id = train_dscode + '-global-Cavg'
          eval_global_model(train_dscode=train_dscode,
                            eval_dataset=ds,
