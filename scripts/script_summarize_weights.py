@@ -183,14 +183,12 @@ def comp_weight_stats():
 def plot_surface_stats(traindata,cortex_roi='Icosahedron1002', method='L2reg',extension='A8_avg'):
     model, info = cs.get_model(traindata,cortex_roi, method,extension) 
     
-
-if __name__ == "__main__":
-    # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
-    # Compute the average connecivity for the model for each cortical parcel
+def stats_weight_model(): 
     traindata = 'MdWfIbDeHtNiSoScLa'
     cortex_roi = "Icosahedron1002"
     method = 'NNLS'
     stats = 'prob'
+    
     model = cs.get_model(traindata,cortex_roi, method,extension='A2_group')
     nifti = cs.stats_weight_map_cerebellum(traindata = traindata,
                                 cortex_roi = cortex_roi,
@@ -199,4 +197,33 @@ if __name__ == "__main__":
                                 cerebellar_space = 'MNISymC3',
                                 stats = stats)
     pass
+
+def make_stats_map(): 
+    traindata = 'MdWfIbDeHtNiSoScLa'
+    cortex_roi = "Icosahedron1002"
+    method = 'NNLS'
+    stats = 'prob'
+    
+    model = cs.get_model(traindata,cortex_roi, method,extension='A2_group')
+    nifti = cs.stats_weight_map_cerebellum(traindata = traindata,
+                                cortex_roi = cortex_roi,
+                                method = method,
+                                extension='A2_group',
+                                cerebellar_space = 'MNISymC3',
+                                stats = stats)
+    pass
+
+def do_smooth():
+    name = 'MdWfIbDeHtNiSoScLa_NNLS1002_A2' 
+    cs.pscalar_to_smoothed_dscalar(name + '.pscalar.nii', 
+                                   name + '.dscalar.nii',
+                                   sigma = 4.0)  
+
+
+
+if __name__ == "__main__":
+    # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
+    # Compute the average connecivity for the model for each cortical parcel
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
+    do_smooth()
+    pass 

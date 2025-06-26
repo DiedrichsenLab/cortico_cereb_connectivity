@@ -135,6 +135,26 @@ def avrg_weight_map_roi(traindata,
                                    type = 'scalar')
     return cifti_img
 
+def pscalar_to_smoothed_dscalar(infile,outfilename=None,sigma=4.0,wdir=f'{gl.conn_dir}/maps'):
+    """ Takes a pscalar file, projects it to the full surface and smoothes"""
+    hem_name_bm = ['cortex_left','cortex_right']
+    if isinstance(infile,str): 
+        infile= nb.load(wdir + '/' + infile)
+    if not isinstance(infile,nb.Cifti2Image): 
+        raise(NameError('Input needs to be cifti image or cifti filename'))
+    full_data = nt.surf_from_cifti(infile)
+    bm=[]
+    for h,hem_name in enumerate(hem_name_bm): 
+        bm.append(nb.cifti2.BrainModelAxis.from_mask(np.ones((full_data[h].shape[1],)),hem_name_bm[h]))
+    row_axis = infile.header.get_axis(0)
+    header = nb.Cifti2Header.from_axes((row_axis,bm[0]+bm[1]))
+    data = np.concatenate(full_data,axis=1)
+    cifti_img = nb.Cifti2Image(dataobj=data,header=header)
+    temp_name =f'{wdir}/temp.dscalar.nii'
+    nb.save(cifti_img,temp_name)
+    hem_surf = [f'{gl.atlas_dir}/tpl-fs32k/tpl-fs32k_hemi-{h}_inflated.surf.gii' for h in ['L','R']]
+    nt.smooth_cifti(temp_name,f'{wdir}/{outfilename}',hem_surf[0],hem_surf[1],surface_sigma=sigma,ignore_zeros=False)
+    os.remove(temp_name)
 
 def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     model_name = "MDTB_all_Icosahedron1002_L2Reg_A8",
