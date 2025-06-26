@@ -21,7 +21,7 @@ def get_group_activity():
 
         info['cortical_act'] = np.nanmean(DCortex, axis=2).squeeze()
         info['cerebellar_act'] = np.nanmean(DCereb,axis=2).squeeze()
-
+        info['dataset'] = dataset
         data = pd.concat([data,pd.DataFrame(info)],ignore_index=True)
     return data
 
@@ -29,4 +29,4 @@ if __name__ == "__main__":
     # get the dataset table
     DST = get_group_activity()
     # save it to a csv file
-    DST.to_csv(os.path.join(outdir,'selective_recruitment.tsv'),index=False)
+    DST.to_csv(os.path.join(outdir,'selective_recruitment.tsv'),sep='\t',index=False)

@@ -1,0 +1,566 @@
+task_code	cond_code	n_rep	task_name	cond_name	instruction	common	names	cond_num	sess	cond	cortical_act	cerebellar_act	dataset
+gng	ngo	16.0	GoNoGo	NoGo	0.0	0.0	gng_ngo	1	ses-s1	gng_ngo	-0.02478112566357581	-0.0072812740860060746	MDTB
+gng	go	16.0	GoNoGo	Go	0.0	0.0	gng_go	2	ses-s1	gng_go	-0.025439901413026746	0.0048739570114628905	MDTB
+tom	task	16.0	ToM	ToM	0.0	1.0	tom_task	3	ses-s1	tom_task	0.03364464824931209	0.022042840451986012	MDTB
+actobserv	action	16.0	actionObservation	VideoAct	0.0	1.0	actobserv_action	4	ses-s1	actobserv_action	0.045552843516375896	-0.004459857888853399	MDTB
+actobserv	knot	16.0	actionObservation	VideoKnots	0.0	1.0	actobserv_knot	5	ses-s1	actobserv_knot	0.042989589982754775	0.004119175537026086	MDTB
+affect	unpleasant	16.0	affective	UnpleasantScenes	0.0	0.0	affect_unpleasant	6	ses-s1	affect_unpleasant	0.01644720876610941	-0.016597465353054355	MDTB
+affect	pleasant	16.0	affective	PleasantScenes	0.0	0.0	affect_pleasant	7	ses-s1	affect_pleasant	0.0077974134317734985	-0.012023439429882352	MDTB
+arith	math	16.0	arithmetic	Math	0.0	0.0	arith_math	8	ses-s1	arith_math	-0.02903176445941846	0.003631148043335586	MDTB
+arith	digitjudgement	16.0	arithmetic	DigitJudgement	0.0	0.0	arith_digitjudgement	9	ses-s1	arith_digitjudgement	-0.032618209599745755	-0.018508058811666478	MDTB
+checkbrd	task	16.0	checkerBoard	CheckerBoard	0.0	0.0	checkbrd_task	10	ses-s1	checkbrd_task	0.037198531354963954	-0.007831458776713264	MDTB
+emotface	sad	16.0	emotional	SadFaces	0.0	0.0	emotface_sad	11	ses-s1	emotface_sad	0.012312666996515094	-0.023677381222367688	MDTB
+emotface	happy	16.0	emotional	HappyFaces	0.0	0.0	emotface_happy	12	ses-s1	emotface_happy	0.011264427813472208	-0.02276640608139424	MDTB
+intrval	task	16.0	intervalTiming	IntervalTiming	0.0	0.0	intrval_task	13	ses-s1	intrval_task	-0.027377163748836048	0.009257896841376699	MDTB
+mtrimgry	task	16.0	motorImagery	MotorImagery	0.0	0.0	mtrimgry_task	14	ses-s1	mtrimgry_task	-0.016745586510383926	-0.011190621442368074	MDTB
+fingr	simple	16.0	motorSequence	FingerSimple	0.0	1.0	fingr_simple	15	ses-s1	fingr_simple	0.006987567552423827	0.020382582992065395	MDTB
+fingr	sequence	16.0	motorSequence	FingerSeq	0.0	1.0	fingr_sequence	16	ses-s1	fingr_sequence	0.02189575914381432	0.04523415359797936	MDTB
+nbckverb	2bcknrep	16.0	nBack	Verbal0Back	0.0	0.0	nbckverb_2bcknrep	17	ses-s1	nbckverb_2bcknrep	-0.03711976172254521	-0.00680069062367693	MDTB
+nbckverb	2bckrep	16.0	nBack	Verbal2Back	0.0	0.0	nbckverb_2bckrep	18	ses-s1	nbckverb_2bckrep	-0.020437765262577397	0.016014839191035298	MDTB
+nbckpic	2bcknrep	16.0	nBackPic	Object0Back	0.0	1.0	nbckpic_2bcknrep	19	ses-s1	nbckpic_2bcknrep	0.0003072662481668451	-0.005637136968101934	MDTB
+nbckpic	2bckrep	16.0	nBackPic	Object2Back	0.0	1.0	nbckpic_2bckrep	20	ses-s1	nbckpic_2bckrep	-0.010078308343372904	0.0041238886708241575	MDTB
+spatialnav	task	16.0	spatialNavigation	SpatialNavigation	0.0	1.0	spatialnav_task	21	ses-s1	spatialnav_task	0.0020493178629821117	-0.00852537617551397	MDTB
+stroop	incon	16.0	stroop	StroopIncon	0.0	0.0	stroop_incon	22	ses-s1	stroop_incon	-0.017746767260405347	0.0040098527836941525	MDTB
+stroop	con	16.0	stroop	StroopCon	0.0	0.0	stroop_con	23	ses-s1	stroop_con	-0.03303223398317353	-0.006385520307638986	MDTB
+vrbgen	generate	16.0	verbGeneration	VerbGen	0.0	1.0	vrbgen_generate	24	ses-s1	vrbgen_generate	-0.009192103206523944	0.007844113455803218	MDTB
+vrbgen	read	16.0	verbGeneration	WordRead	0.0	1.0	vrbgen_read	25	ses-s1	vrbgen_read	-0.010349886247345274	-0.01054347762456613	MDTB
+vissearch	small	16.0	visualSearch	VisualSearchSmall	0.0	1.0	vissearch_small	26	ses-s1	vissearch_small	0.024224981577186347	0.007235478399183618	MDTB
+vissearch	med	16.0	visualSearch	VisualSearchMed	0.0	1.0	vissearch_med	27	ses-s1	vissearch_med	0.01956570517848612	0.00906282635886172	MDTB
+vissearch	large	16.0	visualSearch	VisualSearchLarge	0.0	1.0	vissearch_large	28	ses-s1	vissearch_large	0.035133492788786	0.016345549584906194	MDTB
+rest	task	16.0	rest	rest	0.0	1.0	rest_task	29	ses-s1	rest_task	-0.023420843042192704	-0.011950138127736681	MDTB
+cpro	task	16.0	CPRO	CPRO	0.0	0.0	cpro_task	1	ses-s2	cpro_task	-0.02384974301447575	-0.001607037875109141	MDTB
+sntncpredict	nviolation	16.0	prediction	Prediction	0.0	0.0	sntncpredict_nviolation	2	ses-s2	sntncpredict_nviolation	-0.01922916435446268	-0.009666105104067754	MDTB
+sntncpredict	violation	16.0	prediction	PredictViol	0.0	0.0	sntncpredict_violation	3	ses-s2	sntncpredict_violation	-0.02552952325401529	-0.014424764684411555	MDTB
+sntncpredict	scrambeled	16.0	prediction	PredictScram	0.0	0.0	sntncpredict_scrambeled	4	ses-s2	sntncpredict_scrambeled	-0.015410398285379014	-0.009078739054238097	MDTB
+vrbgen	generate	16.0	verbGeneration2	VerbGen	0.0	1.0	vrbgen_generate	5	ses-s2	vrbgen_generate	-0.01478988636292417	-8.358143991352912e-05	MDTB
+vrbgen	read	16.0	verbGeneration2	WordRead	0.0	1.0	vrbgen_read	6	ses-s2	vrbgen_read	-0.020014092064755788	-0.014510893773622097	MDTB
+spatialnav	task	16.0	spatialNavigation2	SpatialNavigation	0.0	1.0	spatialnav_task	7	ses-s2	spatialnav_task	-0.013871514815473699	-0.019081931470390646	MDTB
+sptialmap	easy	16.0	spatialMap	SpatialMapEasy	0.0	0.0	sptialmap_easy	8	ses-s2	sptialmap_easy	0.002136355403674614	0.007462810246668057	MDTB
+sptialmap	med	16.0	spatialMap	SpatialMapMed	0.0	0.0	sptialmap_med	9	ses-s2	sptialmap_med	0.018777910919948355	0.027876021293248628	MDTB
+sptialmap	diff	16.0	spatialMap	SpatialMedDiff	0.0	0.0	sptialmap_diff	10	ses-s2	sptialmap_diff	0.031427534806030145	0.03512405929773457	MDTB
+movie	nature	16.0	natureMovie	NatureMovie	0.0	0.0	movie_nature	11	ses-s2	movie_nature	0.027096218254149373	-0.02230434238000973	MDTB
+movie	romance	16.0	romanceMovie	RomanceMovie	0.0	0.0	movie_romance	12	ses-s2	movie_romance	0.045370688972000896	-0.0035591395677471074	MDTB
+movie	landscape	16.0	landscapeMovie	LandscapeMovie	0.0	0.0	movie_landscape	13	ses-s2	movie_landscape	0.011897775499119268	-0.022430232771865864	MDTB
+fingr	simple	16.0	motorSequence2	FingerSimple	0.0	1.0	fingr_simple	14	ses-s2	fingr_simple	-0.006082705004175847	0.004518671200494958	MDTB
+fingr	sequence	16.0	motorSequence2	FingerSeq	0.0	1.0	fingr_sequence	15	ses-s2	fingr_sequence	0.00670073468048147	0.038959550570190106	MDTB
+mntalrot	easy	16.0	mentalRotation	MentalRotEasy	0.0	0.0	mntalrot_easy	16	ses-s2	mntalrot_easy	0.0070410440882464065	0.007861232716720443	MDTB
+mntalrot	med	16.0	mentalRotation	MentalRotMed	0.0	0.0	mntalrot_med	17	ses-s2	mntalrot_med	0.010226208782555988	0.008365105179538337	MDTB
+mntalrot	diff	16.0	mentalRotation	MentalRotDiff	0.0	0.0	mntalrot_diff	18	ses-s2	mntalrot_diff	0.021217561458214875	0.015714251930975174	MDTB
+nbckpic	2bcknrep	16.0	nBackPic2	Object0Back	0.0	1.0	nbckpic_2bcknrep	19	ses-s2	nbckpic_2bcknrep	-0.014825433362195689	0.0013411816363346249	MDTB
+nbckpic	2bckrep	16.0	nBackPic2	Object2Back	0.0	1.0	nbckpic_2bckrep	20	ses-s2	nbckpic_2bckrep	-0.01778831516627595	-0.016649530975339773	MDTB
+biomotion	normal	16.0	emotionProcess	BodyMotionIntact	0.0	0.0	biomotion_normal	21	ses-s2	biomotion_normal	-0.0037330705672920126	-0.010365036745434503	MDTB
+biomotion	scrambeled	16.0	emotionProcess	BodyMotionScram	0.0	0.0	biomotion_scrambeled	22	ses-s2	biomotion_scrambeled	0.006109963007334433	-0.007186321445509714	MDTB
+respalt	easy	16.0	respAlt	RespAltEasy	0.0	0.0	respalt_easy	23	ses-s2	respalt_easy	-0.006231112274111628	0.01340710424354315	MDTB
+respalt	med	16.0	respAlt	RespAltMed	0.0	0.0	respalt_med	24	ses-s2	respalt_med	-0.011039727276107737	0.014987857666111885	MDTB
+respalt	diff	16.0	respAlt	RespAltDiff	0.0	0.0	respalt_diff	25	ses-s2	respalt_diff	-0.00940608096696247	0.013522676812102846	MDTB
+vissearch	small	16.0	visualSearch2	VisualSearchSmall	0.0	1.0	vissearch_small	26	ses-s2	vissearch_small	-0.007946299568992312	-0.006248048223725795	MDTB
+vissearch	med	16.0	visualSearch2	VisualSearchMed	0.0	1.0	vissearch_med	27	ses-s2	vissearch_med	-0.01695695199763927	-0.010233522735660527	MDTB
+vissearch	large	16.0	visualSearch2	VisualSearchLarge	0.0	1.0	vissearch_large	28	ses-s2	vissearch_large	-0.0004168585850365587	0.0010862308598615705	MDTB
+tom	task	16.0	ToM2	ToM	0.0	1.0	tom_task	29	ses-s2	tom_task	0.012315586774779964	0.011260903875003801	MDTB
+actobserv	action	16.0	actionObservation2	VideoAct	0.0	1.0	actobserv_action	30	ses-s2	actobserv_action	0.027761114035895082	-0.014847150380188622	MDTB
+actobserv	knot	16.0	actionObservation2	VideoKnots	0.0	1.0	actobserv_knot	31	ses-s2	actobserv_knot	0.027226008984991723	-0.0034401046818544464	MDTB
+rest	task	16.0	rest2	rest	0.0	1.0	rest_task	32	ses-s2	rest_task	-0.028183828747147165	-0.015771174219439365	MDTB
+frcspeed	lf_ls	5.0	fs	LL			frcspeed_lf_ls	1	ses-01	frcspeed_lf_ls	0.011815411363153656	0.019824015635823675	WMFS
+frcspeed	lf_ms	5.0	fs	LM			frcspeed_lf_ms	2	ses-01	frcspeed_lf_ms	0.03817666275047877	0.044087502004237555	WMFS
+frcspeed	lf_hs	5.0	fs	LH			frcspeed_lf_hs	3	ses-01	frcspeed_lf_hs	0.06481811966426951	0.07169064915642283	WMFS
+frcspeed	mf_ls	5.0	fs	ML			frcspeed_mf_ls	4	ses-01	frcspeed_mf_ls	0.04370502490661876	0.04053817731811569	WMFS
+frcspeed	hf_ls	5.0	fs	HL			frcspeed_hf_ls	5	ses-01	frcspeed_hf_ls	0.0543250167924511	0.04048982324082216	WMFS
+wm	l2fencode	5.0	wm	L2F_encode			wm_l2fencode	1	ses-02	wm_l2fencode	0.03543460513996516	0.02199178681058512	WMFS
+wm	l2fretriev	5.0	wm	L2F_retriev			wm_l2fretriev	2	ses-02	wm_l2fretriev	0.07957606974396597	0.05201704543249473	WMFS
+wm	l2bencode	5.0	wm	L2B_encode			wm_l2bencode	3	ses-02	wm_l2bencode	0.03232763659584883	0.02443513131212935	WMFS
+wm	l2bretriev	5.0	wm	L2B_retriev			wm_l2bretriev	4	ses-02	wm_l2bretriev	0.08499558210919893	0.057626286821577305	WMFS
+wm	l4fencode	5.0	wm	L4F_encode			wm_l4fencode	5	ses-02	wm_l4fencode	0.03614739612547148	0.025092555739009162	WMFS
+wm	l4fretriev	5.0	wm	L4F_retriev			wm_l4fretriev	6	ses-02	wm_l4fretriev	0.08058269608471445	0.058583379680029225	WMFS
+wm	l4bencode	5.0	wm	L4B_encode			wm_l4bencode	7	ses-02	wm_l4bencode	0.05025585558276572	0.04460454693385511	WMFS
+wm	l4bretriev	5.0	wm	L4B_retriev			wm_l4bretriev	8	ses-02	wm_l4bretriev	0.08309125296531919	0.06710992530479874	WMFS
+wm	l6fencode	5.0	wm	L6F_encode			wm_l6fencode	9	ses-02	wm_l6fencode	0.056323896577479854	0.05864139564696772	WMFS
+wm	l6fretriev	5.0	wm	L6F_retriev			wm_l6fretriev	10	ses-02	wm_l6fretriev	0.06764337353818223	0.06047474993929415	WMFS
+wm	l6bencode	5.0	wm	L6B_encode			wm_l6bencode	11	ses-02	wm_l6bencode	0.07290971781315359	0.07643743775665317	WMFS
+wm	l6bretriev	5.0	wm	L6B_retriev			wm_l6bretriev	12	ses-02	wm_l6bretriev	0.0682592974580397	0.07081967415513817	WMFS
+archistandard	audiocomputation	2.0	ArchiStandard	audio_computation			archistandard_audiocomputation	1	ses-archi	archistandard_audiocomputation	-0.0003369481083527913	0.03751189264502707	IBC
+archistandard	audiolhand	2.0	ArchiStandard	audio_left_hand			archistandard_audiolhand	2	ses-archi	archistandard_audiolhand	0.035380313884086106	0.045981513519166635	IBC
+archistandard	audiorhand	2.0	ArchiStandard	audio_right_hand			archistandard_audiorhand	3	ses-archi	archistandard_audiorhand	0.10638930896284719	0.09912739805112078	IBC
+archistandard	audiosentence	2.0	ArchiStandard	audio_sentence			archistandard_audiosentence	4	ses-archi	archistandard_audiosentence	-0.04123676484373227	0.01684111480580818	IBC
+archistandard	horizontalcheckerboard	2.0	ArchiStandard	horizontal_checkerboard			archistandard_horizontalcheckerboard	5	ses-archi	archistandard_horizontalcheckerboard	0.057143678607995255	0.021527294829435197	IBC
+archistandard	verticalcheckerboard	2.0	ArchiStandard	vertical_checkerboard			archistandard_verticalcheckerboard	6	ses-archi	archistandard_verticalcheckerboard	0.023819674548259315	0.007663547528952641	IBC
+archistandard	videocomputation	2.0	ArchiStandard	video_computation			archistandard_videocomputation	7	ses-archi	archistandard_videocomputation	0.03890352340709664	0.05715036490948769	IBC
+archistandard	videolhand	2.0	ArchiStandard	video_left_hand			archistandard_videolhand	8	ses-archi	archistandard_videolhand	0.11695341523811362	0.11533606949391476	IBC
+archistandard	videorhand	2.0	ArchiStandard	video_right_hand			archistandard_videorhand	9	ses-archi	archistandard_videorhand	0.07078104188951076	0.10137869745825374	IBC
+archistandard	videosentence	2.0	ArchiStandard	video_sentence			archistandard_videosentence	10	ses-archi	archistandard_videosentence	0.009268753100137757	0.013543304037127701	IBC
+archispatial	objectgrasp	2.0	ArchiSpatial	object_grasp			archispatial_objectgrasp	11	ses-archi	archispatial_objectgrasp	0.025847470311969194	0.01335651762057072	IBC
+archispatial	objectorientation	2.0	ArchiSpatial	object_orientation			archispatial_objectorientation	12	ses-archi	archispatial_objectorientation	0.018476110734578152	0.007759304439919921	IBC
+archispatial	rotationhand	2.0	ArchiSpatial	rotation_hand			archispatial_rotationhand	13	ses-archi	archispatial_rotationhand	2.3072651657801907e-05	0.0017923951464313256	IBC
+archispatial	rotationside	2.0	ArchiSpatial	rotation_side			archispatial_rotationside	14	ses-archi	archispatial_rotationside	0.0007367200398227398	-0.005792312791951877	IBC
+archispatial	saccade	2.0	ArchiSpatial	saccade			archispatial_saccade	15	ses-archi	archispatial_saccade	0.008091073914024848	0.0006293892373560594	IBC
+archisocial	falsebeliefaudio	2.0	ArchiSocial	false_belief_audio			archisocial_falsebeliefaudio	16	ses-archi	archisocial_falsebeliefaudio	-0.01914423504077021	-0.01509895128015832	IBC
+archisocial	falsebeliefvideo	2.0	ArchiSocial	false_belief_video			archisocial_falsebeliefvideo	17	ses-archi	archisocial_falsebeliefvideo	0.011934469315983553	0.011561385737076478	IBC
+archisocial	mechanisticaudio	2.0	ArchiSocial	mechanistic_audio			archisocial_mechanisticaudio	18	ses-archi	archisocial_mechanisticaudio	-0.025232965723711104	-0.01864553782728791	IBC
+archisocial	mechanisticvideo	2.0	ArchiSocial	mechanistic_video			archisocial_mechanisticvideo	19	ses-archi	archisocial_mechanisticvideo	0.004178116065765097	0.008592137227202952	IBC
+archisocial	nonspeech	2.0	ArchiSocial	non_speech			archisocial_nonspeech	20	ses-archi	archisocial_nonspeech	-0.020593832774377076	-0.005800288277359644	IBC
+archisocial	speech	2.0	ArchiSocial	speech			archisocial_speech	21	ses-archi	archisocial_speech	-0.025101089403054992	-0.015426931329151914	IBC
+archisocial	triangleintention	2.0	ArchiSocial	triangle_intention			archisocial_triangleintention	22	ses-archi	archisocial_triangleintention	0.005128125215644719	-0.0006797811496711318	IBC
+archisocial	trianglerandom	2.0	ArchiSocial	triangle_random			archisocial_trianglerandom	23	ses-archi	archisocial_trianglerandom	-0.014258064406530137	-0.008265256558589907	IBC
+archiemotional	expressioncontrol	2.0	ArchiEmotional	expression_control			archiemotional_expressioncontrol	24	ses-archi	archiemotional_expressioncontrol	0.014406509907202556	0.003056406994389234	IBC
+archiemotional	expressiongender	2.0	ArchiEmotional	expression_gender			archiemotional_expressiongender	25	ses-archi	archiemotional_expressiongender	-0.004515784513943841	-0.010679625654372266	IBC
+archiemotional	expressionintention	2.0	ArchiEmotional	expression_intention			archiemotional_expressionintention	26	ses-archi	archiemotional_expressionintention	-0.004394462157971918	-0.008056983939735843	IBC
+archiemotional	facecontrol	2.0	ArchiEmotional	face_control			archiemotional_facecontrol	27	ses-archi	archiemotional_facecontrol	-0.00194101611047439	-0.0042816264537705005	IBC
+archiemotional	facegender	2.0	ArchiEmotional	face_gender			archiemotional_facegender	28	ses-archi	archiemotional_facegender	0.0023793037461672054	-0.0006592408593324318	IBC
+archiemotional	facetrusty	2.0	ArchiEmotional	face_trusty			archiemotional_facetrusty	29	ses-archi	archiemotional_facetrusty	0.004387019926237381	-0.0016479092341655486	IBC
+wedge	leftmeridian	4.0	Wedge	left_meridian			wedge_leftmeridian	1	ses-clips4	wedge_leftmeridian	-0.04289211177683017	-0.019321556683658536	IBC
+wedge	lowerleft	4.0	Wedge	lower_left			wedge_lowerleft	2	ses-clips4	wedge_lowerleft	-0.04306119020847448	-0.02068516624581142	IBC
+wedge	lowermeridian	4.0	Wedge	lower_meridian			wedge_lowermeridian	3	ses-clips4	wedge_lowermeridian	-0.04755930573083746	-0.02196027723658941	IBC
+wedge	lowerright	4.0	Wedge	lower_right			wedge_lowerright	4	ses-clips4	wedge_lowerright	-0.04717439975691336	-0.0211271515237822	IBC
+wedge	rightmeridian	4.0	Wedge	right_meridian			wedge_rightmeridian	5	ses-clips4	wedge_rightmeridian	-0.046011372195108695	-0.01949901231175074	IBC
+wedge	upperleft	4.0	Wedge	upper_left			wedge_upperleft	6	ses-clips4	wedge_upperleft	-0.04557899259632452	-0.0198678212035152	IBC
+wedge	uppermeridian	4.0	Wedge	upper_meridian			wedge_uppermeridian	7	ses-clips4	wedge_uppermeridian	-0.05167585474603971	-0.022184569318040977	IBC
+wedge	upperright	4.0	Wedge	upper_right			wedge_upperright	8	ses-clips4	wedge_upperright	-0.049871383104876335	-0.020429347548379488	IBC
+ring	foveal	2.0	Ring	foveal			ring_foveal	9	ses-clips4	ring_foveal	-0.030645746087108027	-0.02500079402855094	IBC
+ring	middle	2.0	Ring	middle			ring_middle	10	ses-clips4	ring_middle	-0.04821660966758755	-0.027487186144944775	IBC
+ring	peripheral	2.0	Ring	peripheral			ring_peripheral	11	ses-clips4	ring_peripheral	-0.04459478361337306	-0.026065427712381434	IBC
+vstm	response1	4.0	VSTM	vstm_response_num_1			vstm_response1	1	ses-enumeration	vstm_response1	0.05660699540712575	0.08194453749956677	IBC
+vstm	response2	4.0	VSTM	vstm_response_num_2			vstm_response2	2	ses-enumeration	vstm_response2	0.05399566885554104	0.09035876636941745	IBC
+vstm	response3	4.0	VSTM	vstm_response_num_3			vstm_response3	3	ses-enumeration	vstm_response3	0.04672889006628648	0.09025903433076678	IBC
+vstm	response4	4.0	VSTM	vstm_response_num_4			vstm_response4	4	ses-enumeration	vstm_response4	0.05771247761371279	0.08509532566176026	IBC
+vstm	response5	4.0	VSTM	vstm_response_num_5			vstm_response5	5	ses-enumeration	vstm_response5	0.051041984599762925	0.08560327303517237	IBC
+vstm	response6	4.0	VSTM	vstm_response_num_6			vstm_response6	6	ses-enumeration	vstm_response6			IBC
+enumeration	response1	2.0	Enumeration	enumeration_response_num_1			enumeration_response1	7	ses-enumeration	enumeration_response1	0.12477197639699827	0.12167903945655438	IBC
+enumeration	response2	2.0	Enumeration	enumeration_response_num_2			enumeration_response2	8	ses-enumeration	enumeration_response2	0.1220403180372191	0.14151588860814682	IBC
+enumeration	response3	2.0	Enumeration	enumeration_response_num_3			enumeration_response3	9	ses-enumeration	enumeration_response3	0.1023548929044902	0.12809332613519708	IBC
+enumeration	response4	2.0	Enumeration	enumeration_response_num_4			enumeration_response4	10	ses-enumeration	enumeration_response4	0.1339026351773894	0.14580428597701794	IBC
+enumeration	response5	2.0	Enumeration	enumeration_response_num_5			enumeration_response5	11	ses-enumeration	enumeration_response5	0.1376843170148881	0.15114174439251818	IBC
+enumeration	response6	2.0	Enumeration	enumeration_response_num_6			enumeration_response6	12	ses-enumeration	enumeration_response6	0.12751587930323874	0.14366959488160622	IBC
+enumeration	response7	2.0	Enumeration	enumeration_response_num_7			enumeration_response7	13	ses-enumeration	enumeration_response7	0.1453976854528255	0.15894975587106108	IBC
+enumeration	response8	2.0	Enumeration	enumeration_response_num_8			enumeration_response8	14	ses-enumeration	enumeration_response8	0.11141726378718207	0.13375778145556522	IBC
+hcpemotion	faces	2.0	HcpEmotion	face			hcpemotion_faces	1	ses-hcp1	hcpemotion_faces	-0.010929878113601332	0.007425660979902899	IBC
+hcpemotion	shapes	2.0	HcpEmotion	shape			hcpemotion_shapes	2	ses-hcp1	hcpemotion_shapes	-0.01829806975018998	0.014525149053064018	IBC
+hcpgamble	neutral	2.0	HcpGambling	neutral			hcpgamble_neutral	3	ses-hcp1	hcpgamble_neutral	0.028186780667518296	0.031176278659323337	IBC
+hcpgamble	punish	2.0	HcpGambling	punishment			hcpgamble_punish	4	ses-hcp1	hcpgamble_punish	0.011650534222998242	0.01798998633894243	IBC
+hcpgamble	reward	2.0	HcpGambling	reward			hcpgamble_reward	5	ses-hcp1	hcpgamble_reward	0.025524576441121282	0.026721043669772928	IBC
+motor	cue	2.0	HcpMotor	cue			motor_cue	6	ses-hcp1	motor_cue	0.17284881823317902	0.09464933785356273	IBC
+motor	lfoot	2.0	HcpMotor	left_foot			motor_lfoot	7	ses-hcp1	motor_lfoot	0.015909096456292546	0.008005092183261744	IBC
+motor	lhand	2.0	HcpMotor	left_hand			motor_lhand	8	ses-hcp1	motor_lhand	-0.009566612191640768	-0.0021470000325110473	IBC
+motor	rfoot	2.0	HcpMotor	right_foot			motor_rfoot	9	ses-hcp1	motor_rfoot	0.015673840352540696	0.012878723268645547	IBC
+motor	rhand	2.0	HcpMotor	right_hand			motor_rhand	10	ses-hcp1	motor_rhand	0.00939459907625216	0.01317804773293315	IBC
+motor	tongue	2.0	HcpMotor	tongue			motor_tongue	11	ses-hcp1	motor_tongue	0.01140197663679867	-0.01203202453696232	IBC
+hcplanguage	math	2.0	HcpLanguage	math			hcplanguage_math	12	ses-hcp1	hcplanguage_math	-0.007590647085110811	0.01599857718530008	IBC
+hcplanguage	story	2.0	HcpLanguage	story			hcplanguage_story	13	ses-hcp1	hcplanguage_story	-0.007901290629468826	0.009022030266408307	IBC
+hcprelation	match	2.0	HcpRelational	control			hcprelation_match	1	ses-hcp2	hcprelation_match	-0.006452549873242262	0.007814083116938061	IBC
+hcprelation	rel	2.0	HcpRelational	relational			hcprelation_rel	2	ses-hcp2	hcprelation_rel	-0.009055021081534612	0.009451139282709999	IBC
+hcpsocial	tom	2.0	HcpSocial	mental			hcpsocial_tom	3	ses-hcp2	hcpsocial_tom	0.04958041705010616	0.02426380800781818	IBC
+hcpsocial	random	2.0	HcpSocial	random			hcpsocial_random	4	ses-hcp2	hcpsocial_random	0.04282397920354228	0.01818083685180576	IBC
+hcpwm	0bckbody	2.0	HcpWm	0back_body			hcpwm_0bckbody	5	ses-hcp2	hcpwm_0bckbody	0.0127163992691061	0.01805811357863867	IBC
+hcpwm	0bckface	2.0	HcpWm	0back_face			hcpwm_0bckface	6	ses-hcp2	hcpwm_0bckface	0.0170731073054708	0.01398148776070696	IBC
+hcpwm	0bckplace	2.0	HcpWm	0back_place			hcpwm_0bckplace	7	ses-hcp2	hcpwm_0bckplace	0.00524548966109302	0.003410357643520396	IBC
+hcpwm	0bcktool	2.0	HcpWm	0back_tools			hcpwm_0bcktool	8	ses-hcp2	hcpwm_0bcktool	0.0047304773608503724	0.006273372653885366	IBC
+hcpwm	2bckbody	2.0	HcpWm	2back_body			hcpwm_2bckbody	9	ses-hcp2	hcpwm_2bckbody	0.011573351390002764	0.02582127723738206	IBC
+hcpwm	2bckface	2.0	HcpWm	2back_face			hcpwm_2bckface	10	ses-hcp2	hcpwm_2bckface	0.005765062767899956	0.023725951194833693	IBC
+hcpwm	2bckplace	2.0	HcpWm	2back_place			hcpwm_2bckplace	11	ses-hcp2	hcpwm_2bckplace	0.014300541974291477	0.02709444375662967	IBC
+hcpwm	2bcktool	2.0	HcpWm	2back_tools			hcpwm_2bcktool	12	ses-hcp2	hcpwm_2bcktool	0.0073319718732356935	0.017011767130424297	IBC
+ibc-motor	lfinger	2.0	Moto	finger_left			ibc-motor_lfinger	1	ses-lyon1	ibc-motor_lfinger	-0.20715900997088244	-0.05780502145894502	IBC
+ibc-motor	rfinger	2.0	Moto	finger_right			ibc-motor_rfinger	2	ses-lyon1	ibc-motor_rfinger	-0.16010187902488554	-0.05129880094336035	IBC
+ibc-motor	lfixation	2.0	Moto	fixation_left			ibc-motor_lfixation	3	ses-lyon1	ibc-motor_lfixation	-0.1952768999034455	-0.10728984642865944	IBC
+ibc-motor	rfixation	2.0	Moto	fixation_right			ibc-motor_rfixation	4	ses-lyon1	ibc-motor_rfixation	-0.1379975652516408	-0.048476522847600366	IBC
+ibc-motor	lfoot	2.0	Moto	foot_left			ibc-motor_lfoot	5	ses-lyon1	ibc-motor_lfoot	-0.15226035119893935	-0.04710008786159875	IBC
+ibc-motor	rfoot	2.0	Moto	foot_right			ibc-motor_rfoot	6	ses-lyon1	ibc-motor_rfoot	-0.12175691402411445	-0.022543747793358108	IBC
+ibc-motor	lhand	2.0	Moto	hand_left			ibc-motor_lhand	7	ses-lyon1	ibc-motor_lhand	-0.15240234910339492	-0.049036291542546	IBC
+ibc-motor	rhand	2.0	Moto	hand_right			ibc-motor_rhand	8	ses-lyon1	ibc-motor_rhand	-0.130103466262752	-0.028774783849736033	IBC
+ibc-motor	lsaccade	2.0	Moto	saccade_left			ibc-motor_lsaccade	9	ses-lyon1	ibc-motor_lsaccade	-0.15616494972696165	-0.024206429024315107	IBC
+ibc-motor	rsaccade	2.0	Moto	saccade_right			ibc-motor_rsaccade	10	ses-lyon1	ibc-motor_rsaccade	-0.12291084429176162	0.0012569442853183174	IBC
+ibc-motor	ltongue	2.0	Moto	tongue_left			ibc-motor_ltongue	11	ses-lyon1	ibc-motor_ltongue	-0.14374122806908302	-0.1443468925292427	IBC
+ibc-motor	rtongue	2.0	Moto	tongue_right			ibc-motor_rtongue	12	ses-lyon1	ibc-motor_rtongue	-0.13377701692548988	-0.17551110852398033	IBC
+mcse	highsalienceleft	2.0	MCSE	high_salience_left			mcse_highsalienceleft	13	ses-lyon1	mcse_highsalienceleft	0.05706813932808391	0.028790720370374716	IBC
+mcse	highsalienceright	2.0	MCSE	high_salience_right			mcse_highsalienceright	14	ses-lyon1	mcse_highsalienceright	0.036543973084686904	0.01999944528800663	IBC
+mcse	lowsalienceleft	2.0	MCSE	low_salience_left			mcse_lowsalienceleft	15	ses-lyon1	mcse_lowsalienceleft	0.05640611431811272	0.05746324308444271	IBC
+mcse	lowsalienceright	2.0	MCSE	low_salience_right			mcse_lowsalienceright	16	ses-lyon1	mcse_lowsalienceright	0.04452077642022757	0.05117232165252148	IBC
+mveb	2lettersdifferent	2.0	MVEB	2_letters_different			mveb_2lettersdifferent	17	ses-lyon1	mveb_2lettersdifferent	-0.05162023630246405	-0.015489430602272963	IBC
+mveb	2letterssame	2.0	MVEB	2_letters_same			mveb_2letterssame	18	ses-lyon1	mveb_2letterssame	-0.02657956904053377	0.013170424109034047	IBC
+mveb	4lettersdifferent	2.0	MVEB	4_letters_different			mveb_4lettersdifferent	19	ses-lyon1	mveb_4lettersdifferent	-0.017945797966332073	0.006258085019857114	IBC
+mveb	4letterssame	2.0	MVEB	4_letters_same			mveb_4letterssame	20	ses-lyon1	mveb_4letterssame	-0.06564154973884234	-0.13073886280350253	IBC
+mveb	6letterssame	2.0	MVEB	6_letters_same			mveb_6letterssame	21	ses-lyon1	mveb_6letterssame	-0.005078878367163631	0.05243061024862265	IBC
+mveb	6lettersdifferent	2.0	MVEB	6_letters_different			mveb_6lettersdifferent	22	ses-lyon1	mveb_6lettersdifferent	-0.0536273969758804	-0.0004914292376298777	IBC
+mveb	pstartup	2.0	MVEB	p_startup			mveb_pstartup	23	ses-lyon1	mveb_pstartup	0.028344758814143143	0.012344519909651111	IBC
+mveb	response	2.0	MVEB	response			mveb_response	24	ses-lyon1	mveb_response	0.08758541769512321	0.1149224372026124	IBC
+mvis	2dots	2.0	MVIS	2_dots			mvis_2dots	25	ses-lyon1	mvis_2dots	-0.09534464632071779	-0.03776322635517869	IBC
+mvis	2dotscontrol	2.0	MVIS	2_dots_control			mvis_2dotscontrol	26	ses-lyon1	mvis_2dotscontrol	-0.09901943278885995	-0.03566855855767659	IBC
+mvis	4dots	2.0	MVIS	4_dots			mvis_4dots	27	ses-lyon1	mvis_4dots	-0.08289397603623305	-0.0326061183636907	IBC
+mvis	4dotscontrol	2.0	MVIS	4_dots_control			mvis_4dotscontrol	28	ses-lyon1	mvis_4dotscontrol	-0.05266829470845958	-0.010569036466728066	IBC
+mvis	6dots	2.0	MVIS	6_dots			mvis_6dots	29	ses-lyon1	mvis_6dots	0.007528917900614955	0.02459655969291778	IBC
+mvis	6dotscontrol	2.0	MVIS	6_dots_control			mvis_6dotscontrol	30	ses-lyon1	mvis_6dotscontrol	-0.0012926795830890472	0.00854170313011071	IBC
+mvis	pstartup	2.0	MVIS	p_startup			mvis_pstartup	31	ses-lyon1	mvis_pstartup	0.0034913871748798115	-0.006240314028452841	IBC
+mvis	response	2.0	MVIS	response			mvis_response	32	ses-lyon1	mvis_response	-0.0009114009959131419	0.011772046617925474	IBC
+lec1	pseudoword	2.0	Lec1	pseudoword			lec1_pseudoword	1	ses-lyon2	lec1_pseudoword	0.01885260574138568	0.026036714515360476	IBC
+lec1	random_string	2.0	Lec1	random_string			lec1_random_string	2	ses-lyon2	lec1_random_string	0.0026937586305588908	0.003577388543183732	IBC
+lec1	word	2.0	Lec1	word			lec1_word	3	ses-lyon2	lec1_word	0.008898359638760041	0.01366841310921188	IBC
+lec2	attend	2.0	Lec2	attend			lec2_attend	4	ses-lyon2	lec2_attend	-0.0366357918710839	-0.025954764735046532	IBC
+lec2	unattend	2.0	Lec2	unattend			lec2_unattend	5	ses-lyon2	lec2_unattend	-0.006644670404862484	-0.024703163292858807	IBC
+audi	alphabet	2.0	Audi	alphabet			audi_alphabet	6	ses-lyon2	audi_alphabet	0.007973854535960032	0.005548087282303326	IBC
+audi	animals	2.0	Audi	animals			audi_animals	7	ses-lyon2	audi_animals	-0.003096425890969389	-0.0038576486046797416	IBC
+audi	cough	2.0	Audi	cough			audi_cough	8	ses-lyon2	audi_cough	0.00027476025737074904	-0.005295921898025654	IBC
+audi	environment	2.0	Audi	environment			audi_environment	9	ses-lyon2	audi_environment	0.0003841760384100236	-0.002062221267807702	IBC
+audi	human	2.0	Audi	human			audi_human	10	ses-lyon2	audi_human	-0.0013119419599399765	0.0012255117155000478	IBC
+audi	laugh	2.0	Audi	laugh			audi_laugh	11	ses-lyon2	audi_laugh	-0.0004492562787114721	-0.0013940996984389158	IBC
+audi	music	2.0	Audi	music			audi_music	12	ses-lyon2	audi_music	-0.006282460715493399	-0.0009260773979203674	IBC
+audi	reverse	2.0	Audi	reverse			audi_reverse	13	ses-lyon2	audi_reverse	0.008360752838352527	0.0005013158864599799	IBC
+audi	silence	2.0	Audi	silence			audi_silence	14	ses-lyon2	audi_silence	-0.0007590762330396487	-0.0014632858085703014	IBC
+audi	speech	2.0	Audi	speech			audi_speech	15	ses-lyon2	audi_speech	0.0020438602062435663	0.0013814537602833278	IBC
+audi	suomi	2.0	Audi	suomi			audi_suomi	16	ses-lyon2	audi_suomi	-7.753451153433443e-06	-0.00621798080839924	IBC
+audi	tear	2.0	Audi	tear			audi_tear	17	ses-lyon2	audi_tear	-0.005206375756611808	-0.0014817369627695871	IBC
+audi	yawn	2.0	Audi	yawn			audi_yawn	18	ses-lyon2	audi_yawn	-0.0060502977229534675	-0.002039388309033115	IBC
+visu	animal	2.0	Visu	animal			visu_animal	19	ses-lyon2	visu_animal	-0.040583975513698724	-0.032661380043236626	IBC
+visu	characters	2.0	Visu	characters			visu_characters	20	ses-lyon2	visu_characters	-0.11642518367920324	-0.059060322008298326	IBC
+visu	face	2.0	Visu	face			visu_face	21	ses-lyon2	visu_face	-0.1530119413121264	-0.11308256371662362	IBC
+visu	house	2.0	Visu	house			visu_house	22	ses-lyon2	visu_house	-0.03178340596879685	-0.04483371800516903	IBC
+visu	pseudoword	2.0	Visu	pseudoword			visu_pseudoword	23	ses-lyon2	visu_pseudoword	-0.05596765535462732	-0.044596080240227716	IBC
+visu	scene	2.0	Visu	scene			visu_scene	24	ses-lyon2	visu_scene	-0.09957110388947546	-0.1279097269488836	IBC
+visu	scrambled	2.0	Visu	scrambled			visu_scrambled	25	ses-lyon2	visu_scrambled	-0.08210965031400837	-0.09339282328163512	IBC
+visu	targetfruit	2.0	Visu	target_fruit			visu_targetfruit	26	ses-lyon2	visu_targetfruit	0.20300715396216387	0.18709865474670365	IBC
+visu	tool	2.0	Visu	tool			visu_tool	27	ses-lyon2	visu_tool	-0.10736155472768186	-0.1310830020526104	IBC
+mathlanguage	arithmeticfactauditory	7.0	MathLanguage	arithmetic_fact_auditory			mathlanguage_arithmeticfactauditory	1	ses-mathlang	mathlanguage_arithmeticfactauditory	0.0019438591775395254	-0.0020932512864899264	IBC
+mathlanguage	arithmeticfactvisual	7.0	MathLanguage	arithmetic_fact_visual			mathlanguage_arithmeticfactvisual	2	ses-mathlang	mathlanguage_arithmeticfactvisual	-0.0019341095708831206	-0.011069261173304647	IBC
+mathlanguage	arithmeticprincipleauditory	7.0	MathLanguage	arithmetic_principle_auditory			mathlanguage_arithmeticprincipleauditory	3	ses-mathlang	mathlanguage_arithmeticprincipleauditory	-0.004263053990554162	-0.01140954555762671	IBC
+mathlanguage	arithmeticprinciplevisual	7.0	MathLanguage	arithmetic_principle_visual			mathlanguage_arithmeticprinciplevisual	4	ses-mathlang	mathlanguage_arithmeticprinciplevisual	-0.00684302310390854	-0.014113643503147576	IBC
+mathlanguage	colorlessgauditory	7.0	MathLanguage	colorlessg_auditory			mathlanguage_colorlessgauditory	5	ses-mathlang	mathlanguage_colorlessgauditory	-0.001198368486733507	-0.011833192435067821	IBC
+mathlanguage	colorlessgvisual	7.0	MathLanguage	colorlessg_visual			mathlanguage_colorlessgvisual	6	ses-mathlang	mathlanguage_colorlessgvisual	-0.0038845111264444007	-0.007135110073927744	IBC
+mathlanguage	contextauditory	7.0	MathLanguage	context_auditory			mathlanguage_contextauditory	7	ses-mathlang	mathlanguage_contextauditory	-0.0021344353397283185	-0.009800456669243587	IBC
+mathlanguage	contextvisual	7.0	MathLanguage	context_visual			mathlanguage_contextvisual	8	ses-mathlang	mathlanguage_contextvisual	-0.012762748638959409	-0.008705221796581534	IBC
+mathlanguage	generalauditory	7.0	MathLanguage	general_auditory			mathlanguage_generalauditory	9	ses-mathlang	mathlanguage_generalauditory	-0.005084192570558292	-0.007026918199023831	IBC
+mathlanguage	generalvisual	7.0	MathLanguage	general_visual			mathlanguage_generalvisual	10	ses-mathlang	mathlanguage_generalvisual	-0.014424229973094003	-0.0201001335506615	IBC
+mathlanguage	geometryfactauditory	7.0	MathLanguage	geometry_fact_auditory			mathlanguage_geometryfactauditory	11	ses-mathlang	mathlanguage_geometryfactauditory	-0.0027593004004656525	-0.010373636312351296	IBC
+mathlanguage	geometryfactvisual	7.0	MathLanguage	geometry_fact_visual			mathlanguage_geometryfactvisual	12	ses-mathlang	mathlanguage_geometryfactvisual	0.0036768493223985014	-0.011222892725406055	IBC
+mathlanguage	tomauditory	7.0	MathLanguage	theory_of_mind_auditory			mathlanguage_tomauditory	13	ses-mathlang	mathlanguage_tomauditory	-0.017479220416722483	-0.01759380757954144	IBC
+mathlanguage	tomvisual	7.0	MathLanguage	theory_of_mind_visual			mathlanguage_tomvisual	14	ses-mathlang	mathlanguage_tomvisual	0.004821942857757341	-0.007931778539901202	IBC
+mathlanguage	wordlistauditory	7.0	MathLanguage	wordlist_auditory			mathlanguage_wordlistauditory	15	ses-mathlang	mathlanguage_wordlistauditory	-0.004899712540285484	-0.016770272620565706	IBC
+mathlanguage	wordlistvisual	7.0	MathLanguage	wordlist_visual			mathlanguage_wordlistvisual	16	ses-mathlang	mathlanguage_wordlistvisual	0.002059530320183094	-0.0018857895514432957	IBC
+mttwe	weaftercloseevent	3.0	MTTWE	we_after_close_event			mttwe_weaftercloseevent	1	ses-mtt1	mttwe_weaftercloseevent	0.03736072376623119	0.061077213247957264	IBC
+mttwe	weafterfarevent	3.0	MTTWE	we_after_far_event			mttwe_weafterfarevent	2	ses-mtt1	mttwe_weafterfarevent	0.03342135509303835	0.04174604009673651	IBC
+mttwe	wealleventresponse	3.0	MTTWE	we_all_event_response			mttwe_wealleventresponse	3	ses-mtt1	mttwe_wealleventresponse	-0.01924302000760551	0.009310197882101804	IBC
+mttwe	weallreference	3.0	MTTWE	we_all_reference			mttwe_weallreference	4	ses-mtt1	mttwe_weallreference	0.02692589322461303	0.03937350614783348	IBC
+mttwe	weallspacecue	3.0	MTTWE	we_all_space_cue			mttwe_weallspacecue	5	ses-mtt1	mttwe_weallspacecue	-0.00024188820421068533	0.03524172035289046	IBC
+mttwe	wealltimecue	3.0	MTTWE	we_all_time_cue			mttwe_wealltimecue	6	ses-mtt1	mttwe_wealltimecue	-0.0020044319877870116	0.03359887210047194	IBC
+mttwe	webeforecloseevent	3.0	MTTWE	we_before_close_event			mttwe_webeforecloseevent	7	ses-mtt1	mttwe_webeforecloseevent	0.03330649492255697	0.04850701577991505	IBC
+mttwe	webeforefarevent	3.0	MTTWE	we_before_far_event			mttwe_webeforefarevent	8	ses-mtt1	mttwe_webeforefarevent	0.031247641548216853	0.043155810773588946	IBC
+mttwe	weeastsidecloseevent	3.0	MTTWE	we_eastside_close_event			mttwe_weeastsidecloseevent	9	ses-mtt1	mttwe_weeastsidecloseevent	0.009130231229010738	0.02645134443061105	IBC
+mttwe	weeastsidefarevent	3.0	MTTWE	we_eastside_far_event			mttwe_weeastsidefarevent	10	ses-mtt1	mttwe_weeastsidefarevent	0.02741369534891151	0.036710733622192154	IBC
+mttwe	wewestsidecloseevent	3.0	MTTWE	we_westside_close_event			mttwe_wewestsidecloseevent	11	ses-mtt1	mttwe_wewestsidecloseevent	0.029156431627378177	0.037354082120220025	IBC
+mttwe	wewestsidefarevent	3.0	MTTWE	we_westside_far_event			mttwe_wewestsidefarevent	12	ses-mtt1	mttwe_wewestsidefarevent	0.02840131558515461	0.03723578424519151	IBC
+mttns	snaftercloseevent	3.0	MTTNS	sn_after_close_event			mttns_snaftercloseevent	1	ses-mtt2	mttns_snaftercloseevent	0.04290008331530386	0.05942937371880124	IBC
+mttns	snafterfarevent	3.0	MTTNS	sn_after_far_event			mttns_snafterfarevent	2	ses-mtt2	mttns_snafterfarevent	0.011159201480470627	0.03313954205025825	IBC
+mttns	snalleventresponse	3.0	MTTNS	sn_all_event_response			mttns_snalleventresponse	3	ses-mtt2	mttns_snalleventresponse	-0.005959442952002879	0.021165302753327484	IBC
+mttns	snallreference	3.0	MTTNS	sn_all_reference			mttns_snallreference	4	ses-mtt2	mttns_snallreference	0.02568381890146939	0.050430507978753036	IBC
+mttns	snallspacecue	3.0	MTTNS	sn_all_space_cue			mttns_snallspacecue	5	ses-mtt2	mttns_snallspacecue	-0.0072321187466199525	0.039327959776751846	IBC
+mttns	snalltimecue	3.0	MTTNS	sn_all_time_cue			mttns_snalltimecue	6	ses-mtt2	mttns_snalltimecue	0.006557848898988401	0.031260681378421466	IBC
+mttns	snbeforecloseevent	3.0	MTTNS	sn_before_close_event			mttns_snbeforecloseevent	7	ses-mtt2	mttns_snbeforecloseevent	0.03597724708269604	0.05077911166758112	IBC
+mttns	snbeforefarevent	3.0	MTTNS	sn_before_far_event			mttns_snbeforefarevent	8	ses-mtt2	mttns_snbeforefarevent	0.01559962983025479	0.03076378269908714	IBC
+mttns	snnorthsidecloseevent	3.0	MTTNS	sn_northside_close_event			mttns_snnorthsidecloseevent	9	ses-mtt2	mttns_snnorthsidecloseevent	0.008134278928548316	0.029536301362383482	IBC
+mttns	snnorthsidefarevent	3.0	MTTNS	sn_northside_far_event			mttns_snnorthsidefarevent	10	ses-mtt2	mttns_snnorthsidefarevent	0.0305632295375427	0.044285861639796704	IBC
+mttns	snsouthsidecloseevent	3.0	MTTNS	sn_southside_close_event			mttns_snsouthsidecloseevent	11	ses-mtt2	mttns_snsouthsidecloseevent	0.001241137212394883	0.01921756982816391	IBC
+mttns	snsouthsidefarevent	3.0	MTTNS	sn_southside_far_event			mttns_snsouthsidefarevent	12	ses-mtt2	mttns_snsouthsidefarevent	0.021801101762058694	0.036403624813037695	IBC
+preferencefood	foodconstant	2.0	PreferenceFood	food_constant			preferencefood_foodconstant	1	ses-preference	preferencefood_foodconstant	0.055567624269148755	0.04717750902915675	IBC
+preferencepaintings	paintingconstant	2.0	PreferencePaintings	painting_constant			preferencepaintings_paintingconstant	2	ses-preference	preferencepaintings_paintingconstant	0.05558735092456769	0.04669319838930801	IBC
+preferencefaces	faceconstant	2.0	PreferenceFaces	face_constant			preferencefaces_faceconstant	3	ses-preference	preferencefaces_faceconstant	0.048073646194399494	0.04548474731786197	IBC
+preferencehouses	houseconstant	2.0	PreferenceHouses	house_constant			preferencehouses_houseconstant	4	ses-preference	preferencehouses_houseconstant	0.05867571268597233	0.046473150298338116	IBC
+rsvpLanguage	complexsentence	6.0	RSVPLanguage	complex_sentence			rsvpLanguage_complexsentence	1	ses-rsvplanguage	rsvpLanguage_complexsentence	-0.03896412259196172	-0.055648091101232866	IBC
+rsvpLanguage	consonantstring	6.0	RSVPLanguage	consonant_string			rsvpLanguage_consonantstring	2	ses-rsvplanguage	rsvpLanguage_consonantstring	-0.018365748133405885	-0.03870702794922146	IBC
+rsvpLanguage	jabberwocky	6.0	RSVPLanguage	jabberwocky			rsvpLanguage_jabberwocky	3	ses-rsvplanguage	rsvpLanguage_jabberwocky	-0.03548919808661227	-0.046111076678790004	IBC
+rsvpLanguage	probe	6.0	RSVPLanguage	probe			rsvpLanguage_probe	4	ses-rsvplanguage	rsvpLanguage_probe	0.12167839628999712	0.11497398020574871	IBC
+rsvpLanguage	pseudowordlist	6.0	RSVPLanguage	pseudoword_list			rsvpLanguage_pseudowordlist	5	ses-rsvplanguage	rsvpLanguage_pseudowordlist	-0.039998792985125355	-0.04993217093838065	IBC
+rsvpLanguage	simplesentence	6.0	RSVPLanguage	simple_sentence			rsvpLanguage_simplesentence	6	ses-rsvplanguage	rsvpLanguage_simplesentence	-0.03959179218430672	-0.052680581641077646	IBC
+rsvpLanguage	wordlist	6.0	RSVPLanguage	word_list			rsvpLanguage_wordlist	7	ses-rsvplanguage	rsvpLanguage_wordlist	-0.02680660614916377	-0.044833999620196005	IBC
+spatialnavigation	control	7.0	SpatialNavigation	control			spatialnavigation_control	1	ses-spatialnavigation	spatialnavigation_control	0.03235439086185955	0.005426480432720155	IBC
+spatialnavigation	experimental	7.0	SpatialNavigation	experimental			spatialnavigation_experimental	2	ses-spatialnavigation	spatialnavigation_experimental	0.04275996991096105	0.020528891786532295	IBC
+spatialnavigation	intersection	7.0	SpatialNavigation	intersection			spatialnavigation_intersection	3	ses-spatialnavigation	spatialnavigation_intersection	0.032488827901967346	0.01881077561468938	IBC
+spatialnavigation	navigation	7.0	SpatialNavigation	navigation			spatialnavigation_navigation	4	ses-spatialnavigation	spatialnavigation_navigation	0.03445259908206767	0.01438118275232648	IBC
+spatialnavigation	pointingcontrol	7.0	SpatialNavigation	pointing_control			spatialnavigation_pointingcontrol	5	ses-spatialnavigation	spatialnavigation_pointingcontrol	0.048843283172558	0.04473109827069116	IBC
+spatialnavigation	pointingexperimental	7.0	SpatialNavigation	pointing_experimental			spatialnavigation_pointingexperimental	6	ses-spatialnavigation	spatialnavigation_pointingexperimental	0.041570901407679654	0.048526258752661366	IBC
+TheoryOfMind	belief	2.0	TheoryOfMind	belief			TheoryOfMind_belief	1	ses-tom	TheoryOfMind_belief	0.03750649310703583	0.02435170664078057	IBC
+TheoryOfMind	photo	2.0	TheoryOfMind	photo			TheoryOfMind_photo	2	ses-tom	TheoryOfMind_photo	0.029542162240567413	0.016719080966775303	IBC
+emotionalpain	emotionalpain	2.0	EmotionalPain	emotional_pain			emotionalpain_emotionalpain	3	ses-tom	emotionalpain_emotionalpain	0.036008373146717655	0.023321049194698906	IBC
+emotionalpain	physicalpain	2.0	EmotionalPain	physical_pain			emotionalpain_physicalpain	4	ses-tom	emotionalpain_physicalpain	0.03348767302647432	0.018115011074162274	IBC
+painmovie	mental	2.0	PainMovie	mental			painmovie_mental	5	ses-tom	painmovie_mental	0.005222854471336293	0.0016339979068618106	IBC
+painmovie	pain	2.0	PainMovie	pain			painmovie_pain	6	ses-tom	painmovie_pain	0.0011785895631896562	0.002445452416687566	IBC
+dmndnbck	e_face	4.0	n_back	nback_E_face			dmndnbck_e_face	1	ses-01	dmndnbck_e_face	0.03532631678645634	0.011062019677359664	Demand
+dmndnbck	e_house	4.0	n_back	nback_E_house			dmndnbck_e_house	2	ses-01	dmndnbck_e_house	0.05677271896049454	0.01040872382051652	Demand
+dmndnbck	h_face	4.0	n_back	nback_H_face			dmndnbck_h_face	3	ses-01	dmndnbck_h_face	0.05931926286473512	0.042689026995129116	Demand
+dmndnbck	h_house	4.0	n_back	nback_H_house			dmndnbck_h_house	4	ses-01	dmndnbck_h_house	0.0672182212112109	0.03752142515555083	Demand
+dmndswitch	e_face	4.0	switch	switch_E_face			dmndswitch_e_face	5	ses-01	dmndswitch_e_face	0.026483340878350303	0.0026315396749399325	Demand
+dmndswitch	e_house	4.0	switch	switch_E_house			dmndswitch_e_house	6	ses-01	dmndswitch_e_house	0.05299961419444174	0.004648679882236925	Demand
+dmndswitch	h_face	4.0	switch	switch_H_face			dmndswitch_h_face	7	ses-01	dmndswitch_h_face	0.08160581897626386	0.04312596666757255	Demand
+dmndswitch	h_house	4.0	switch	switch_H_house			dmndswitch_h_house	8	ses-01	dmndswitch_h_house	0.09781916093631499	0.04008658475036524	Demand
+dmndstop	e_face	4.0	stop	stop_E_face			dmndstop_e_face	9	ses-01	dmndstop_e_face	0.03129363128056591	0.007579557885563146	Demand
+dmndstop	e_house	4.0	stop	stop_E_house			dmndstop_e_house	10	ses-01	dmndstop_e_house	0.0465544128683518	0.005596045045278716	Demand
+dmndstop	h_face	4.0	stop	stop_H_face			dmndstop_h_face	11	ses-01	dmndstop_h_face	0.07451679245830978	0.032366795269930256	Demand
+dmndstop	h_house	4.0	stop	stop_H_house			dmndstop_h_house	12	ses-01	dmndstop_h_house	0.0922394698625705	0.03449168653499225	Demand
+hcpemotion	faces	2.0	EMOTION	FACES			hcpemotion_faces	1	ses-task	hcpemotion_faces	0.05579308952891873	0.02241169471819631	HCPur100
+hcpemotion	shapes	2.0	EMOTION	SHAPES			hcpemotion_shapes	2	ses-task	hcpemotion_shapes	0.04026935824477496	0.02702052544872465	HCPur100
+hcpgamble	punish	2.0	GAMBLING	PUNISH			hcpgamble_punish	3	ses-task	hcpgamble_punish	0.03269291242051493	0.02737786945713819	HCPur100
+hcpgamble	reward	2.0	GAMBLING	REWARD			hcpgamble_reward	4	ses-task	hcpgamble_reward	0.048167013552563774	0.042504623551455775	HCPur100
+hcplanguage	math	2.0	LANGUAGE	MATH			hcplanguage_math	5	ses-task	hcplanguage_math	-0.07308176955754873	-0.0212098436300638	HCPur100
+hcplanguage	story	2.0	LANGUAGE	STORY			hcplanguage_story	6	ses-task	hcplanguage_story	-0.09847156012878741	-0.06021069132697285	HCPur100
+motor	cue	2.0	MOTOR	CUE			motor_cue	7	ses-task	motor_cue	0.19207687208309185	0.06399872475525568	HCPur100
+motor	lfoot	2.0	MOTOR	LF			motor_lfoot	8	ses-task	motor_lfoot	0.036723942081188905	0.03200888493727823	HCPur100
+motor	lhand	2.0	MOTOR	LH			motor_lhand	9	ses-task	motor_lhand	-0.01577562475483825	0.003249553736694584	HCPur100
+motor	rfoot	2.0	MOTOR	RF			motor_rfoot	10	ses-task	motor_rfoot	0.014742638952138294	0.023150430709832637	HCPur100
+motor	rhand	2.0	MOTOR	RH			motor_rhand	11	ses-task	motor_rhand	0.015969487454131646	0.023117395752058307	HCPur100
+motor	tongue	2.0	MOTOR	T			motor_tongue	12	ses-task	motor_tongue	0.03232679918483668	-0.012027695624429903	HCPur100
+hcprelation	match	2.0	RELATIONAL	MATCH			hcprelation_match	13	ses-task	hcprelation_match	0.08415102587343043	0.052838878811907096	HCPur100
+hcprelation	rel	2.0	RELATIONAL	REL			hcprelation_rel	14	ses-task	hcprelation_rel	0.07428720476507585	0.049700858682355416	HCPur100
+hcpsocial	random	2.0	SOCIAL	RANDOM			hcpsocial_random	15	ses-task	hcpsocial_random	0.11251785216799616	0.045551672994841266	HCPur100
+hcpsocial	tom	2.0	SOCIAL	TOM			hcpsocial_tom	16	ses-task	hcpsocial_tom	0.11478241392024469	0.055193913174307066	HCPur100
+hcpwm	2bckbody	2.0	WM	2BK_BODY			hcpwm_2bckbody	17	ses-task	hcpwm_2bckbody	0.06801439544929667	0.0530729440906804	HCPur100
+hcpwm	2bckface	2.0	WM	2BK_FACE			hcpwm_2bckface	18	ses-task	hcpwm_2bckface	0.037159096707429236	0.04372552876873377	HCPur100
+hcpwm	2bckplace	2.0	WM	2BK_PLACE			hcpwm_2bckplace	19	ses-task	hcpwm_2bckplace	0.06470980824887632	0.05136558109051391	HCPur100
+hcpwm	2bcktool	2.0	WM	2BK_TOOL			hcpwm_2bcktool	20	ses-task	hcpwm_2bcktool	0.051179632687118067	0.04297696304362605	HCPur100
+hcpwm	0bckbody	2.0	WM	0BK_BODY			hcpwm_0bckbody	21	ses-task	hcpwm_0bckbody	0.07146663388369058	0.042618957730136235	HCPur100
+hcpwm	0bckface	2.0	WM	0BK_FACE			hcpwm_0bckface	22	ses-task	hcpwm_0bckface	0.04985585644106578	0.02436204647722066	HCPur100
+hcpwm	0bckplace	2.0	WM	0BK_PLACE			hcpwm_0bckplace	23	ses-task	hcpwm_0bckplace	0.04233426612666049	0.01455960445885547	HCPur100
+hcpwm	0bcktool	2.0	WM	0BK_TOOL			hcpwm_0bcktool	24	ses-task	hcpwm_0bcktool	0.05153647016764181	0.027132387746691914	HCPur100
+animal	photo	12.0	AnimalPhoto				animal_photo	1	ses-01	animal_photo	-0.07871157699193751	-0.015940930180649807	Nishimoto
+animal	voice	12.0	AnimalVoice				animal_voice	2	ses-01	animal_voice	-0.05208893754967013	0.020480823292563947	Nishimoto
+calc	easy	12.0	CalcEasy				calc_easy	3	ses-01	calc_easy	-0.06800641570964788	0.010365098919334589	Nishimoto
+calc	hard	12.0	CalcHard				calc_hard	4	ses-01	calc_hard	-0.01884883544867942	0.05209790674537809	Nishimoto
+categoryfluency	task	12.0	CategoryFluency				categoryfluency_task	5	ses-01	categoryfluency_task	-0.024451915604523082	0.020363490445393404	Nishimoto
+clock	task	12.0	Clock				clock_task	6	ses-01	clock_task	-0.046860928170723896	0.01257263115806852	Nishimoto
+comparepeople	task	12.0	ComparePeople				comparepeople_task	7	ses-01	comparepeople_task	-0.0846563752430376	-0.003981821681601942	Nishimoto
+count	dot	12.0	CountDot				count_dot	8	ses-01	count_dot	-0.049740102879749955	0.019500823848180443	Nishimoto
+count	tone	12.0	CountTone				count_tone	9	ses-01	count_tone	-0.05743006344920572	0.004312336282191376	Nishimoto
+countrymap	task	12.0	CountryMap				countrymap_task	10	ses-01	countrymap_task	-0.04270473024165417	0.036747804800618226	Nishimoto
+daily	photo	12.0	DailyPhoto				daily_photo	11	ses-01	daily_photo	-0.03415626717155693	0.01668169834920169	Nishimoto
+daily	sound	12.0	DailySound				daily_sound	12	ses-01	daily_sound	-0.08465922860333841	-0.004354571764681965	Nishimoto
+decide	food	12.0	DecideFood				decide_food	13	ses-01	decide_food	-0.06581788919099373	0.0002687601117761403	Nishimoto
+decide	people	12.0	DecidePeople				decide_people	14	ses-01	decide_people	-0.06098332841829508	-0.01850755799335993	Nishimoto
+decide	present	12.0	DecidePresent				decide_present	15	ses-01	decide_present	-0.0935850190205929	-0.02614954766095885	Nishimoto
+decide	shopping	12.0	DecideShopping				decide_shopping	16	ses-01	decide_shopping	-0.04270819316336224	0.005230913890174194	Nishimoto
+detect	color	12.0	DetectColor				detect_color	17	ses-01	detect_color	-0.06329069824553565	-0.00817105588313928	Nishimoto
+detect	difference	12.0	DetectDifference				detect_difference	18	ses-01	detect_difference	-0.029760141845741557	0.027185351629182435	Nishimoto
+detect	targetmov	12.0	DetectTargetMov				detect_targetmov	19	ses-01	detect_targetmov	-0.03523559756291649	-0.016243953589673666	Nishimoto
+detect	targetpic	12.0	DetectTargetPic				detect_targetpic	20	ses-01	detect_targetpic	-0.03949475124823179	0.004527997222714569	Nishimoto
+domesitic	name	12.0	DomesiticName				domesitic_name	21	ses-01	domesitic_name	-0.06466347909015639	-0.013315603868084613	Nishimoto
+domesitic	place	12.0	DomesiticPlace				domesitic_place	22	ses-01	domesitic_place	-0.01455795887296608	0.047723571467525885	Nishimoto
+emotion	face	12.0	EmotionFace				emotion_face	23	ses-01	emotion_face	-0.05762212163416918	-0.017813651662721672	Nishimoto
+emotion	voice	12.0	EmotionVoice				emotion_voice	24	ses-01	emotion_voice	-0.12136901123940501	-0.029011824036885455	Nishimoto
+eyeblink	task	12.0	EyeBlink				eyeblink_task	25	ses-01	eyeblink_task	-0.09281495542583858	-0.02730489618296225	Nishimoto
+eyemove	easy	12.0	EyeMoveEasy				eyemove_easy	26	ses-01	eyemove_easy	-0.0311661764751994	0.011402211816685413	Nishimoto
+eyemove	hard	12.0	EyeMoveHard				eyemove_hard	27	ses-01	eyemove_hard	-0.067485540894069	-0.011605140444823681	Nishimoto
+feedbackpos	task	12.0	FeedbackPos				feedbackpos_task	28	ses-01	feedbackpos_task	-0.05846266651289397	0.021943462074355657	Nishimoto
+flag	task	12.0	Flag				flag_task	29	ses-01	flag_task	-0.05631576599232979	0.029600896316645236	Nishimoto
+foreign	listen	12.0	ForeignListen				foreign_listen	30	ses-01	foreign_listen	-0.0652357714910708	0.01693465987501903	Nishimoto
+foreign	listenq	12.0	ForeignListenQ				foreign_listenq	31	ses-01	foreign_listenq	-0.19161773212323388	-0.05245816385099568	Nishimoto
+foreign	read	12.0	ForeignRead				foreign_read	32	ses-01	foreign_read	-0.09621460972363481	-0.01957454615380153	Nishimoto
+foreign	readq	12.0	ForeignReadQ				foreign_readq	33	ses-01	foreign_readq	-0.12915190149143035	-0.039076116969921255	Nishimoto
+harmony	task	12.0	Harmony				harmony_task	34	ses-01	harmony_task	-0.057125803499684664	-0.010734057702128123	Nishimoto
+imagine	future	12.0	ImagineFuture				imagine_future	35	ses-01	imagine_future	-0.07883675087578289	-0.021788618348109745	Nishimoto
+imagine	elf	12.0	ImagineIf				imagine_elf	36	ses-01	imagine_elf	-0.06559858221650329	0.029951847682485686	Nishimoto
+imagine	move	12.0	ImagineMove				imagine_move	37	ses-01	imagine_move	-0.08096366357241455	0.006580355907792733	Nishimoto
+imagine	place	12.0	ImaginePlace				imagine_place	38	ses-01	imagine_place	-0.11026173391973626	-0.026814576373196907	Nishimoto
+languagesound	task	12.0	LanguageSound				languagesound_task	39	ses-01	languagesound_task	-0.08174856156231144	-0.05333773970507116	Nishimoto
+letterfluency	task	12.0	LetterFluency				letterfluency_task	40	ses-01	letterfluency_task	-0.040718236647558005	0.019980335930204166	Nishimoto
+mapicon	task	12.0	MapIcon				mapicon_task	41	ses-01	mapicon_task	-0.09893962202596762	-0.04118416411417607	Nishimoto
+match	digit	12.0	MatchDigit				match_digit	42	ses-01	match_digit	-0.04666031028477223	0.019056476441871296	Nishimoto
+match	letter	12.0	MatchLetter				match_letter	43	ses-01	match_letter	-0.036999280888154594	0.012906566912645448	Nishimoto
+match	nameeasy	12.0	MatchNameEasy				match_nameeasy	44	ses-01	match_nameeasy	0.01327738197243075	0.0400265481180673	Nishimoto
+match	namehard	12.0	MatchNameHard				match_namehard	45	ses-01	match_namehard	0.0282541495603365	0.051865716852513115	Nishimoto
+memory	digit	12.0	MemoryDigit				memory_digit	46	ses-01	memory_digit	-0.05842866305559039	0.02303180138273982	Nishimoto
+memory	letter	12.0	MemoryLetter				memory_letter	47	ses-01	memory_letter	-0.09084608349457578	-0.01706503384790341	Nishimoto
+memory	nameeasy	12.0	MemoryNameEasy				memory_nameeasy	48	ses-01	memory_nameeasy	-0.016434018276790568	0.03195271884393686	Nishimoto
+memory	namehard	12.0	MemoryNameHard				memory_namehard	49	ses-01	memory_namehard	-0.025858235498314966	0.04969894036500718	Nishimoto
+metaphor	task	12.0	Metaphor				metaphor_task	50	ses-01	metaphor_task	-0.055656340941523275	0.012817214831592521	Nishimoto
+mirrorimage	task	12.0	MirrorImage				mirrorimage_task	51	ses-01	mirrorimage_task	-0.06385148787069478	-0.0030184843554591175	Nishimoto
+money	task	12.0	Money				money_task	52	ses-01	money_task	-0.08196640738689182	-0.02383961695682271	Nishimoto
+moral	impersonal	12.0	MoralImpersonal				moral_impersonal	53	ses-01	moral_impersonal	-0.09941724298018356	-0.017279868078597774	Nishimoto
+moral	personal	12.0	MoralPersonal				moral_personal	54	ses-01	moral_personal	-0.04764586720405432	0.007043198423617626	Nishimoto
+musiccategory	task	12.0	MusicCategory				musiccategory_task	55	ses-01	musiccategory_task	-0.020580693601103747	0.038102122740364154	Nishimoto
+press	lr	12.0	PressLR				press_lr	56	ses-01	press_lr	-0.05653068629625518	0.024264764733312873	Nishimoto
+press	left	12.0	PressLeft				press_left	57	ses-01	press_left	-0.044879741777876354	0.009026946522801659	Nishimoto
+press	ordheasy	12.0	PressOrdEasy				press_ordheasy	58	ses-01	press_ordheasy	-0.02842636821317471	0.049823004956729366	Nishimoto
+press	ordhard	12.0	PressOrdHard				press_ordhard	59	ses-01	press_ordhard	-0.05161306432530545	-0.015484599262222216	Nishimoto
+press	right	12.0	PressRight				press_right	60	ses-01	press_right	-0.09707968025465476	-0.02899370508508277	Nishimoto
+proplogic	task	12.0	PropLogic				proplogic_task	61	ses-01	proplogic_task	-0.05125042398446389	0.018059738043814267	Nishimoto
+rate	beautymov	12.0	RateBeautyMov				rate_beautymov	62	ses-01	rate_beautymov	-0.05593972012933437	-0.004749444176632435	Nishimoto
+rate	beautypic	12.0	RateBeautyPic				rate_beautypic	63	ses-01	rate_beautypic	-0.02669532600575191	0.022721583737820364	Nishimoto
+rate	beautysound	12.0	RateBeautySound				rate_beautysound	64	ses-01	rate_beautysound	-0.0644162101693213	-0.009468400103298366	Nishimoto
+rate	confidence	12.0	RateConfidence				rate_confidence	65	ses-01	rate_confidence	-0.11133095748789476	-0.027503262259388775	Nishimoto
+rate	deliciousmov	12.0	RateDeliciousMov				rate_deliciousmov	66	ses-01	rate_deliciousmov	-0.040402604449348796	-0.01302753726121541	Nishimoto
+rate	deliciouspic	12.0	RateDeliciousPic				rate_deliciouspic	67	ses-01	rate_deliciouspic	-0.06888509336957262	-0.029329068528668296	Nishimoto
+rate	disgustmov	12.0	RateDisgustMov				rate_disgustmov	68	ses-01	rate_disgustmov	-0.04113637290988682	-0.02547671094044548	Nishimoto
+rate	disgustpic	12.0	RateDisgustPic				rate_disgustpic	69	ses-01	rate_disgustpic	-0.10305772020094943	-0.02846068826714011	Nishimoto
+rate	disgustsound	12.0	RateDisgustSound				rate_disgustsound	70	ses-01	rate_disgustsound	-0.05964669643107133	-0.019753314115755642	Nishimoto
+rate	happymov	12.0	RateHappyMov				rate_happymov	71	ses-01	rate_happymov	0.005687707471015215	0.019604143050803487	Nishimoto
+rate	happypic	12.0	RateHappyPic				rate_happypic	72	ses-01	rate_happypic	-0.04103721760377803	0.00112921636792517	Nishimoto
+rate	noisy	12.0	RateNoisy				rate_noisy	73	ses-01	rate_noisy	-0.012676167755512422	0.009389086921197044	Nishimoto
+rate	painfulmov	12.0	RatePainfulMov				rate_painfulmov	74	ses-01	rate_painfulmov	-0.03632093534451437	-0.004518166068748724	Nishimoto
+rate	painfulpic	12.0	RatePainfulPic				rate_painfulpic	75	ses-01	rate_painfulpic	-0.05710685418852459	-0.00827178451314261	Nishimoto
+rate	poem	12.0	RatePoem				rate_poem	76	ses-01	rate_poem	-0.05855886674560591	-0.0014670098708736104	Nishimoto
+rate	sexymovf	12.0	RateSexyMovF				rate_sexymovf	77	ses-01	rate_sexymovf	-0.05045022541161668	-0.02121056023067662	Nishimoto
+rate	sexymovm	12.0	RateSexyMovM				rate_sexymovm	78	ses-01	rate_sexymovm	-0.01803059718255217	0.023078399029123866	Nishimoto
+rate	sexypicf	12.0	RateSexyPicF				rate_sexypicf	79	ses-01	rate_sexypicf	-0.1243400998413352	-0.017706164126213418	Nishimoto
+rate	sexypicm	12.0	RateSexyPicM				rate_sexypicm	80	ses-01	rate_sexypicm	-0.0808025674485545	-0.029465894849828932	Nishimoto
+rate	sleepy	12.0	RateSleepy				rate_sleepy	81	ses-01	rate_sleepy	-0.014962655969213782	0.009023862571491703	Nishimoto
+rate	tired	12.0	RateTired				rate_tired	82	ses-01	rate_tired	-0.07365897941488553	0.0184680668899712	Nishimoto
+recal	face	12.0	RecallFace				recal_face	83	ses-01	recal_face	-0.045893027738583676	0.022096023722061337	Nishimoto
+recal	knowledge	12.0	RecallKnowledge				recal_knowledge	84	ses-01	recal_knowledge	-0.11191318117147064	-0.023127216276520094	Nishimoto
+recal	past	12.0	RecallPast				recal_past	85	ses-01	recal_past	-0.04388397680254258	0.035647447451829906	Nishimoto
+recal	talkeasy	12.0	RecallTaskEasy				recal_talkeasy	86	ses-01	recal_talkeasy	-0.08759231640360425	-0.006498078523489537	Nishimoto
+recal	talkhard	12.0	RecallTaskHard				recal_talkhard	87	ses-01	recal_talkhard	-0.05321551160129119	0.02004950643058272	Nishimoto
+recipe	task	12.0	Recipe				recipe_task	88	ses-01	recipe_task	-0.06192986438946484	-0.007654030522260461	Nishimoto
+relationlogic	task	12.0	RelationLogic				relationlogic_task	89	ses-01	relationlogic_task	-0.0728204822399862	0.02853147582946612	Nishimoto
+rest	close	12.0	RestClose				rest_close	90	ses-01	rest_close	-0.07249816286935051	0.0008139862142992098	Nishimoto
+rest	open	12.0	RestOpen				rest_open	91	ses-01	rest_open	-0.07725661519996305	-0.01591615554625405	Nishimoto
+rhythm	task	12.0	Rhythm				rhythm_task	92	ses-01	rhythm_task	-0.05531870834970391	0.0027051977811002196	Nishimoto
+sarcasm	task	12.0	Sarcasm				sarcasm_task	93	ses-01	sarcasm_task	-0.06507832422034103	0.002617125074957966	Nishimoto
+sound	left	12.0	SoundLeft				sound_left	94	ses-01	sound_left	-0.07757348517598146	-0.0055986850714439184	Nishimoto
+sound	place	12.0	SoundPlace				sound_place	95	ses-01	sound_place	-0.0910900832199143	-0.005984089925563775	Nishimoto
+sound	right	12.0	SoundRight				sound_right	96	ses-01	sound_right	-0.06118862942413826	-0.0021259467615594367	Nishimoto
+statemap	task	12.0	StateMap				statemap_task	97	ses-01	statemap_task	-0.05665366228808715	-0.025593603888663184	Nishimoto
+time	move	12.0	TimeMov				time_move	98	ses-01	time_move	-0.08624249181822767	-0.021297099355660234	Nishimoto
+time	sound	12.0	TimeSound				time_sound	99	ses-01	time_sound	-0.06637229196700165	-0.003897800402939484	Nishimoto
+time	value	12.0	TimeValue				time_value	100	ses-01	time_value	-0.07985899007744274	-0.008484547497482094	Nishimoto
+trafficsign	task	12.0	TrafficSign				trafficsign_task	101	ses-01	trafficsign_task	-0.09408081642933913	-0.03807362042779632	Nishimoto
+wordmeaning	task	12.0	WordMeaning				wordmeaning_task	102	ses-01	wordmeaning_task	-0.0691847217295153	-0.00998600082834256	Nishimoto
+world	name	12.0	WorldName				world_name	103	ses-01	world_name	-0.09482807626283958	-0.027033941465686315	Nishimoto
+world	place	12.0	WorldPlace				world_place	104	ses-01	world_place	-0.055588621656266886	-0.013275190448414196	Nishimoto
+animal	photo	6.0	AnimalPhoto				animal_photo	1	ses-02	animal_photo	-0.03860091438817443	0.013086744532381237	Nishimoto
+animal	voice	6.0	AnimalVoice				animal_voice	2	ses-02	animal_voice	0.03972665385670334	0.041514645034580834	Nishimoto
+calc	easy	6.0	CalcEasy				calc_easy	3	ses-02	calc_easy	-0.018224073380831367	0.012685153722159444	Nishimoto
+calc	hard	6.0	CalcHard				calc_hard	4	ses-02	calc_hard	0.003133577455399574	0.07267116804944873	Nishimoto
+categoryfluency	task	6.0	CategoryFluency				categoryfluency_task	5	ses-02	categoryfluency_task	-0.04310040464870635	0.0030112323152757577	Nishimoto
+clock	task	6.0	Clock				clock_task	6	ses-02	clock_task	0.022858488975945463	0.014379614185152384	Nishimoto
+comparepeople	task	6.0	ComparePeople				comparepeople_task	7	ses-02	comparepeople_task	-0.06700877404521056	-0.055756270099931886	Nishimoto
+count	dot	6.0	CountDot				count_dot	8	ses-02	count_dot	-0.08140771047526575	-0.06338245030626537	Nishimoto
+count	tone	6.0	CountTone				count_tone	9	ses-02	count_tone	-0.037234929324917045	0.04135276060465489	Nishimoto
+countrymap	task	6.0	CountryMap				countrymap_task	10	ses-02	countrymap_task	-0.05155747715580934	-0.0702839015993997	Nishimoto
+daily	photo	6.0	DailyPhoto				daily_photo	11	ses-02	daily_photo	0.0224932769822819	0.028672207808877397	Nishimoto
+daily	sound	6.0	DailySound				daily_sound	12	ses-02	daily_sound	-0.13631105127450685	-0.09917793454302039	Nishimoto
+decide	food	6.0	DecideFood				decide_food	13	ses-02	decide_food	0.010141352996130074	0.030853622157939794	Nishimoto
+decide	people	6.0	DecidePeople				decide_people	14	ses-02	decide_people	-0.07274074816683136	-0.05939086353495829	Nishimoto
+decide	present	6.0	DecidePresent				decide_present	15	ses-02	decide_present	-0.05203618569651627	-0.015472350164799522	Nishimoto
+decide	shopping	6.0	DecideShopping				decide_shopping	16	ses-02	decide_shopping	-0.03736857094181705	-0.018157483126457395	Nishimoto
+detect	color	6.0	DetectColor				detect_color	17	ses-02	detect_color	-0.010752085347348863	0.037225213367942364	Nishimoto
+detect	difference	6.0	DetectDifference				detect_difference	18	ses-02	detect_difference	0.02013194212735585	0.0016981144908359397	Nishimoto
+detect	targetmov	6.0	DetectTargetMov				detect_targetmov	19	ses-02	detect_targetmov	-0.012720598706611316	-0.01831143267721231	Nishimoto
+detect	targetpic	6.0	DetectTargetPic				detect_targetpic	20	ses-02	detect_targetpic	-0.08697790526892747	-0.04581625305377692	Nishimoto
+domesitic	name	6.0	DomesiticName				domesitic_name	21	ses-02	domesitic_name	0.015375983643700233	0.03381573938622838	Nishimoto
+domesitic	place	6.0	DomesiticPlace				domesitic_place	22	ses-02	domesitic_place	-0.0659714658066693	0.001910427551630351	Nishimoto
+emotion	face	6.0	EmotionFace				emotion_face	23	ses-02	emotion_face	-0.11192384960797704	-0.0836213969286753	Nishimoto
+emotion	voice	6.0	EmotionVoice				emotion_voice	24	ses-02	emotion_voice	0.01676575993588824	-0.0038042140649297996	Nishimoto
+eyeblink	task	6.0	EyeBlink				eyeblink_task	25	ses-02	eyeblink_task	-0.12983646031079513	-0.09294698139416147	Nishimoto
+eyemove	easy	6.0	EyeMoveEasy				eyemove_easy	26	ses-02	eyemove_easy	-0.14958813497489065	-0.03012998090321585	Nishimoto
+eyemove	hard	6.0	EyeMoveHard				eyemove_hard	27	ses-02	eyemove_hard	-0.08334826270139356	-0.04372822126691875	Nishimoto
+feedbackpos	task	6.0	FeedbackPos				feedbackpos_task	28	ses-02	feedbackpos_task	-0.0361660505537935	0.038378014234799425	Nishimoto
+flag	task	6.0	Flag				flag_task	29	ses-02	flag_task	-0.06323761848778679	-0.009292114827150809	Nishimoto
+foreign	listen	6.0	ForeignListen				foreign_listen	30	ses-02	foreign_listen	-0.05992050940995787	-0.009568648524135536	Nishimoto
+foreign	listenq	6.0	ForeignListenQ				foreign_listenq	31	ses-02	foreign_listenq	-0.1202259835936101	-0.002451754671388784	Nishimoto
+foreign	read	6.0	ForeignRead				foreign_read	32	ses-02	foreign_read	-0.08475584703830054	-0.019526800014579525	Nishimoto
+foreign	readq	6.0	ForeignReadQ				foreign_readq	33	ses-02	foreign_readq	-0.10932586597275903	-0.05105985036000365	Nishimoto
+harmony	task	6.0	Harmony				harmony_task	34	ses-02	harmony_task	0.09264209569536692	0.031372489236626715	Nishimoto
+imagine	future	6.0	ImagineFuture				imagine_future	35	ses-02	imagine_future	-0.06385918094637173	-0.02310050402013031	Nishimoto
+imagine	elf	6.0	ImagineIf				imagine_elf	36	ses-02	imagine_elf	-0.009337518417436555	0.019076275006917835	Nishimoto
+imagine	move	6.0	ImagineMove				imagine_move	37	ses-02	imagine_move	-0.03188669607571907	0.019531741001019627	Nishimoto
+imagine	place	6.0	ImaginePlace				imagine_place	38	ses-02	imagine_place	-0.06901978143166157	-0.06161695419938557	Nishimoto
+languagesound	task	6.0	LanguageSound				languagesound_task	39	ses-02	languagesound_task	-0.05511944701399539	-0.01474523200753096	Nishimoto
+letterfluency	task	6.0	LetterFluency				letterfluency_task	40	ses-02	letterfluency_task	-0.09057956449959294	-0.011281580721984926	Nishimoto
+mapicon	task	6.0	MapIcon				mapicon_task	41	ses-02	mapicon_task	-0.012520123316504969	-0.03089592360012307	Nishimoto
+match	digit	6.0	MatchDigit				match_digit	42	ses-02	match_digit	0.026387676430246997	0.04445954839609512	Nishimoto
+match	letter	6.0	MatchLetter				match_letter	43	ses-02	match_letter	0.0020453742572660283	0.011747125674660585	Nishimoto
+match	nameeasy	6.0	MatchNameEasy				match_nameeasy	44	ses-02	match_nameeasy	0.09115379420391853	0.06570095392751353	Nishimoto
+match	namehard	6.0	MatchNameHard				match_namehard	45	ses-02	match_namehard	0.08038870874241824	0.05368328858193527	Nishimoto
+memory	digit	6.0	MemoryDigit				memory_digit	46	ses-02	memory_digit	0.021409051145962626	0.06464032374229152	Nishimoto
+memory	letter	6.0	MemoryLetter				memory_letter	47	ses-02	memory_letter	-0.051522784484801964	0.03051798068903396	Nishimoto
+memory	nameeasy	6.0	MemoryNameEasy				memory_nameeasy	48	ses-02	memory_nameeasy	0.023554229783294547	0.012535019758217594	Nishimoto
+memory	namehard	6.0	MemoryNameHard				memory_namehard	49	ses-02	memory_namehard	0.02513399424727163	0.04104694292313102	Nishimoto
+metaphor	task	6.0	Metaphor				metaphor_task	50	ses-02	metaphor_task	-0.04787014625475309	-0.0063359778601109985	Nishimoto
+mirrorimage	task	6.0	MirrorImage				mirrorimage_task	51	ses-02	mirrorimage_task	-0.014442730761748991	0.04292761038172681	Nishimoto
+money	task	6.0	Money				money_task	52	ses-02	money_task	0.004592533808928614	0.026513691062895594	Nishimoto
+moral	impersonal	6.0	MoralImpersonal				moral_impersonal	53	ses-02	moral_impersonal	-0.08494765141389275	-0.029481077581386482	Nishimoto
+moral	personal	6.0	MoralPersonal				moral_personal	54	ses-02	moral_personal	-0.09056005840296291	-0.06141607036594688	Nishimoto
+musiccategory	task	6.0	MusicCategory				musiccategory_task	55	ses-02	musiccategory_task	0.023197181580400923	0.022150162122721095	Nishimoto
+press	lr	6.0	PressLR				press_lr	56	ses-02	press_lr	0.0018422760912625658	0.01663040270123397	Nishimoto
+press	left	6.0	PressLeft				press_left	57	ses-02	press_left	-0.01860431428922686	0.016650483849274842	Nishimoto
+press	ordheasy	6.0	PressOrdEasy				press_ordheasy	58	ses-02	press_ordheasy	0.049431097156057285	0.12337842598712623	Nishimoto
+press	ordhard	6.0	PressOrdHard				press_ordhard	59	ses-02	press_ordhard	0.05466204312601718	0.06980473930193999	Nishimoto
+press	right	6.0	PressRight				press_right	60	ses-02	press_right	0.006373497706872222	0.037878673698088526	Nishimoto
+proplogic	task	6.0	PropLogic				proplogic_task	61	ses-02	proplogic_task	-0.06679580258258153	-0.050153310677791205	Nishimoto
+rate	beautymov	6.0	RateBeautyMov				rate_beautymov	62	ses-02	rate_beautymov	-0.011304660043811955	-0.01486101618063409	Nishimoto
+rate	beautypic	6.0	RateBeautyPic				rate_beautypic	63	ses-02	rate_beautypic	0.019287470785210845	0.10128736242178149	Nishimoto
+rate	beautysound	6.0	RateBeautySound				rate_beautysound	64	ses-02	rate_beautysound	-0.037965470581996126	-0.0018566655795015504	Nishimoto
+rate	confidence	6.0	RateConfidence				rate_confidence	65	ses-02	rate_confidence	-0.09450695740733658	-0.01909544308575369	Nishimoto
+rate	deliciousmov	6.0	RateDeliciousMov				rate_deliciousmov	66	ses-02	rate_deliciousmov	0.026612738295393047	-0.0032196191074717554	Nishimoto
+rate	deliciouspic	6.0	RateDeliciousPic				rate_deliciouspic	67	ses-02	rate_deliciouspic	-0.12061209763668225	-0.06409845987419623	Nishimoto
+rate	disgustmov	6.0	RateDisgustMov				rate_disgustmov	68	ses-02	rate_disgustmov	-0.04702675875934936	-0.07783868457646785	Nishimoto
+rate	disgustpic	6.0	RateDisgustPic				rate_disgustpic	69	ses-02	rate_disgustpic	-0.019455088317934157	0.058507248555174744	Nishimoto
+rate	disgustsound	6.0	RateDisgustSound				rate_disgustsound	70	ses-02	rate_disgustsound	-0.05186121774172572	-0.022724245074489686	Nishimoto
+rate	happymov	6.0	RateHappyMov				rate_happymov	71	ses-02	rate_happymov	0.06435691373202224	0.0009192701873483717	Nishimoto
+rate	happypic	6.0	RateHappyPic				rate_happypic	72	ses-02	rate_happypic	-0.21235312267719242	-0.13625255963113453	Nishimoto
+rate	noisy	6.0	RateNoisy				rate_noisy	73	ses-02	rate_noisy	0.13191504469972665	0.07777040413185897	Nishimoto
+rate	painfulmov	6.0	RatePainfulMov				rate_painfulmov	74	ses-02	rate_painfulmov	-0.06755789634807491	-0.07503166541181853	Nishimoto
+rate	painfulpic	6.0	RatePainfulPic				rate_painfulpic	75	ses-02	rate_painfulpic	-0.135910660793234	-0.03342082878062214	Nishimoto
+rate	poem	6.0	RatePoem				rate_poem	76	ses-02	rate_poem	-0.09508468402509967	-0.04706211520895983	Nishimoto
+rate	sexymovf	6.0	RateSexyMovF				rate_sexymovf	77	ses-02	rate_sexymovf	0.013094703202027397	-0.02772834478690602	Nishimoto
+rate	sexymovm	6.0	RateSexyMovM				rate_sexymovm	78	ses-02	rate_sexymovm	0.049791962456997234	-7.675670612938985e-05	Nishimoto
+rate	sexypicf	6.0	RateSexyPicF				rate_sexypicf	79	ses-02	rate_sexypicf	-0.03309677144483772	0.018609752311241158	Nishimoto
+rate	sexypicm	6.0	RateSexyPicM				rate_sexypicm	80	ses-02	rate_sexypicm	-0.012135224857622355	0.036473792685794766	Nishimoto
+rate	sleepy	6.0	RateSleepy				rate_sleepy	81	ses-02	rate_sleepy	-0.07032407425850923	-0.010311626375352765	Nishimoto
+rate	tired	6.0	RateTired				rate_tired	82	ses-02	rate_tired	-0.038903730593347736	-0.0238077183675904	Nishimoto
+recal	face	6.0	RecallFace				recal_face	83	ses-02	recal_face	-0.057839115673430766	0.02704127328933876	Nishimoto
+recal	knowledge	6.0	RecallKnowledge				recal_knowledge	84	ses-02	recal_knowledge	-0.006432534706174713	0.021196300648317474	Nishimoto
+recal	past	6.0	RecallPast				recal_past	85	ses-02	recal_past	-0.00995776375253602	0.03749048901002728	Nishimoto
+recal	talkeasy	6.0	RecallTaskEasy				recal_talkeasy	86	ses-02	recal_talkeasy	0.04663462180642709	0.028225196593391556	Nishimoto
+recal	talkhard	6.0	RecallTaskHard				recal_talkhard	87	ses-02	recal_talkhard	-0.05122400811381287	0.014703373480470731	Nishimoto
+recipe	task	6.0	Recipe				recipe_task	88	ses-02	recipe_task	-0.07943356503935876	-0.024817953479333046	Nishimoto
+relationlogic	task	6.0	RelationLogic				relationlogic_task	89	ses-02	relationlogic_task	-0.03268720830959171	0.034248495146298394	Nishimoto
+rest	close	6.0	RestClose				rest_close	90	ses-02	rest_close	-0.07316317292139918	0.024735166083414334	Nishimoto
+rest	open	6.0	RestOpen				rest_open	91	ses-02	rest_open	-0.0047264481733759215	-0.005154890988926037	Nishimoto
+rhythm	task	6.0	Rhythm				rhythm_task	92	ses-02	rhythm_task	-0.07335589315635413	-0.06468510765862155	Nishimoto
+sarcasm	task	6.0	Sarcasm				sarcasm_task	93	ses-02	sarcasm_task	-0.1123446796233326	-0.042651490953137555	Nishimoto
+sound	left	6.0	SoundLeft				sound_left	94	ses-02	sound_left	-0.051183570287396715	0.014005532249127399	Nishimoto
+sound	place	6.0	SoundPlace				sound_place	95	ses-02	sound_place	-0.039053729705498835	-0.026790020542407592	Nishimoto
+sound	right	6.0	SoundRight				sound_right	96	ses-02	sound_right	0.021853975995012192	0.014727404137771289	Nishimoto
+statemap	task	6.0	StateMap				statemap_task	97	ses-02	statemap_task	0.011555933322144463	0.026804829574368083	Nishimoto
+time	move	6.0	TimeMov				time_move	98	ses-02	time_move	0.000751992220172513	0.02565316095879712	Nishimoto
+time	sound	6.0	TimeSound				time_sound	99	ses-02	time_sound	-0.04205807427853382	-0.022670224543267135	Nishimoto
+time	value	6.0	TimeValue				time_value	100	ses-02	time_value	0.023851184231417827	0.020569144848387014	Nishimoto
+trafficsign	task	6.0	TrafficSign				trafficsign_task	101	ses-02	trafficsign_task	-0.040646104924712344	-0.028972716796439035	Nishimoto
+wordmeaning	task	6.0	WordMeaning				wordmeaning_task	102	ses-02	wordmeaning_task	0.0425940829968797	0.05503358660426788	Nishimoto
+world	name	6.0	WorldName				world_name	103	ses-02	world_name	0.01157721853403285	0.027995906353959727	Nishimoto
+world	place	6.0	WorldPlace				world_place	104	ses-02	world_place	0.060610866871031954	0.0665354620490392	Nishimoto
+motor	rhand	24.0	motor	hand_right			motor_rhand	1	ses-motor	motor_rhand	-0.0975591065064415	0.017222000682242576	Somatotopic
+motor	tongue	24.0	motor	tongue			motor_tongue	2	ses-motor	motor_tongue	-0.008780906702100931	-0.04879137921658267	Somatotopic
+motor	lhand	24.0	motor	hand_left			motor_lhand	3	ses-motor	motor_lhand	-0.0664464695847609	0.03113672959187826	Somatotopic
+motor	rfoot	24.0	motor	foot_right			motor_rfoot	4	ses-motor	motor_rfoot	-0.09517034446853308	-0.02879267131732816	Somatotopic
+motor	lfoot	24.0	motor	foot_left			motor_lfoot	5	ses-motor	motor_lfoot	-0.09988404313100437	-0.03151930190751095	Somatotopic
+motor	glutes	24.0	motor	glutes			motor_glutes	6	ses-motor	motor_glutes	-0.060074959338249426	0.05308532942510408	Somatotopic
+dmndgrid	g12s3b2	8.0	demand_grid		0.0		dmndgrid_g12s3b2	1	ses-social	dmndgrid_g12s3b2	0.018964291862736803	0.028344101997110425	Social
+rest	task	8.0	rest		0.0		rest_task	2	ses-social	rest_task	-0.03747123674082839	-0.028972029608435153	Social
+actpredict	greetinghard	8.0	action_prediction_greeting_hard		0.0		actpredict_greetinghard	3	ses-social	actpredict_greetinghard	-0.01872038602751721	-0.0038321452165193076	Social
+actpredict	soccerhard	8.0	action_prediction_soccer_hard		0.0		actpredict_soccerhard	4	ses-social	actpredict_soccerhard	-0.029284215839490986	-0.02209067884091602	Social
+fauxpas	social	8.0	faux_pas_social		0.0		fauxpas_social	5	ses-social	fauxpas_social	-0.007330648670064766	-0.0029933621435124127	Social
+fauxpas	control	8.0	faux_pas_control		0.0		fauxpas_control	6	ses-social	fauxpas_control	-0.014694655565685397	-0.011693570353532834	Social
+frithhappe	tom	8.0	frith_happe_tom		0.0		frithhappe_tom	7	ses-social	frithhappe_tom	0.04431922359117001	0.015638429308157762	Social
+frithhappe	random	8.0	frith_happe_random		0.0		frithhappe_random	8	ses-social	frithhappe_random	0.02791527098460082	0.01092557425272404	Social
+liking	like	8.0	liking_like		0.0		liking_like	9	ses-social	liking_like	0.003946796941590001	-0.002707886915388631	Social
+liking	control	8.0	liking_control		0.0		liking_control	10	ses-social	liking_control	0.0032996004281424874	-0.005611110600654003	Social
+picseq	fbelief	8.0	picture_sequence_fbelief		0.0		picseq_fbelief	11	ses-social	picseq_fbelief	0.06113363983689608	0.036268774474470356	Social
+picseq	control	8.0	picture_sequence_control		0.0		picseq_control	12	ses-social	picseq_control	0.052383171094001174	0.03289734787184905	Social
+rmet	emotion	8.0	rmet_emotion		0.0		rmet_emotion	13	ses-social	rmet_emotion	-0.006926380517801196	0.0035372950051433837	Social
+rmet	age	8.0	rmet_age		0.0		rmet_age	14	ses-social	rmet_age	-0.007598998301215933	0.0031794182895426722	Social
+strngstories	social	8.0	strange_stories_social		0.0		strngstories_social	15	ses-social	strngstories_social	-0.018302171210114727	-0.01681323205441703	Social
+strngstories	control	8.0	strange_stories_control		0.0		strngstories_control	16	ses-social	strngstories_control	-0.018381250847237292	-0.014455184014640675	Social
+tom	belief	8.0	theory_of_mind_belief		0.0		tom_belief	17	ses-social	tom_belief	-0.03137058175953671	-0.020736969776284378	Social
+tom	photo	8.0	theory_of_mind_photo		0.0		tom_photo	18	ses-social	tom_photo	-0.0218814692596454	-0.0008847716746974144	Social
+rest	task	8.0	rest		0.0		rest_task	1	ses-localizer	rest_task	-0.021786440579161355	-0.018222341643819865	Language
+vrbgen	read	8.0	word_reading		0.0		vrbgen_read	2	ses-localizer	vrbgen_read	-0.044548380238228664	-0.033899357864974174	Language
+vrbgen	generate	8.0	verb_GENERATION		0.0		vrbgen_generate	3	ses-localizer	vrbgen_generate	0.01051691166599382	0.0172859124646422	Language
+actobserv	action	8.0	action_observation_action		0.0		actobserv_action	4	ses-localizer	actobserv_action	0.03558168945864408	0.015569729688546498	Language
+actobserv	knot	8.0	action_observation_knot		0.0		actobserv_knot	5	ses-localizer	actobserv_knot	0.022674556499849216	0.012019778889704747	Language
+pssglisten	intact	8.0	intact_passage		0.0		pssglisten_intact	6	ses-localizer	pssglisten_intact	-0.003765756954187476	-0.016511270291180137	Language
+pssglisten	degraded	8.0	degraded_passage		0.0		pssglisten_degraded	7	ses-localizer	pssglisten_degraded	0.0017476728661835268	-0.003395503966795762	Language
+motor	tongue	8.0	tongue_movement		0.0		motor_tongue	8	ses-localizer	motor_tongue	0.00788025101249882	-0.03320504188343038	Language
+fingr	sequence	8.0	finger_sequence		0.0		fingr_sequence	9	ses-localizer	fingr_sequence	0.005440921810484113	0.05605450552903908	Language
+tom	task	8.0	theory_of_mind		0.0		tom_task	10	ses-localizer	tom_task	0.012504685536265943	0.017743326463829402	Language
+audnarrative	task	8.0	auditory_narrative		0.0		audnarrative_task	11	ses-localizer	audnarrative_task	-0.0046197576396532925	-0.01114849131864059	Language
+nbckpic	2bck	8.0	n_back		0.0		nbckpic_2bck	12	ses-localizer	nbckpic_2bck	-0.017228703347045397	0.019564329021269124	Language
+oddball	task	8.0	oddball		0.0		oddball_task	13	ses-localizer	oddball_task	-0.014377380903013775	-0.015034884711547949	Language
+dmndgrid	g12s3b2	8.0	demand_grid		0.0		dmndgrid_g12s3b2	14	ses-localizer	dmndgrid_g12s3b2	0.03228215032457007	0.03820217730753416	Language
+movie	romance	8.0	romance_movie		0.0		movie_romance	15	ses-localizer	movie_romance	0.027308667625145944	0.00022623250950377474	Language
+spatialnav	task	8.0	spatial_navigation		0.0		spatialnav_task	16	ses-localizer	spatialnav_task	-0.016842483982877406	-0.011197845330811492	Language
+read	sentence	8.0	sentence_reading		0.0		read_sentence	17	ses-localizer	read_sentence	-0.01351336260874399	-0.014871000304304875	Language
+read	noword	8.0	nonword_reading		0.0		read_noword	18	ses-localizer	read_noword	-0.01925524054672415	-0.01918025455856458	Language
