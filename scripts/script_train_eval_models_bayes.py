@@ -20,7 +20,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                  crossed = "half",
                  type = "CondHalf",
                  train_ses = 'all',
-                 cond_code = 'all',
+                 cond_num = 'all',
                  dataset = "MDTB",
                  add_rest = True,
                  parcellation = "Icosahedron1002",
@@ -40,7 +40,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    config = rm.get_train_config(log_alpha=logalpha_list,
                                  crossed=crossed,
                                  type=type,
-                                 cond_code=cond_code,
+                                 cond_num=cond_num,
                                  subj_list=subj_list,
                                  cerebellum=cerebellum,
                                  parcellation=parcellation,
@@ -133,7 +133,7 @@ def bayes_avrg_model(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
 def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                 train_dataset = "MDTB",
                 train_ses = "all",
-                cond_code = 'all',
+                cond_num = 'all',
                 method = "L2reg",
                 parcellation = "Icosahedron1002",
                 cerebellum='MNISymC3',
@@ -183,7 +183,7 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       eval_config = rm.get_eval_config(eval_dataset=ed,
                                        eval_ses=eval_ses,
                                        run=run,
-                                       cond_code=cond_code,
+                                       cond_num=cond_num,
                                        parcellation=parcellation,
                                        crossed=crossed, # "half", # or None
                                        type=eval_type[i],
@@ -899,11 +899,11 @@ def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
 
 
 if __name__ == "__main__":
-   do_train = False
+   do_train = True
    do_eval = False
    do_region_eval = False
    do_loso_fuse = False
-   do_lodo_fuse = True
+   do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
    do_train_global = False
@@ -919,12 +919,12 @@ if __name__ == "__main__":
    # models = [['avg']]
    # models = ['avg', 'loo']
    # models = ["loo", "bayes-loo"]
-   models = ['avg']
+   # models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
    # models = ['group']
    # models = ['group', 'avg']
-   # models = ['mix']; mix_params = np.linspace(0,100,11)
+   models = ['mix']; mix_params = np.linspace(0,100,11)
 
    train_types = {
       'MDTB':        ('all',                 False,   'parcel',   8),
@@ -952,18 +952,18 @@ if __name__ == "__main__":
    for train_dataset, (train_ses, add_rest, std_cortex, best_la) in train_types.items():
       if do_train:
          if models[0] == 'mix':
-            cond_code = 'rnd_train'
+            cond_num = 'rnd_train'
          else:
-            cond_code = 'all'
+            cond_num = 'all'
 
          print(f'Train: {train_dataset} - individual')
          train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
-                      method=method, cerebellum=cereb_atlas, cond_code=cond_code,)
-                     #  mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
-                     #  logalpha_list=[best_la])
+                      method=method, cerebellum=cereb_atlas, cond_num=cond_num,
+                      mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
+                      logalpha_list=[best_la])
 
-         print(f'Train: {train_dataset} - avg')
-         avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
+         # print(f'Train: {train_dataset} - avg')
+         # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
                   #   avrg_mode='avg-half')
 
          # print(f'Train: {train_dataset} - group')
@@ -1001,7 +1001,7 @@ if __name__ == "__main__":
                      eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
                               add_rest=add_rest, std_cortex=std_cortex, model=model, method=method,
                               cortical_act='avg', eval_id=eval_id+"-CV-Cavg", logalpha_list=[best_la],
-                              mix_param=p, cond_code='rnd_eval', dir_extra='_CV', append=True)
+                              mix_param=p, cond_num='rnd_eval', dir_extra='_CV', append=True)
                else:
                   eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
                               add_rest=add_rest, std_cortex=std_cortex, model=model, method=method,

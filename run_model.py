@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
                      run = 'all',
-                     cond_code = 'all',
+                     cond_num = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -72,7 +72,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_dataset'] = train_dataset # name of the dataset to be used in
    train_config['train_ses'] = train_ses
    train_config['run'] = run
-   train_config['cond_code'] = cond_code
+   train_config['cond_num'] = cond_num
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -125,7 +125,7 @@ def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'ses-s2',
             subj_list = 'all',
             run = 'all',
-            cond_code = 'all',
+            cond_num = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -143,7 +143,7 @@ def get_eval_config(eval_dataset = 'MDTB',
       eval_ses (str): evaluation session. Defaults to 'ses-s2'.
       subj_list (str or list): List of subjects to evaluate. Defaults to 'all'.
       eval_run (str or list): List of runs to evaluate. Defaults to 'all'.
-      eval_cond_code (str or list): List of conditions to evaluate. Defaults to 'all'.
+      eval_cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
       cerebellum (str): Atlas for cerebellum. Defaults to 'SUIT3'.
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron1002".
@@ -162,7 +162,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['eval_dataset'] = eval_dataset
    eval_config['eval_ses'] = eval_ses
    eval_config['run'] = run
-   eval_config['cond_code'] = cond_code
+   eval_config['cond_num'] = cond_num
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -280,31 +280,31 @@ def cross_data(Y,info,mode):
       Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
-def subset_cond(Y, info, cond_code):
-   if isinstance(cond_code, list):
-      cond_mask = info['cond_code'].isin(cond_code)
+def subset_cond(Y, info, cond_num):
+   if isinstance(cond_num, list):
+      cond_mask = info['cond_num'].isin(cond_num)
       XX = XX[..., cond_mask.values, :]
       info = info[cond_mask]
    else:
-      codes = np.unique(info.cond_code.astype(str))
-      if cond_code == 'train':
-         codes_mask = info.cond_code.isin(codes[:len(codes)//2])
+      codes = np.unique(info.cond_num)
+      if cond_num == 'train':
+         codes_mask = info.cond_num.isin(codes[:len(codes)//3])
          Y = Y[..., codes_mask, :]
          info = info[codes_mask]
-      elif cond_code == 'eval':
-         codes_mask = info.cond_code.isin(codes[len(codes)//2:])
+      elif cond_num == 'eval':
+         codes_mask = info.cond_num.isin(codes[len(codes)//3:])
          Y = Y[..., codes_mask, :]
          info = info[codes_mask]
-      elif cond_code == 'rnd_train':
+      elif cond_num == 'rnd_train':
          rng = np.random.default_rng(seed=42)
          shuffled = rng.permutation(codes)
-         codes_mask = info.cond_code.isin(shuffled[:len(shuffled)//2])
+         codes_mask = info.cond_num.isin(shuffled[:len(shuffled)//3])
          Y = Y[..., codes_mask, :]
          info = info[codes_mask]
-      elif cond_code == 'rnd_eval':
+      elif cond_num == 'rnd_eval':
          rng = np.random.default_rng(seed=42)
          shuffled = rng.permutation(codes)
-         codes_mask = info.cond_code.isin(shuffled[len(shuffled)//2:])
+         codes_mask = info.cond_num.isin(shuffled[len(shuffled)//3:])
          Y = Y[..., codes_mask, :]
          info = info[codes_mask]
 
@@ -391,8 +391,8 @@ def get_cortical_data(dataset,sessions,subj,config):
          info = info[run_mask]
 
    # include only on some conds?
-   if config['cond_code']!='all':
-      XX,info = subset_cond(XX, info, config['cond_code'])
+   if config['cond_num']!='all':
+      XX,info = subset_cond(XX, info, config['cond_num'])
 
    #Definitely subtract intercept across all conditions
    XX = (XX - XX.mean(axis=-2,keepdims=True))
@@ -410,7 +410,7 @@ def get_cerebellar_data(dataset,sessions,subj,config):
       dataset (str): Name of the dataset to load.
       sessions (str or list): Session(s) to load data from.
       config (dict): Configuration dictionary containing 
-         add_res, run, cond_code, cerebellum, std_cerebellum, type, crossed, 
+         add_res, run, cond_num, cerebellum, std_cerebellum, type, crossed, 
 
    Returns:
       YY (ndarray): Cerebellar data.
@@ -439,8 +439,8 @@ def get_cerebellar_data(dataset,sessions,subj,config):
          info = info[run_mask]
 
    # Include only on some conds?
-   if config['cond_code']!='all':
-      YY,info = subset_cond(YY, info, config['cond_code'])
+   if config['cond_num']!='all':
+      YY,info = subset_cond(YY, info, config['cond_num'])
 
    #Definitely subtract intercept across all conditions
    YY = (YY - YY.mean(axis=-2,keepdims=True))
