@@ -898,8 +898,85 @@ def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
    df_all.to_csv(file_name, index = False, sep='\t')
 
 
+def eval_mix_model(train_dscode='WfIbDeNiSoScLa',
+                   eval_dataset='MDTB',
+                   eval_ses='all',
+                   add_rest=False,
+                   std_cortex='parcel',
+                   std_cerebellum='global',
+                   run='all',
+                   parcellation='Icosahedron1002',
+                   cerebellum='MNISymC3',
+                   method='L2reg',
+                   crossed='half',
+                   eval_type='CondHalf',
+                   global_logalpha=8,
+                   logalpha_list=[8],
+                   cond_num='rnd_eval',
+                   subj_list='all',
+                   cortical_act='ind',
+                   eval_id='WfIbDeNiSoScLa-mix-Cind',
+                   dir_extra='_CV',
+                   mix_params=np.linspace(0,100,11),
+                   append=False):
+   
+   # Load the fusion lodo model
+   print(f'Loading Fusion global model for {train_dscode}')
+   mname = f"{train_dscode}_{parcellation}_{method}"
+   model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+   fname = model_path + f"/{mname}_A{global_logalpha}_global"
+   fuse_mo, _ = cio.load_model(fname)
+
+   eval_config = rm.get_eval_config(eval_dataset=eval_dataset,
+                                    eval_ses=eval_ses,
+                                    run=run,
+                                    cond_num=cond_num,
+                                    parcellation=parcellation,
+                                    crossed=crossed, # "half", # or None
+                                    type=eval_type,
+                                    cerebellum=cerebellum,
+                                    splitby=None,
+                                    add_rest=add_rest,
+                                    std_cortex=std_cortex,
+                                    std_cerebellum=std_cerebellum,
+                                    subj_list=subj_list,
+                                    cortical_act=cortical_act)
+   
+   dirname=[]
+   mname=[]
+   for a in logalpha_list:
+      dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
+      mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
+
+   for mix_p in mix_params:
+      model_config = rm.get_model_config(dataset=eval_dataset,
+                                       subj_list=subj_list,
+                                       model='mix',
+                                       cerebellum=cerebellum,
+                                       mix_param=mix_p)
+      model_config['mix_model'] = fuse_mo
+
+      df, _ = rm.eval_model(dirname,mname,eval_config,model_config)
+      df_all = pd.concat([df_all, df], ignore_index=True)
+
+   save_path = gl.conn_dir+ f"/{cerebellum}/eval"
+   if not os.path.isdir(save_path):
+      os.mkdir(save_path)
+   else:
+      pass
+   ename = eval_config['eval_dataset']
+   if eval_config['eval_ses'] != 'all':
+      ses_code = eval_config['eval_ses'].split('-')[1]
+      ename = eval_config['eval_dataset'] + ses_code
+   file_name = save_path + f"/{ename}_{method}_{eval_id}.tsv"
+   if os.path.isfile(file_name) & append:
+      dd = pd.read_csv(file_name, sep='\t')
+      df_all = pd.concat([dd, df_all], ignore_index=True)
+   df_all.to_csv(file_name, index = False, sep='\t')
+
+
 if __name__ == "__main__":
-   do_train = True
+   do_train = False
    do_eval = False
    do_region_eval = False
    do_loso_fuse = False
@@ -908,8 +985,10 @@ if __name__ == "__main__":
    do_fuse_all = False
    do_train_global = False
    do_eval_global = False
+   do_fuse_lodo_mix = True
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
+   global_best_la = [8, 6, 8, 8, 8, 4, 8, 8, 8]
    
    # models = ["loo", "bayes", "bayes_vox"]
    # models = ["ind"]
@@ -1059,7 +1138,7 @@ if __name__ == "__main__":
                         train_ses=[value[0] for value in train_types.values()],
                         eval_datasets=list(eval_types.keys()),
                         eval_ses=[value[0] for value in eval_types.values()],
-                        logalpha=[value[1] for value in train_types.values()],
+                        logalpha=[value[3] for value in train_types.values()],
                         method=method,
                         parcellation='Icosahedron1002',
                         cerebellum=cereb_atlas,
@@ -1071,7 +1150,7 @@ if __name__ == "__main__":
          fuse_id = f'Fus-{model}'
          fuse_all_models(train_datasets=list(train_types.keys()),
                         train_ses=[value[0] for value in train_types.values()],
-                        logalpha=[value[1] for value in train_types.values()],
+                        logalpha=[value[3] for value in train_types.values()],
                         weight=[1]*len(train_types),
                         method=method,
                         model=model,
@@ -1088,8 +1167,8 @@ if __name__ == "__main__":
          print(f'{train_dscode}:')
          # train_dscode = ''.join(gl.dscode).replace('Ht', '')
          train_global_model(train_dscode=train_dscode,
-                           method='L2reg',
-                           cerebellum='MNISymC3',
+                           method=method,
+                           cerebellum=cereb_atlas,
                            mname=None,
                            logalpha_list=[0, 2, 4, 6, 8, 10, 12])
             
@@ -1097,16 +1176,31 @@ if __name__ == "__main__":
       for ds in list(train_types.keys()):
          print(f'Evaluating global model for {ds}')
          d = gl.datasets.index(ds)
-         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
-         train_dscode = train_dscode.replace('Ht', '')      # do not train on HCP task
+         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:]).train_dscode.replace('Ht', '')
          # train_dscode = ''.join(gl.dscode).replace('Ht', '')
          eval_id = train_dscode + '-global-Cavg'
          eval_global_model(train_dscode=train_dscode,
                            eval_dataset=ds,
-                           cerebellum='MNISymC3',
-                           method='L2reg',
+                           cerebellum=cereb_atlas,
+                           method=method,
                            logalpha_list=[0, 2, 4, 6, 8, 10, 12],
                            eval_id=eval_id)
                
-
+   if do_fuse_lodo_mix:
+      for i, ds in enumerate(list(train_types.keys())):
+         print(f'Mixing Fusion model with {ds}')
+         d = gl.datasets.index(ds)
+         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:]).replace('Ht', '')
+         eval_id = train_dscode + '-mix-Cind'
+         eval_mix_model(train_dscode=train_dscode,
+                        eval_dataset=ds,
+                        cerebellum=cereb_atlas,
+                        method=method,
+                        logalpha=global_best_la[i],
+                        cond_num='rnd_eval',
+                        cortical_act='ind',
+                        dir_extra='_CV',
+                        mix_params=mix_params,
+                        eval_id=eval_id)
+         
 

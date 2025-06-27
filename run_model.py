@@ -853,7 +853,23 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
-                                 mix_subj=model_subj,
+                                 model_subj=model_subj,
+                                 avrg_mode=config['model'],
+                                 mix_param=config['mix_param'],
+                                 mix_model=config['mix_model'])
+         fitted_model.append(fm)
+         train_info.append(fi)
+   elif config['model']=='mix_loo':
+      # get list of subject for model
+      model_subj = get_subj_list(config["subj_list"], config["dataset"])
+      fitted_model = []
+      train_info = []
+      for d,m in zip(model_dirs,model_names):
+         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
+         ext = '_' + m.split('_')[-1]
+         fm,fi = calc_avrg_model(config['dataset'],d,ext,
+                                 cerebellum=config['cerebellum'],
+                                 model_subj=model_subj,
                                  avrg_mode=config['model'],
                                  mix_param=config['mix_param'])
          fitted_model.append(fm)
@@ -868,7 +884,7 @@ def get_fitted_models(model_dirs,model_names,config):
          ext = '_' + m.split('_')[-1]
          fm,fi = calc_avrg_model(config['dataset'],d,ext,
                                  cerebellum=config['cerebellum'],
-                                 mix_subj=model_subj,
+                                 model_subj=model_subj,
                                  avrg_mode=config['model'])
          fitted_model.append(fm)
          train_info.append(fi)
@@ -882,9 +898,10 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
    if model_config['model']=='avg' it will average the models across subjects
    if model_config['model']=='ind' it will evaluate each subejct individually
    if model_config['model']=='loo' it will average all other subjects
-   if model_config['model']=='mix' it will do: p*subject + (1-p)*loo
+   if model_config['model']=='mix_loo' it will do: p*subject + (1-p)*loo
+   if model_config['model']=='mix' it will do: p*subject + (1-p)*given_model
    if model_config['model']=='bayes' it will integrate individual weights with bayes rule
-   For 'ind', 'loo', and 'mix' training and evaluation dataset must be the same 
+   For 'ind', 'loo', and 'mix_loo' training and evaluation dataset must be the same 
    Args:
       model_dirs (list)  - list of model directories
       model_names (list) - list of full model names (without .h5) to evaluate
@@ -1131,9 +1148,9 @@ def calc_avrg_model(train_dataset,
                     parameters=['coef_'],
                     avrg_mode='avrg_sep',
                     mix_param=[],
+                    mix_model=None,
                     subj='all',
-                    model_subj='all',
-                    mix_subj='all'):
+                    model_subj='all'):
    """Get the fitted models from all the subjects in the training data set
       and create group-averaged model
    Args:
@@ -1145,7 +1162,6 @@ def calc_avrg_model(train_dataset,
    """
    subject_list = get_subj_list(subj, train_dataset)
    model_subject_list = get_subj_list(model_subj, train_dataset)
-   mix_subject_list = get_subj_list(mix_subj, train_dataset)
 
    # get the directory where models are saved
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
@@ -1194,7 +1210,7 @@ def calc_avrg_model(train_dataset,
             sel_ind = list(subject_list).index(sub)
             setattr(avrg_model[s],p,P[subj_ind!=sel_ind].mean(axis=0))
 
-   elif avrg_mode=='mix':
+   elif avrg_mode=='mix_loo':
       avrg_model = []
       portion_value = float(mix_param) / 100
       print(f"portion_value = {portion_value}")
@@ -1205,6 +1221,19 @@ def calc_avrg_model(train_dataset,
          P = np.stack(param_lists[p],axis=0)
          for s,sub in enumerate(subject_list):
             attr_value = P[subj_ind!=s].mean(axis=0)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
+            setattr(avrg_model[s],p,attr_value)
+
+   elif avrg_mode=='mix':
+      avrg_model = []
+      portion_value = float(mix_param) / 100
+      print(f"portion_value = {portion_value}")
+      subj_ind = np.arange(len(subject_list))
+      for s,sub in enumerate(subject_list):
+         avrg_model.append(copy(fitted_model))
+      for p in parameters:
+         P = np.stack(param_lists[p],axis=0)
+         for s,sub in enumerate(subject_list):
+            attr_value = getattr(mix_model,p)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
 
    elif avrg_mode.startswith('bayes'):
