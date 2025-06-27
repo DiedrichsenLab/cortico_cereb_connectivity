@@ -581,7 +581,8 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                     parcellation='Icosahedron1002',
                     cerebellum='MNISymC3',
                     cortical_act='avg',
-                    eval_id='Fus-avg'):
+                    eval_id='Fus-avg',
+                    save_model=True):
    
    # get other datasets models and weights
    if model == 'avg':
@@ -670,6 +671,16 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
 
       fuse_model = getattr(c_model, method)()
       setattr(fuse_model,'coef_',np.nansum(coef_to_sum, axis=0))
+      if save_model:
+         ev_dscode = gl.dscode[gl.datasets.index(edata)]
+         train_dscode = ''.join(gl.dscode).replace(ev_dscode, '')
+         if 'Ht' in train_dscode:
+            train_dscode = train_dscode.replace('Ht', '')
+         mname = f"{train_dscode}_{parcellation}_{method}"
+         model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+         fname = model_path + f"/" + mname + f"_{model}"
+         cio.save_model(fuse_model, info, fname)
+
       model_config['model'] = [fuse_model]
       info['extension'] = eval_id
       info['logalpha'] = logalpha
@@ -1033,13 +1044,14 @@ if __name__ == "__main__":
                            eval_ses=[value[0] for value in eval_types.values()],
                            add_rest=[value[1] for value in eval_types.values()],
                            std_cortex=[value[2] for value in eval_types.values()],
-                           logalpha=[value[1] for value in train_types.values()],
+                           logalpha=[value[3] for value in train_types.values()],
                            model=model,   # "avg" or "bayes"
                            method=method,
                            parcellation='Icosahedron1002',
                            cerebellum=cereb_atlas,
                            cortical_act='avg',
-                           eval_id=eval_id)
+                           eval_id=eval_id,
+                           save_model=True)
 
    if do_voxel_lodo_fuse:
       eval_id = "Fus-lodo-voxel"
