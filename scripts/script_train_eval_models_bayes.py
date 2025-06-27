@@ -1187,20 +1187,23 @@ if __name__ == "__main__":
                            eval_id=eval_id)
                
    if do_fuse_lodo_mix:
-      for i, ds in enumerate(list(train_types.keys())):
+      for i, ds, (eval_ses, add_rest, std_cortex, la) in enumerate(train_types.items()):
          print(f'Mixing Fusion model with {ds}')
          d = gl.datasets.index(ds)
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:]).replace('Ht', '')
          eval_id = train_dscode + '-mix-Cind'
          eval_mix_model(train_dscode=train_dscode,
                         eval_dataset=ds,
+                        eval_ses=eval_ses,
+                        add_rest=add_rest,
+                        std_cortex=std_cortex,
                         cerebellum=cereb_atlas,
                         method=method,
-                        logalpha=global_best_la[i],
+                        global_logalpha=global_best_la[i],
+                        logalpha_list=[la],
                         cond_num='rnd_eval',
                         cortical_act='ind',
                         dir_extra='_CV',
                         mix_params=mix_params,
                         eval_id=eval_id)
          
-
