@@ -945,9 +945,10 @@ def eval_mix_model(train_dscode='WfIbDeNiSoScLa',
    dirname=[]
    mname=[]
    for a in logalpha_list:
-      dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
-      mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
+      dirname.append(f"{eval_dataset}_{eval_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
+      mname.append(f"{eval_dataset}_{eval_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
 
+   df_all = pd.DataFrame()
    for mix_p in mix_params:
       model_config = rm.get_model_config(dataset=eval_dataset,
                                        subj_list=subj_list,
@@ -1187,7 +1188,7 @@ if __name__ == "__main__":
                            eval_id=eval_id)
                
    if do_fuse_lodo_mix:
-      for i, ds, (eval_ses, add_rest, std_cortex, la) in enumerate(train_types.items()):
+      for i, (ds, (eval_ses, add_rest, std_cortex, la)) in enumerate(train_types.items()):
          print(f'Mixing Fusion model with {ds}')
          d = gl.datasets.index(ds)
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:]).replace('Ht', '')
