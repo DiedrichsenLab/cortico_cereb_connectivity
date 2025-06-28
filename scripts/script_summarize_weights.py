@@ -225,5 +225,6 @@ if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
     # Compute the average connecivity for the model for each cortical parcel
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
-    do_smooth()
+    D = cs.get_weight_by_cortex('MdWfIbDeHtNiSoScLa','Icosahedron1002','NNLS','A2_group')
+    D.to_csv('./notebooks/5. Model_description/network_weights_yeo.tsv',sep='\t',index=False)
     pass 

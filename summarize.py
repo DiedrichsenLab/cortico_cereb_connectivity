@@ -117,12 +117,12 @@ def avrg_weight_map_roi(traindata,
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
     # label file for the cerebellum
-    label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-SUIT_dseg.nii"
+    label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-{cerebellum_atlas}_dseg.nii"
 
     # get the average cortical weights for each cerebellar parcel
-    atlas_suit,ainf = am.get_atlas(cerebellum_atlas)
-    atlas_suit.get_parcel(label_suit)
-    weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_suit.label_vector, fcn=np.nanmean)
+    atlas_cereb,ainf = am.get_atlas(cerebellum_atlas)
+    atlas_cereb.get_parcel(label_suit)
+    weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
 
     # load the lookup table for the cerebellar parcellation to get the names of the parcels
     index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
@@ -134,6 +134,118 @@ def avrg_weight_map_roi(traindata,
                                    trg_roi = labels[1:],
                                    type = 'scalar')
     return cifti_img
+
+def calc_relative_input_size(traindata,
+                    cortex_roi = "Icosahedron1002",
+                    cerebellum_roi = "NettekovenSym32",
+                    cerebellum_atlas = "MNISymC3"):
+    """ Returns a dataframe with the relative size and input size of each cerebellar parcel - averaed across hemisphere. 
+    This is based on the average group data- assigning each cortical parcel to the cerebellar parcel with the highest correlation. 
+
+    Args:
+        traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
+        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "
+        Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'L2reg'.
+        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        cerebellum_roi (str, optional): name of the cerebellar parcellation. Defaults to "NettekovenSym32".
+        cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
+    Returns:
+        result (pd.DataFrame) 
+    """
+    # make model name
+    # load in the connectivity average connectivity model
+
+    # Load model 
+    Cereb = nb.load(f'{gl.conn_dir}/maps/MdWfIbDeHtNiSoScLa_data_cerebellum.dscalar.nii')
+    Cort = nb.load(f'{gl.conn_dir}/maps/MdWfIbDeHtNiSoScLa_data_cortex.pscalar.nii')
+    
+    # get the average cortical weights for each cerebellar parcel
+    atlas_cereb,ainf = am.get_atlas(cerebellum_atlas)
+    label_cereb = gl.atlas_dir + f"/{ainf['dir']}/atl-{cerebellum_roi}_space-{ainf['space']}_dseg.nii"
+    atlas_cereb.get_parcel(label_cereb)
+    Cereb_V, labels = fdata.agg_parcels(Cereb.get_fdata(), atlas_cereb.label_vector, fcn=np.nanmean)
+    Cereb_V = Cereb_V/np.std(Cereb_V,axis=0,keepdims=True)    
+    
+    Cort_data = Cort.get_fdata()
+    Cort_data = Cort_data/np.std(Cort_data,axis=0,keepdims=True)
+    Corr = Cort_data.T @ Cereb_V/Cort_data.shape[0]
+    winner = np.argmax(Corr,axis=1)+1 
+    size_parcel,_ = fdata.agg_parcels(np.ones(atlas_cereb.P), atlas_cereb.label_vector, fcn=np.size)
+    # load the lookup table for the cerebellar parcellation to get the names of the parcels
+    index,colors,label_names = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
+
+    T = pd.DataFrame()
+    for i in range(max(labels)):
+        t = {'cereb_region': [label_names[i+1]],
+             'size_cereb': size_parcel[i],
+             'size_cort': np.sum(winner==i+1),
+             'color_r': [colors[i+1,0]],
+             'color_g': [colors[i+1,1]],
+             'color_b': [colors[i+1,2]]}
+        T = pd.concat([T,pd.DataFrame(t)],ignore_index=True)
+    return T
+
+def get_weight_by_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
+                    cortex_roi = "Icosahedron1002",
+                    method = "NNLS",
+                    extension = 'A2_group',
+                    cerebellum_atlas = "MNISymC3",
+                    sum_cortex = 'yeo17',
+                    sum_method = 'positive'
+                    ):
+    """ Make table of the connectivity weights for each cortical parcel,
+    averaged across the entire cerebellum.
+    """
+    model,info  = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas)
+
+    weights = model.coef_
+
+    # prepping the parcel axis file
+    ## make atlas object first
+    atlas_fs, _ = am.get_atlas("fs32k", gl.atlas_dir)
+
+    # load the label file for the cortex
+    label_conn_fname = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+
+    # get parcels for the neocortex
+    label_conn, l_conn = atlas_fs.get_parcel(label_conn_fname, unite_struct = False)
+
+    # load the label file for summarizing the cortex
+    label_sum_fname = [gl.atlas_dir + f"/tpl-fs32k/{sum_cortex}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    label_sum, l_sum = atlas_fs.get_parcel(label_sum_fname, unite_struct = True)
+
+    # Expand data, threshold, and then summarize
+    ex_weights = weights[:,label_conn-1]
+    if sum_method == 'positive':
+        ex_weights[ex_weights<0]=0
+
+    # Get region names and colors
+    gii = nb.load(label_sum_fname[0])
+    label_names = nt.get_gifti_labels(gii)
+    colors,_ = nt.get_gifti_colortable(gii)
+
+    # Summarize the data
+    N = l_sum.shape[0]
+    cort_size = np.zeros(N,)
+    weight_sum = np.zeros((N,))
+    for l in l_sum:
+        cort_size[l-1] = np.sum(label_sum==l)
+        weight_sum[l-1] = np.nansum(ex_weights[:,label_sum==l])
+    cort_size = cort_size/cort_size.sum()*100
+    weight_sum = weight_sum/weight_sum.sum()*100
+
+    T = pd.DataFrame({'cort_size':cort_size,
+                        'cereb_size':weight_sum,
+                        'name':label_names[1:],
+                        'color_r': colors[1:,0],
+                        'color_g': colors[1:,1],
+                        'color_b': colors[1:,2]})
+    
+    return T
+
+
+
 
 def pscalar_to_smoothed_dscalar(infile,outfilename=None,sigma=4.0,wdir=f'{gl.conn_dir}/maps'):
     """ Takes a pscalar file, projects it to the full surface and smoothes"""
