@@ -18,6 +18,7 @@ import Functional_Fusion.atlas_map as am
 import nitools as nt
 from pathlib import Path
 import warnings
+import scipy.stats as ss
 
 
 def make_avrg_weight_map(dataset= "HCP",extension = 'A0',ext="",method="L2Regression"):
@@ -66,6 +67,41 @@ def make_weight_table(dataset="HCP",extension="A0",cortical_roi="yeo17"):
             T.append(pd.DataFrame(t))
     T = pd.concat(T,ignore_index=True)
     return T
+
+def assign_parcels_to_cortical_roi(cortex_parcel = "Icosahedron1002",
+                                rois = 'yeo17'):
+    
+    ## make atlas object first
+    atlas_fs, _ = am.get_atlas("fs32k")
+
+    # Make a cifti label file that assigns the cortical parcels to the cortex_roi
+    label_parcel_fname = [gl.atlas_dir + f"/tpl-fs32k/{cortex_parcel}.{hemi}.label.gii" for hemi in ["L", "R"]]
+
+    # get parcels for the neocortex
+    parcel_vec, parcels = atlas_fs.get_parcel(label_parcel_fname, unite_struct = False)
+
+    # load the label file for summarizing the cortex
+    label_roi_fname = [gl.atlas_dir + f"/tpl-fs32k/{rois}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    rois = atlas_fs.read_data(label_roi_fname)
+
+    parcel_data = np.zeros(parcels.shape)
+    for i, p in enumerate(parcels):
+        parcel_data[..., i] = ss.mode(rois[parcel_vec == p])[0]
+
+
+    # Get region names and colors
+    gii = nb.load(label_roi_fname[0])
+    label_names = nt.get_gifti_labels(gii)
+    colors,_ = nt.get_gifti_colortable(gii)
+
+    Cifti2 = nt.make_label_cifti(parcel_data, atlas_fs.get_parcel_axis(),
+                       labels=None,
+                       label_names=label_names,
+                       column_names=['yeo17'],
+                       label_RGBA=colors)
+
+    return Cifti2
+
 
 def get_weight_by_cortex(method = "L2Regression",
                     cortex_roi = "Icosahedron1002",
@@ -225,6 +261,9 @@ if __name__ == "__main__":
     # export_model_as_cifti(dataset_name= "Fusion",extension = '06',method="L2Regression")
     # Compute the average connecivity for the model for each cortical parcel
     # ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC","HCP"],
-    D = cs.get_weight_by_cortex('MdWfIbDeHtNiSoScLa','Icosahedron1002','NNLS','A2_group')
-    D.to_csv('./notebooks/5. Model_description/network_weights_yeo.tsv',sep='\t',index=False)
+    
+    cifti = assign_parcels_to_cortical_roi()
+    nb.save(cifti, gl.conn_dir + '/maps/yeo17_Icosahedron1002.plabel.nii')
+    # D = cs.get_weight_by_cortex('MdWfIbDeHtNiSoScLa','Icosahedron1002','NNLS','A2_group')
+    #  D.to_csv('./notebooks/5. Model_description/network_weights_yeo.tsv',sep='\t',index=False)
     pass 
