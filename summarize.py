@@ -285,7 +285,10 @@ def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     dtype = 'float32')
     return C 
 
-def plot_cortical_flatmap(data,axes = None, cscale=None,cmap='bwr'): 
+def plot_cortical_flatmap(data,axes = None, 
+                          cscale=None,
+                          cmap='bwr',
+                          overlay_type='func'): 
     # determine scaling 
     if cscale is None:
         data_min = np.nanmin(data[0])
@@ -310,7 +313,7 @@ def plot_cortical_flatmap(data,axes = None, cscale=None,cmap='bwr'):
             data[h].flatten(),
             flat[h],
             underlay=None,
-            overlay_type="func",
+            overlay_type=overlay_type,
             cmap=cmap,
             cscale=cscale,
             borders=border[h],
