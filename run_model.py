@@ -31,6 +31,7 @@ def get_train_config(train_dataset = "MDTB",
                      train_ses = "ses-s1",
                      run = 'all',
                      cond_num = 'all',
+                     task_code = 'all',
                      subj_list = 'all',
                      method = "L2regression",
                      log_alpha = 8,
@@ -73,6 +74,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['train_ses'] = train_ses
    train_config['run'] = run
    train_config['cond_num'] = cond_num
+   train_config['task_code'] = task_code
    train_config['subj_list'] = subj_list
    train_config['method'] = method   # method used in modelling (see model.py)
    train_config['logalpha'] = log_alpha # alpha will be np.exp(log_alpha)
@@ -126,6 +128,7 @@ def get_eval_config(eval_dataset = 'MDTB',
             subj_list = 'all',
             run = 'all',
             cond_num = 'all',
+            task_code = 'all',
             cerebellum = 'SUIT3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
@@ -163,6 +166,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['eval_ses'] = eval_ses
    eval_config['run'] = run
    eval_config['cond_num'] = cond_num
+   eval_config['task_code'] = task_code
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
    eval_config['parcellation'] = parcellation
@@ -350,16 +354,47 @@ def std_data(Y,mode):
    if mode is None:
       return Y
    elif mode=='parcel':
-      sc=np.sqrt(np.nansum(Y ** 2, 0) / Y.shape[0])
+      sc=np.sqrt(np.nansum(Y ** 2, 0))# / Y.shape[0])
       return  np.nan_to_num(Y/sc)
    elif mode=='global':
-      sc=np.sqrt(np.nansum(Y ** 2) / Y.size)
+      sc=np.sqrt(np.nansum(Y ** 2))# / Y.size)
       return np.nan_to_num(Y/sc)
    elif mode=='norm':
       sc=np.linalg.norm(Y, ord='fro')
       return np.nan_to_num(Y/sc)
    else:
       raise ValueError('std_mode must be None, "voxel" or "global" or "norm"')
+
+def ready_data(data, info, config):
+   # Remove Nans
+   data = np.nan_to_num(data)
+
+   # Add rest condition?
+   if config["add_rest"]:
+      data,info = add_rest(data,info)
+
+   # Indlude only some runs?
+   if config["run"]!='all':
+      if isinstance(config["run"], list):
+         run_mask = info['run'].isin(config["run"])
+         data = data[..., run_mask.values, :]
+         info = info[run_mask]
+
+   # Include only some tasks?
+   if config["task_code"]!='all':
+      if isinstance(config["task_code"], list):
+         run_mask = info['task_code'].isin(config["task_code"])
+         data = data[..., run_mask.values, :]
+         info = info[run_mask]
+   
+   # Include only some conds?
+   if config['cond_num']!='all':
+      data,info = subset_cond(data, info, config['cond_num'])
+
+   # Definitely subtract intercept across all conditions
+   data = (data - data.mean(axis=-2,keepdims=True))
+
+   return data, info
 
 def get_cortical_data(dataset,sessions,subj,config):
    """ Get cortical data according to the training of evaluation config file."""
@@ -376,26 +411,7 @@ def get_cortical_data(dataset,sessions,subj,config):
    # get the mean across tessels for cortical data
    XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-   # Remove Nans
-   XX = np.nan_to_num(XX)
-
-   # Add rest condition?
-   if config["add_rest"]:
-      XX,info = add_rest(XX,info)
-
-   # train only on some runs?
-   if config["run"]!='all':
-      if isinstance(config["run"], list):
-         run_mask = info['run'].isin(config["run"])
-         XX = XX[..., run_mask.values, :]
-         info = info[run_mask]
-
-   # include only on some conds?
-   if config['cond_num']!='all':
-      XX,info = subset_cond(XX, info, config['cond_num'])
-
-   #Definitely subtract intercept across all conditions
-   XX = (XX - XX.mean(axis=-2,keepdims=True))
+   XX, info = ready_data(XX, info, config)
 
    for i in range(XX.shape[0]):
       if 'std_cortex' in config.keys():
@@ -424,26 +440,7 @@ def get_cerebellar_data(dataset,sessions,subj,config):
                                  atlas=config["cerebellum"],
                                  type=config["type"])
    
-   # Remove Nans
-   YY = np.nan_to_num(YY)
-
-   # Add rest condition?
-   if config["add_rest"]:
-      YY,info = add_rest(YY,info)
-
-   # Include only some runs?
-   if config["run"]!='all':
-      if isinstance(config["run"], list):
-         run_mask = info['run'].isin(config["run"])
-         YY = YY[..., run_mask.values, :]
-         info = info[run_mask]
-
-   # Include only on some conds?
-   if config['cond_num']!='all':
-      YY,info = subset_cond(YY, info, config['cond_num'])
-
-   #Definitely subtract intercept across all conditions
-   YY = (YY - YY.mean(axis=-2,keepdims=True))
+   YY, info = ready_data(YY, info, config)
 
    for i in range(YY.shape[0]):
       if 'std_cerebellum' in config.keys():
@@ -452,6 +449,7 @@ def get_cerebellar_data(dataset,sessions,subj,config):
       # cross the halves within each session
       if config["crossed"] is not None:
          YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
+
    return YY, info 
 
 
