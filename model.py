@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy import sparse
 import scipy.optimize as so
+from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -347,12 +348,45 @@ class NNLS(Model):
             A = np.vstack((X,np.sqrt(self.alpha)*np.eye(Q)))
             for i in range(P):
                 if (i % 100) == 0:
-                    print('.')
+                    print('.', end='', flush=True)
                 v= np.concatenate([Y[:,i],np.zeros(Q)])
                 self.coef_[i,:] = so.nnls(A,v)[0]
         else:
             for i in range(P):
                 if (i % 100) == 0:
-                    print('.')
+                    print('.', end='', flush=True)
                 self.coef_[i,:] = so.nnls(X,Y[:,i])[0]
         return self
+
+class NNLS_parallel(Model):
+    """
+        Parallel NNLS model with L2 regularization - no internal scaling of the data.
+        Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
+        A = [X; sqrt(alpha) * I] and b = [Y; 0]
+    """
+
+    def __init__(self, alpha=0, n_jobs=-1):
+        self.alpha = alpha
+        self.n_jobs = n_jobs
+
+    def fit(self, X, Y):
+        Q = X.shape[1]
+        P = Y.shape[1]
+        self.coef_ = np.zeros((P,Q))
+
+        def solve_nnls_single(X, y, alpha):
+            Q = X.shape[1]
+            if alpha > 0:
+                A = np.vstack((X, np.sqrt(alpha) * np.eye(Q)))
+                b = np.concatenate([y, np.zeros(Q)])
+            else:
+                A = X
+                b = y
+            return so.nnls(A, b)[0]
+
+        results = Parallel(n_jobs=self.n_jobs)(
+            delayed(solve_nnls_single)(X, Y[:, i], self.alpha) for i in range(P)
+        )
+        self.coef_ = np.array(results)
+        return self
+    
