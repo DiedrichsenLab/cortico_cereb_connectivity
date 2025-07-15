@@ -417,6 +417,11 @@ def get_cortical_data(dataset,sessions,subj,config):
       if 'std_cortex' in config.keys():
          XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
 
+   if 'exclude_network' in config.keys():
+      yeo_img = nb.load(gl.conn_dir + f'/maps/yeo17_{config['parcellation']}.plabel.nii')
+      yeo_data = yeo_img.get_fdata().squeeze()
+      XX[..., :, yeo_data==config['exclude_network']] = 0.0
+
    return XX, info
 
 def get_cerebellar_data(dataset,sessions,subj,config):
