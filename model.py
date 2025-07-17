@@ -331,35 +331,6 @@ class WTA(BaseEstimator, Model):
 
 class NNLS(Model):
     """
-        NNLS model with L2 regularization - no internal scaling of the data.
-        Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
-        A = [X; sqrt(alpha) * I] and b = [Y; 0]
-    """
-
-    def __init__(self,alpha=0):
-        self.alpha = alpha
-
-    def fit(self, X, Y):
-        [N,Q]=X.shape
-        [N1,P]=Y.shape
-        self.coef_ = np.zeros((P,Q))
-        # With L2 regularization - appen
-        if self.alpha > 0:
-            A = np.vstack((X,np.sqrt(self.alpha)*np.eye(Q)))
-            for i in range(P):
-                if (i % 100) == 0:
-                    print('.', end='', flush=True)
-                v= np.concatenate([Y[:,i],np.zeros(Q)])
-                self.coef_[i,:] = so.nnls(A,v)[0]
-        else:
-            for i in range(P):
-                if (i % 100) == 0:
-                    print('.', end='', flush=True)
-                self.coef_[i,:] = so.nnls(X,Y[:,i])[0]
-        return self
-
-class NNLS_parallel(Model):
-    """
         Parallel NNLS model with L2 regularization - no internal scaling of the data.
         Xw = y  with ||y - Xw||^2 + alpha * ||w||^2 can be solved as
         A = [X; sqrt(alpha) * I] and b = [Y; 0]
