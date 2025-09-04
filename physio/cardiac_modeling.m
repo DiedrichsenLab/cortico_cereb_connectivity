@@ -23,11 +23,8 @@ subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
 % addpath(genpath('/cifs/diedrichsen/matlab/imaging/tapas-master/PhysIO/code'));
 addpath(genpath('/cifs/diedrichsen/matlab'));
 
-%% Call Function
-% bsp_imana('PHYS:createRegressorPPU', 'sn', 1, 'runnum', 1:9)
-
 %% Functions
-for sn = 1:length(subj_name)
+for sn = 1%:length(subj_name)
     logDir = fullfile(baseDir, 'data/physio', subj_name{sn}, 'ses-01/');
 
     % Get all files that match run-XX_PULS.log
@@ -35,7 +32,7 @@ for sn = 1:length(subj_name)
 
     % Extract run numbers using regexp
     runnum = [];
-    for i = 1:length(files)
+    for i = 1%:length(files)
         % match the number between "run-" and "_PULS.log"
         tok = regexp(files(i).name, 'run-(\d+)_puls\.log', 'tokens');
         if ~isempty(tok)
@@ -55,6 +52,9 @@ for sn = 1:length(subj_name)
 
         % Initialize TAPAS physio model
         physio = tapas_physio_new();
+
+        % Include heart rate
+        physio.verbose.level = 2;
 
         % Input files
         physio.save_dir = {logDir};
