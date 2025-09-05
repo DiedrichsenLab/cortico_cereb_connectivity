@@ -2,72 +2,76 @@ clc; clear; close all;
 
 workdir = '/cifs/diedrichsen/data';
 baseDir = fullfile(workdir, 'Cerebellum/Social');
-logDir = fullfile(baseDir, 'data/physio/sub-03/ses-01/');
 
-% Load physio from TAPAS output
-load(fullfile(logDir, 'physio_run-01.mat'), 'physio');
+% Parameters
+sub_s   = "sub-07";
+smooth_flag = true;  % set to false to keep raw HR
+smooth_window = 1;   % seconds for moving average
+dt = 0.25;            % resampling resolution in sec
+win = [-5 15];     % peri-event window
+t_common = win(1):0.5:win(2);
 
-% Read the raw PULS log to get triggers
-tbl = readTable();
+all_segments = [];   % event-related HR across all runs
+all_onsets   = [];
 
-acq_time = tbl.ACQ_TIME_TICS;
+for r = 1:8
+    run_s = sprintf('run-%02d', r);
 
-% Get trigger times
-trigger_idx = strcmp(tbl.SIGNAL, 'PULS_TRIGGER');
-trigger_tics = acq_time(trigger_idx);
+    logDir = fullfile(baseDir, sprintf('data/physio/regressors/%s/%s', sub_s, run_s));
+    behDir = fullfile(baseDir, sprintf('data/behavioral/%s/%s_ses-01.tsv', sub_s, sub_s));
 
-% Convert tics to seconds
-dt_tics = 2.5e-3;  % 2.5 ms per tic
-trigger_times = (trigger_tics - trigger_tics(1)) * dt_tics;
+    % --- Load physio from TAPAS output ---
+    load(fullfile(logDir, sprintf('physio_%s.mat', run_s)), 'physio');
 
-% --- Compute instantaneous heart rate from TAPAS detected beats ---
-pulse_times = physio.ons_secs.cpulse;   % cardiac beats in sec
-IBI = diff(pulse_times);                % inter-beat intervals
-HR_inst = 60 ./ IBI;                    % bpm
-t_inst  = pulse_times(2:end);           % time of each HR value
+    % --- Compute instantaneous HR ---
+    pulse_times = physio.ons_secs.cpulse;
+    IBI = diff(pulse_times);
+    HR_inst = 60 ./ IBI;
+    t_inst  = pulse_times(2:end);
 
-% --- Interpolate onto continuous grid ---
-dt = 0.1;  % time resolution for plotting
-t_grid = t_inst(1):dt:t_inst(end);
-HR_cont = interp1(t_inst, HR_inst, t_grid, 'linear', 'extrap');
+    % --- Interpolate HR onto continuous grid ---
+    t_hr = t_inst(1):dt:t_inst(end);
+    hr   = interp1(t_inst, HR_inst, t_hr, 'linear', 'extrap');
 
-% --- Plot 1: raw (unaligned) heart rate ---
-figure;
-plot(t_grid, HR_cont, 'b', 'LineWidth', 1.5);
-xlabel('Time (s)');
-ylabel('Heart Rate (BPM)');
-title('Raw Heart Rate Time Series');
-grid on;
+    if smooth_flag
+        % Moving average smoothing over window
+        N = round(smooth_window / dt);  % number of points in window
+        hr = smoothdata(hr, 'movmean', N);
+    end
 
-% --- Align HR to triggers for event-related averaging ---
-win = [-10 20];  % seconds around trigger
-t_win = win(1):dt:win(2);
-n_events = length(trigger_times);
-HR_event = nan(n_events, length(t_win));
+    % --- Load behavior and get onsets for this run ---
+    tsv_table = readtable(behDir, ...
+        'FileType','text', ...
+        'Delimiter','\t', ...
+        'VariableNamingRule','preserve');
 
-for e = 1:n_events
-    t0 = trigger_times(e);
-    t_rel = t0 + t_win;
-    idx = t_rel >= t_grid(1) & t_rel <= t_grid(end);
-    HR_event(e, idx) = interp1(t_grid, HR_cont, t_rel(idx));
+    % select only rows for this run
+    onsets = tsv_table.real_start_time(tsv_table.run_num == r);
+
+    % --- Extract peri-event segments ---
+    for i = 1:length(onsets)
+        t0 = onsets(i);
+        t_rel = t_hr - t0;
+        mask  = (t_rel >= win(1)) & (t_rel <= win(2));
+        if any(mask)
+            seg = interp1(t_rel(mask), hr(mask), t_common, 'linear', NaN);
+            all_segments(end+1,:) = seg;
+            all_onsets(end+1,1)   = t0;
+        end
+    end
 end
 
-HR_avg = nanmean(HR_event, 1);
+%% Plotting
+mean_hr = nanmean(all_segments,1);
 
-% --- Plot 2: HR aligned to triggers ---
-figure;
-plot(t_win, HR_avg, 'r', 'LineWidth', 2);
-xlabel('Time relative to PULS\_TRIGGER (s)');
-ylabel('HR (BPM)');
-title('Average Heart Rate aligned to PULS\_TRIGGER');
+figure; hold on;
+plot(t_common, all_segments', 'Color',[0.8 0.8 0.8]); % single trials
+plot(t_common, mean_hr, 'k', 'LineWidth',2);          % mean
+xline(0,'r--','Task onset');
+xlabel('Time relative to onset (s)');
+ylabel('HR (bpm)');
+title(sprintf('Event-related HR (N = %d)', size(all_segments,1)));
 grid on;
-
-% Add vertical line at t=0
-hold on;
-yl = ylim;  % current y-limits
-plot([0 0], yl, 'k--', 'LineWidth', 1.5);  % dashed vertical line
-text(0, yl(2), '  PULS.TRIGGER', 'VerticalAlignment','top','HorizontalAlignment','left','FontWeight','bold');
-hold off;
 
 %% --- Function to read raw log ---
 function tbl = readTable()
@@ -99,4 +103,11 @@ function tbl = readTable()
     end
 
     tbl = table(ACQ_TIME_TICS, CHANNEL, VALUE, SIGNAL);
+end
+
+function subj_name = getSubj(workDir, excluded_subj)
+    pinfo = readtable(sprintf('%s/FunctionalFusion/Social/participants.tsv', workDir), ...
+                      'FileType','text','Delimiter','\t','VariableNamingRule','preserve');
+    subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
+    subj_name = subj_name(~ismember(subj_name, excluded_subj));
 end

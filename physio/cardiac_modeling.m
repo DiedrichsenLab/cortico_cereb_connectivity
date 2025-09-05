@@ -1,47 +1,20 @@
 %% Starting
 clc; clear; close all;
 
-%% Globals
-global baseDir subj_name
-
 % Define the data basedirectory 
-if isdir('/Volumes/diedrichsen_data$/data')
-    workdir='/Volumes/diedrichsen_data$/data';
-elseif isdir('/srv/diedrichsen/data')
-    workdir='/srv/diedrichsen/data';
-elseif isdir('/cifs/diedrichsen/data')
-    workdir='/cifs/diedrichsen/data';
-else
-    fprintf('Workdir not found. Mount or connect to server and try again.');
-end
-baseDir=(sprintf('%s/Cerebellum/Social',workdir));
+[workDir, baseDir] = setDirs();
+outDir = fullfile(baseDir, 'data/physio/regressors');
 
-pinfo = readtable('/cifs/diedrichsen/data/FunctionalFusion/Social/participants.tsv', ...
-                  'FileType','text','Delimiter','\t','VariableNamingRule','preserve');
-subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
+% Get subject list/cell
+excluded_subj = ["sub-03"; "sub-04"; "sub-10"; "sub-14"; "sub-24"];
+subj_name = getSubj(workDir, excluded_subj);
 
-% addpath(genpath('/cifs/diedrichsen/matlab/imaging/tapas-master/PhysIO/code'));
 addpath(genpath('/cifs/diedrichsen/matlab'));
 
-%% Functions
-for sn = 1%:length(subj_name)
+%% Cardiac Modeling
+for sn = 1:length(subj_name)
     logDir = fullfile(baseDir, 'data/physio', subj_name{sn}, 'ses-01/');
-
-    % Get all files that match run-XX_PULS.log
-    files = dir(fullfile(logDir, 'run-*_puls.log'));
-
-    % Extract run numbers using regexp
-    runnum = [];
-    for i = 1%:length(files)
-        % match the number between "run-" and "_PULS.log"
-        tok = regexp(files(i).name, 'run-(\d+)_puls\.log', 'tokens');
-        if ~isempty(tok)
-            runnum(end+1) = str2double(tok{1}{1});
-        end
-    end
-    
-    % Sort runs just in case they’re not ordered
-    runnum = sort(runnum);
+    runnum = 1:8;
 
     for nrun = runnum
         nrun
@@ -56,8 +29,14 @@ for sn = 1%:length(subj_name)
         % Include heart rate
         physio.verbose.level = 2;
 
+        % Output files
+        outSubjDir = fullfile(outDir, subj_name{sn}, sprintf('run-%02d', nrun));
+        if ~exist(outSubjDir, 'dir')
+            mkdir(outSubjDir);
+        end
+        physio.save_dir = {outSubjDir};
+
         % Input files
-        physio.save_dir = {logDir};
         physio.log_files.cardiac = {PULS.name};
         physio.log_files.scan_timing = {log.name};
         physio.log_files.vendor = 'Siemens_Tics';
@@ -90,4 +69,25 @@ for sn = 1%:length(subj_name)
         fprintf('Cardiac regressors created for subject %d, run %d\n', sn, nrun);
 
     end
+end
+
+%% Functions
+function [workDir, baseDir] = setDirs()
+    if isfolder('/Volumes/diedrichsen_data$/data')
+        workDir='/Volumes/diedrichsen_data$/data';
+    elseif isfolder('/srv/diedrichsen/data')
+        workDir='/srv/diedrichsen/data';
+    elseif isfolder('/cifs/diedrichsen/data')
+        workDir='/cifs/diedrichsen/data';
+    else
+        fprintf('Workdir not found. Mount or connect to server and try again.');
+    end
+    baseDir = sprintf('%s/Cerebellum/Social', workDir);
+end
+
+function subj_name = getSubj(workDir, excluded_subj)
+    pinfo = readtable(sprintf('%s/FunctionalFusion/Social/participants.tsv', workDir), ...
+                      'FileType','text','Delimiter','\t','VariableNamingRule','preserve');
+    subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
+    subj_name = subj_name(~ismember(subj_name, excluded_subj));
 end

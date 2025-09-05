@@ -8,7 +8,7 @@ pinfo = readtable('/cifs/diedrichsen/data/FunctionalFusion/Social/participants.t
 subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
 
 % Open a diary file to save outputs
-outFile = fullfile('/home/UWO/ashahb7/Github/cortico_cereb_connectivity/cortico_cereb_connectivity', 'physio_file_check.txt');
+outFile = fullfile('/home/UWO/ashahb7/Github/cortico_cereb_connectivity/cortico_cereb_connectivity/physio', 'physio_file_check.txt');
 if exist(outFile, 'file'); delete(outFile); end % overwrite if exists
 diary(outFile);
 diary on;

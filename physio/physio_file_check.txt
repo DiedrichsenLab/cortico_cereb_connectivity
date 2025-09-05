@@ -1,8 +1,8 @@
 
 Subject: sub-03
   PULS logs found for runs: [1 2 3 4 5]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-04
   PULS logs found for runs: [1 2 3 4]
@@ -10,9 +10,9 @@ Subject: sub-04
   RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-05
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-07
   PULS logs found for runs: [1 2 3 4 5 6 7 8]
@@ -35,29 +35,29 @@ Subject: sub-10
   RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-11
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-12
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-13
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-14
-  PULS logs found for runs: [1 2 3 4 5 6 7]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-16
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-17
   PULS logs found for runs: [1 2 3 4 5 6 7 8]
@@ -65,9 +65,9 @@ Subject: sub-17
   RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-18
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-19
   PULS logs found for runs: [1 2 3 4 5 6 7 8]
@@ -85,9 +85,9 @@ Subject: sub-21
   RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-22
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-24
   PULS logs found for runs: [1 2 3 4 5 6]
@@ -100,9 +100,9 @@ Subject: sub-25
   RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-26
-  PULS logs found for runs: [1 2 3 4 5 6 7 8 9]
-  INFO logs found for runs: [1 2 3 4 5 6 7 8 9]
-  RESP logs found for runs: [1 2 3 4 5 6 7 8 9]
+  PULS logs found for runs: [1 2 3 4 5 6 7 8]
+  INFO logs found for runs: [1 2 3 4 5 6 7 8]
+  RESP logs found for runs: [1 2 3 4 5 6 7 8]
 
 Subject: sub-27
   PULS logs found for runs: [1 2 3 4 5 6 7 8]
