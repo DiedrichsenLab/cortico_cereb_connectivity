@@ -17,9 +17,9 @@ subj_name = getSubj(workDir, excluded_subj);
 num_subjects = length(subj_name);
 
 % Initialize results table
-results = table('Size', [0 6], ...
-                'VariableTypes', {'string','double','string','string','double','double'}, ...
-                'VariableNames', {'subj_id','run_num','task_name','task_code','avg_instruction_HR','avg_task_HR'});
+results = table('Size', [0 7], ...
+                'VariableTypes', {'string','double','string','string','string','double','double'}, ...
+                'VariableNames', {'subj_id','run_num','task_name','task_code','task_cond','avg_instruction_HR','avg_task_HR'});
 
 for sn = 1:num_subjects
     sub_s = subj_name{sn};
@@ -44,6 +44,8 @@ for sn = 1:num_subjects
         run_num       = behData.run_num(i);
         task_name = string(behData.task_name(i));
         task_code = string(behData.task_code(i));
+        cond_name = string(behData.task_file(i));
+        task_cond = extractBefore(cond_name, regexp(cond_name, '_\d+\.tsv$'));
         inst_dur  = behData.instruction_dur(i);
         start_t   = behData.real_start_time(i);
         end_t     = behData.real_end_time(i);
@@ -64,7 +66,7 @@ for sn = 1:num_subjects
         avg_task_HR = mean(hr(idx_task), 'omitnan');
     
         % Append row
-        newRow = {subj_id, run_num, task_name, task_code, avg_inst_HR, avg_task_HR};
+        newRow = {subj_id, run_num, task_name, task_code, task_cond, avg_inst_HR, avg_task_HR};
         results = [results; newRow];
     end
 end
