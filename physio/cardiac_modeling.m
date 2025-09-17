@@ -3,12 +3,15 @@ clc; clear; close all;
 
 % Define the data basedirectory 
 [workDir, baseDir] = setDirs();
-outDir = fullfile(baseDir, 'data/physio/regressors');
+outDir = fullfile(baseDir, 'data', 'physio', 'regressors');
+
+numTRs = 590;
+numDummys = 3;
+TR = 1.1;
 
 % Get subject list/cell
 excluded_subj = ["sub-03"; "sub-04"; "sub-10"; "sub-14"; "sub-24"; "sub-26"];
 subj_name = getSubj(workDir, excluded_subj);
-subj_name = subj_name(end-1:end);
 
 addpath(genpath('/cifs/diedrichsen/matlab'));
 
@@ -20,7 +23,8 @@ for sn = 1:length(subj_name)
     for nrun = runnum
         cd(logDir);
 
-        PULS = dir(sprintf('run-%02d_PULS.log', nrun));  % Your PPU log
+        PULS = dir(sprintf('run-%02d_puls.log', nrun));  % Your PPU log
+        RSP  = dir(sprintf('run-%02d_resp.log', nrun));  % Your respiratory log
         log  = dir(sprintf('run-%02d_info.log', nrun));  % Scan timing log
 
         % Initialize TAPAS physio model
@@ -36,6 +40,7 @@ for sn = 1:length(subj_name)
 
         % Input files
         physio.log_files.cardiac = {PULS.name};
+        physio.log_files.respiration = {RSP.name};
         physio.log_files.scan_timing = {log.name};
         physio.log_files.vendor = 'Siemens_Tics';
         physio.log_files.relative_start_acquisition = 0;
@@ -43,11 +48,12 @@ for sn = 1:length(subj_name)
 
         % Scan timing
         physio.scan_timing.sqpar.Nslices = 56;
-        physio.scan_timing.sqpar.Nscans = 590;
+        physio.scan_timing.sqpar.Ndummies = numDummys;
+        physio.scan_timing.sqpar.Nscans = numTRs-numDummys;
         physio.scan_timing.sqpar.Nechoes = 1;
         physio.scan_timing.sqpar.onset_slice = 28;
         physio.scan_timing.sync.method = 'scan_timing_log';
-        physio.scan_timing.sqpar.TR = 1.1;
+        physio.scan_timing.sqpar.TR = TR;
 
         % Cardiac pre-processing
         physio.preproc.cardiac.modality = 'PPU';
@@ -59,19 +65,30 @@ for sn = 1:length(subj_name)
         % TAPAS options: no respiration
         physio.model.output_multiple_regressors = sprintf('physio_regressors_run-%02d.txt', nrun);
         physio.model.output_physio = sprintf('physio_run-%02d.mat', nrun);
-        physio.model.order.c = 6;  % number of cardiac RETROICOR components
-        physio.model.order.r = 0;  % 0 because no respiration
+        physio.model.order.c = 3;  % number of cardiac RETROICOR components
+        physio.model.order.r = 3;  % number of respiratory components
         physio.model.order.cr = 0; % interaction terms off
 
         % --- HR regressor ---
         physio.model.hrv.include = true;             % include HR variability model
-        % physio.model.hrv.delays = [0];               % HR at time of scan
+        physio.model.hrv.delays = 0;                 % HR at time of scan
         physio.model.hrv.orthogonalise = 'none';     % don’t orthogonalise
         physio.model.hrv.logtrans = false;           % don’t log-transform
         physio.model.hrv.relativeRVT = false;        % standard HRV, not relative
 
-        % Run TAPAS physio
-        tapas_physio_main_create_regressors(physio);
+        % Run TAPAS PhysIO main script
+        [physio_out, R, ons_sec] = tapas_physio_main_create_regressors(physio);
+        
+        % --- Save regressors ---
+        % 1. RETROICOR (first 6 columns)
+        dlmwrite(fullfile(outSubjDir,'reg_retro.txt'), R(:,1:6), 'delimiter','\t', 'precision','%.8f');
+        
+        % 2. Heart rate (column 7 + un-convolved HR if available)
+        if exist('ons_sec','var') && isfield(ons_sec,'hr')
+            dlmwrite(fullfile(outSubjDir,'reg_hr.txt'), [R(:,7) ons_sec.hr], 'delimiter','\t', 'precision','%.8f');
+        else
+            dlmwrite(fullfile(outSubjDir,'reg_hr.txt'), R(:,7), 'delimiter','\t', 'precision','%.8f');
+        end
         fprintf('Cardiac regressors created for subject %s, run %d\n', subj_name{sn}, nrun);
 
     end
@@ -96,32 +113,4 @@ function subj_name = getSubj(workDir, excluded_subj)
                       'FileType','text','Delimiter','\t','VariableNamingRule','preserve');
     subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
     subj_name = subj_name(~ismember(subj_name, excluded_subj));
-end
-
-function hr_clean = cap_hr_changes(hr_raw, t_hr, max_jump)
-% hr_raw   = instantaneous HR (bpm)
-% t_hr     = time vector (s)
-% max_jump = allowed bpm change per second (e.g., 7)
-
-    hr_clean = hr_raw;
-    for i = 2:length(hr_raw)
-        dt = t_hr(i) - t_hr(i-1);
-        if dt <= 0, continue; end
-
-        max_delta = max_jump * dt;
-        if abs(hr_raw(i) - hr_clean(i-1)) > max_delta
-            hr_clean(i) = hr_clean(i-1); % suppress spike
-        end
-    end
-end
-
-function hr_smooth = smooth_hr(hr_raw, win_size)
-% hr_raw   = HR signal
-% win_size = moving average window length (in samples)
-
-    if win_size > 1
-        hr_smooth = movmean(hr_raw, win_size);
-    else
-        hr_smooth = hr_raw;
-    end
 end
