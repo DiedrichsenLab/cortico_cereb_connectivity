@@ -5,6 +5,8 @@
 clc; clear; close all;
 
 TR = 1.1; % seconds
+numTRs = 590;
+numDummys = 3;
 
 % Setting directories
 workDir = '/cifs/diedrichsen/data';
@@ -41,17 +43,17 @@ for sn = 1:num_subjects
     for i = 1:height(behData)
     
         subj_id   = sub_s;
-        run_num       = behData.run_num(i);
+        run_num   = behData.run_num(i);
         task_name = string(behData.task_name(i));
         task_code = string(behData.task_code(i));
         cond_name = string(behData.task_file(i));
         task_cond = extractBefore(cond_name, regexp(cond_name, '_\d+\.tsv$'));
         inst_dur  = behData.instruction_dur(i);
-        start_t   = behData.real_start_time(i);
-        end_t     = behData.real_end_time(i);
+        start_t   = behData.real_start_time(i) - TR*numDummys;
+        end_t     = behData.real_end_time(i) - TR*numDummys;
     
         % Get HR vector for this subject/run
-        hr = physio_all{run_num}.physio.ons_secs.hr;  % 590x1 HR vector
+        hr = physio_all{run_num}.physio.ons_secs.hr;  % 587x1 HR vector
     
         % Convert times → indices
         idx_instr = round(start_t/TR) + 1 : round((start_t+inst_dur)/TR) + 1;

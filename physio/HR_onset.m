@@ -17,6 +17,9 @@ subj_name = getSubj(workDir, excluded_subj);
 dt = 0.5;             % resampling resolution in sec for continuous HR
 win = [-5 20];        % peri-event window (seconds)
 t_common = win(1):dt:win(2);  % common time grid for averaging
+numTRs = 590;
+numDummys = 3;
+TR = 1.1;
 
 max_jump = 6;
 win_size = 3;
@@ -39,17 +42,17 @@ for sn = 1:length(subj_name)
         load(fullfile(logDir, sprintf('physio_%s.mat', run_s)), 'physio');
     
         % --- Get Task Onsets ---
-        run_onsets = tsv_table.real_start_time(tsv_table.run_num == r);
+        run_onsets = tsv_table.real_start_time(tsv_table.run_num == r) - numDummys*TR;
     
         % --- Get HR data ---
-        t_hr = linspace(0, 589*1.1, 590);
+        t_hr = linspace(0, (numTRs-numDummys-1)*TR, numTRs-numDummys);
         hr = physio.ons_secs.hr;
 
-        % --- Cut-off spikes
-        hr = cap_hr_changes(hr, max_jump);
-    
-        % --- Smoothing ---
-        hr = smooth_hr(hr, win_size);
+        % % --- Cut-off spikes
+        % hr = cap_hr_changes(hr, max_jump);
+        % 
+        % % --- Smoothing ---
+        % hr = smooth_hr(hr, win_size);
         
         if plot_run
             % --- Plot raw HR for this run ---
