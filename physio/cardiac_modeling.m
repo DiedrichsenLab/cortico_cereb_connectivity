@@ -62,11 +62,11 @@ for sn = 1:length(subj_name)
         physio.preproc.cardiac.initial_cpulse_select.auto_matched.file = 'initial_cpulse_kRpeakfile.mat';
         physio.preproc.cardiac.posthoc_cpulse_select.off = struct([]);
 
-        % TAPAS options: no respiration
+        % TAPAS options
         physio.model.output_multiple_regressors = sprintf('physio_regressors_run-%02d.txt', nrun);
         physio.model.output_physio = sprintf('physio_run-%02d.mat', nrun);
-        physio.model.order.c = 3;  % number of cardiac RETROICOR components
-        physio.model.order.r = 3;  % number of respiratory components
+        physio.model.order.c = 6;  % number of cardiac RETROICOR components
+        physio.model.order.r = 0;  % number of respiratory components
         physio.model.order.cr = 0; % interaction terms off
 
         % --- HR regressor ---
