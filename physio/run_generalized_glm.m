@@ -23,9 +23,9 @@ function run_generalized_glm(mode, sub_id, include_task, include_retro, include_
 % - Expects behavioural task description (task_descriptions folder).
 
 %% --- config ---
-baseDir     = '/cifs/diedrichsen/data/Cerebellum/Social';
-imaging_dir = fullfile(baseDir,'data','imaging_data');
-physio_dir  = fullfile(baseDir,'data','physio','regressors');
+baseDir     = '/cifs/diedrichsen/data/Cerebellum/Social/data';
+imaging_dir = fullfile(baseDir,'imaging_data');
+physio_dir  = fullfile(baseDir,'physio','regressors');
 task_desc   = fullfile(baseDir,'task_descriptions','social_task_description.tsv');
 behavioral_dir = fullfile(baseDir,'behavioral');
 
@@ -37,7 +37,7 @@ fmri_t   = 16;
 fmri_t0  = 1;
 
 model_name = sprintf('glm_task%d_retro%d_hr%d', include_task, include_retro, include_hr);
-outDir_base = fullfile(baseDir,'data','GLM_physio', model_name, sub_id);
+outDir_base = fullfile(baseDir,'GLM_physio', model_name, sub_id);
 if ~exist(outDir_base,'dir'), mkdir(outDir_base); end
 
 %% sanitize inputs
@@ -75,10 +75,13 @@ if any(strcmpi(mode,{'spec','all'}))
             % load behavioral for subject (expects <sub_id>_ses-01.tsv in behavioral_dir)
             bf = fullfile(behavioral_dir, sub_id, sprintf('%s_ses-01.tsv', sub_id));
             A = dload(bf);
+            % Add conditions
+            taskfile_names = A.task_file;                       
+            A.condition_name = regexprep(taskfile_names, '_\d+\.tsv$', ''); % Remove the last '_<number>.tsv' from 
             P = getrow(A, A.run_num == r);
             
             % instruction regressor (one per run)
-            instruct_onset = P.real_start_time(1) - TR * numDummys; % first start time adjusted
+            instruct_onset = P.real_start_time - TR * numDummys; % first start time adjusted
             sess.cond(1).name = 'Instruct';
             sess.cond(1).onset = instruct_onset;
             sess.cond(1).duration = 5;
@@ -121,7 +124,7 @@ if any(strcmpi(mode,{'spec','all'}))
         end
         
         if include_hr
-            f_hr = fullfile(physio_run_dir, 'reg_hr.txt');
+            f_hr = fullfile(physio_run_dir, 'reg_hrcrf.txt');
             tmp2 = dlmread(f_hr);  % [N x 1] or [N x 2]
             if size(tmp2,2) == 2
                 hr_names = {'HR*CRF','HR'};
@@ -141,6 +144,7 @@ if any(strcmpi(mode,{'spec','all'}))
     % final J fields
     J.fact = struct('name', {}, 'levels', {});
     J.bases.hrf.derivs = [0 0];
+    J.bases.hrf.params = [4.5 11];
     J.volt = 1;
     J.global = 'None';
     J.mask = {fullfile(imaging_dir, sub_id, 'ses-01', 'rmask_noskull.nii')};
@@ -201,7 +205,7 @@ if strcmp(mode, 'f-contrast')
 
         % Estimate contrasts
         spm_contrasts(SPM);
-        fprintf('F-contrast for RETROICOR regressors created and estimated.\n');
+        fprintf('F-contrast for RETROICOR regressors of %s created and estimated.\n\n', sub_id);
     end
 end
 
@@ -245,7 +249,7 @@ if strcmp(mode, 't-contrast')
 
     % Estimate contrasts
     spm_contrasts(SPM);
-    fprintf('T-contrasts estimated.\n');
+    fprintf('T-contrasts for %s estimated.\n\n', sub_id);
 end
 
 end
