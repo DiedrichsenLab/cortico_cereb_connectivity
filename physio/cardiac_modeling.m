@@ -83,11 +83,13 @@ for sn = 1:length(subj_name)
         % 1. RETROICOR (first 6 columns)
         dlmwrite(fullfile(outSubjDir,'reg_retro.txt'), R(:,1:6), 'delimiter','\t', 'precision','%.8f');
         
-        % 2. Heart rate (column 7 + un-convolved HR if available)
+        % 2. Heart rate (column 7 + un-convolved HR)
         if exist('ons_sec','var') && isfield(ons_sec,'hr')
-            dlmwrite(fullfile(outSubjDir,'reg_hr.txt'), [R(:,7) ons_sec.hr], 'delimiter','\t', 'precision','%.8f');
-        else
-            dlmwrite(fullfile(outSubjDir,'reg_hr.txt'), R(:,7), 'delimiter','\t', 'precision','%.8f');
+            dlmwrite(fullfile(outSubjDir,'reg_hrcrf.txt'), R(:,7), ...
+                'delimiter','\t', 'precision','%.8f');
+    
+            dlmwrite(fullfile(outSubjDir,'reg_hr.txt'), ons_sec.hr, ...
+                'delimiter','\t', 'precision','%.8f');
         end
         fprintf('Cardiac regressors created for subject %s, run %d\n', subj_name{sn}, nrun);
 
@@ -109,7 +111,7 @@ function [workDir, baseDir] = setDirs()
 end
 
 function subj_name = getSubj(workDir, excluded_subj)
-    pinfo = readtable(sprintf('%s/FunctionalFusion/Social/participants.tsv', workDir), ...
+    pinfo = readtable(sprintf('%s/FunctionalFusion_new/Social/participants.tsv', workDir), ...
                       'FileType','text','Delimiter','\t','VariableNamingRule','preserve');
     subj_name = pinfo.participant_id(pinfo.exclude==0 & pinfo.pilot==0);
     subj_name = subj_name(~ismember(subj_name, excluded_subj));
