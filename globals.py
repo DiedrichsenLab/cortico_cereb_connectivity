@@ -18,7 +18,7 @@ if not Path(conn_dir).exists():
 
 atlas_dir = base_dir + '/Atlases'
 
-fig_dir = '/Users/jdiedrichsen/Dropbox/Talks/2025/07_Gordon/Gordon_connectivity/figure_parts'
+fig_dir = f'{conn_dir}/figure_parts'
 
 # Default datasets and sessions for training and evaluation
 datasets = ['MDTB',     'WMFS',     'IBC',  'Demand', 'HCPur100','Nishimoto','Somatotopic','Social','Language']
