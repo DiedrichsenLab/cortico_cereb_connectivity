@@ -205,7 +205,10 @@ def eval_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
       mname=[]
       for a in logalpha_list:
          dirname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
-         mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
+         if a is not None:
+            mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}_A{a}")
+         else:
+            mname.append(f"{train_dataset}_{train_ses}_{eval_config['parcellation']}_{method}{dir_extra}")
 
       df, df_voxels = rm.eval_model(dirname,mname,eval_config,model_config)
       save_path = gl.conn_dir+ f"/{cerebellum}/eval"
@@ -585,10 +588,10 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                     save_model=True):
    
    # get other datasets models and weights
-   if model == 'avg':
+   if model == 'avg' or model == 'group':
       coef_list = []
       for i, (la, tdata, tses) in enumerate(zip(logalpha, train_datasets, train_ses)):
-         print(f'Loading avg model for {tdata} - {tses}')
+         print(f'Loading {model} model for {tdata} - {tses}')
          mname = f"{tdata}_{tses}_{parcellation}_{method}"
          model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
          m = mname + f"_A{la}_{model}"
@@ -608,7 +611,7 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
       part_vec_la = data['part_vec'][indices]
       # Solve
       print('Decomposing variances ...')
-      full_var_decom_df = rm.decompose_variance_from_SS_2(product_la, dataset_vec_la, sub_vec_la, part_vec_la)
+      full_var_decom_df = rm.decompose_variance_scaled_from_SS(product_la, dataset_vec_la, sub_vec_la, part_vec_la)
 
       # Get the models
       coef_list = []
@@ -674,10 +677,10 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
       if save_model:
          ev_dscode = gl.dscode[gl.datasets.index(edata)]
          train_dscode = ''.join(gl.dscode).replace(ev_dscode, '')
-         if 'Ht' in train_dscode:
-            train_dscode = train_dscode.replace('Ht', '')
          mname = f"{train_dscode}_{parcellation}_{method}"
          model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+         if not os.path.isdir(model_path):
+            os.mkdir(model_path)
          fname = model_path + f"/" + mname + f"_{model}"
          cio.save_model(fuse_model, info, fname)
 
@@ -823,12 +826,13 @@ def fuse_all_models(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Somat
 def train_global_model(train_dscode=''.join(gl.dscode),
                        method='L2reg',
                        cerebellum='MNISymC3',
-                       mname=None,
-                       logalpha_list=[0, 2, 4, 6, 8, 10, 12]):
+                       parcellation='Icosahedron1002',
+                       mname_ext="",
+                       logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                       exc_net=None):
    """Train a global model for the given dataset and session by concatenating dataset models."""
 
-   if mname is None:
-      mname = f"{train_dscode}_Icosahedron1002_{method}"
+   mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
 
    config = rm.get_train_config(train_dataset = train_dscode,
                                 method = method,
@@ -836,23 +840,23 @@ def train_global_model(train_dscode=''.join(gl.dscode),
                                 cerebellum = cerebellum,
                                 validate_model = False)
    
-   rm.train_global_model(config, mname=mname)
+   if exc_net is not None:
+      config['exclude_network'] = exc_net
+   
+   rm.train_global_model(config, mname=mname)#, save_data_name='MdWfIbDeHtNiSoScLa_fixSTD_parcel')
 
 
-def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
+def eval_global_model(train_dscode=''.join(gl.dscode),
                       eval_dataset='HCPur100',
                       parcellation='Icosahedron1002',
                       cerebellum='MNISymC3',
                       method='L2reg',
-                      mname=None,
+                      mname_ext="",
                       logalpha_list=[0, 2, 4, 6, 8, 10, 12],
                       append=False,
                       eval_id='MdWfIbDeNiSoScLa-global-Cavg'):
    """Evaluate a global model for the given dataset and session"""
-   
-   if mname is None:
-      mname = f"{train_dscode}_Icosahedron1002_{method}"
-   
+      
    indx = gl.datasets.index(eval_dataset)
 
    eval_config = rm.get_eval_config(eval_dataset=eval_dataset,
@@ -866,10 +870,13 @@ def eval_global_model(train_dscode='MdWfIbDeNiSoScLa',
                                       cerebellum=cerebellum)
    
    df_all = pd.DataFrame()
-   mname = f"{train_dscode}_{parcellation}_{method}"
+   mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
    model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
    for la in logalpha_list:
-      m = mname + f"_A{la}_global"
+      if la is not None:
+         m = mname + f"_A{la}_global"
+      else:
+         m = mname + f"_global"
       fname = model_path + f"/{m}"
       conn_mo, info = cio.load_model(fname)
       model_config['model'] = [conn_mo]
@@ -978,7 +985,7 @@ def eval_mix_model(train_dscode='WfIbDeNiSoScLa',
 
 if __name__ == "__main__":
    do_train = False
-   do_eval = False
+   do_eval = True
    do_region_eval = False
    do_loso_fuse = False
    do_lodo_fuse = False
@@ -986,10 +993,11 @@ if __name__ == "__main__":
    do_fuse_all = False
    do_train_global = False
    do_eval_global = False
-   do_fuse_lodo_mix = True
+   do_fuse_lodo_mix = False
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
-   global_best_la = [8, 6, 8, 8, 8, 4, 8, 8, 8]
+   parcellation = 'Icosahedron1002'
+   global_best_la = [0, 2, 2, 0, 2, 0, 0, 0, 0]
    
    # models = ["loo", "bayes", "bayes_vox"]
    # models = ["ind"]
@@ -1002,19 +1010,21 @@ if __name__ == "__main__":
    # models = ['avg']
    # models = ['loo']
    # models = ['avg-half']
-   # models = ['group']
+   models = ['group']
    # models = ['group', 'avg']
-   models = ['mix']; mix_params = np.linspace(0,100,11)
+   # models = ['mix']; mix_params = np.linspace(0,100,11)
 
+   #  Dataset_name   (train_ses, add_rest, std_cortex, best_logalpha)
    train_types = {
-      'MDTB':        ('all',                 False,   'parcel',   8),
-      'Language':    ('ses-localizer',       False,   'parcel',   8),
-      'Social':      ('ses-social',          False,   'parcel',   8),
-      'WMFS':        ('all',                 True,    'global',   8),
-      'Demand':      ('all',                 True,    'parcel',   8),
-      'Somatotopic': ('all',                 True,    'global',   10),
-      'Nishimoto':   ('all',                 False,   'parcel',   10),
-      'IBC':         ('all',                 True,    'parcel',   6),
+      # 'MDTB':        ('all',                 False,   'parcel',   0),
+      # 'Language':    ('ses-localizer',       False,   'parcel',   0),
+      # 'Social':      ('ses-social',          False,   'parcel',   0),
+      # 'WMFS':        ('all',                 True,    'global',   0),
+      # 'Demand':      ('all',                 True,    'parcel',   0),
+      # 'Somatotopic': ('all',                 True,    'global',   0),
+      # 'Nishimoto':   ('all',                 False,   'parcel',   0),
+      # 'IBC':         ('all',                 True,    'parcel',   0),
+      'HCPur100':    ('all',                 True,    'parcel',   0),
    }
 
    eval_types = {
@@ -1036,20 +1046,22 @@ if __name__ == "__main__":
          else:
             cond_num = 'all'
 
-         print(f'Train: {train_dataset} - individual')
-         train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
-                      method=method, cerebellum=cereb_atlas, cond_num=cond_num,
-                      mname=f"{train_dataset}_{train_ses}_Icosahedron1002_{method}_CV",
-                      logalpha_list=[best_la])
+         # print(f'Train: {train_dataset} - individual')
+         # train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
+         #              method=method, cerebellum=cereb_atlas, parcellation=parcellation, cond_num=cond_num,
+         #             #  mname=f"{train_dataset}_{train_ses}_{parcellation}_{method}_CV",
+         #              logalpha_list=[None, 0])
 
          # print(f'Train: {train_dataset} - avg')
-         # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas,)
+         # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method,
+         #            cerebellum=cereb_atlas, parcellation=parcellation,
+         #            logalpha_list=[None, 0])
                   #   avrg_mode='avg-half')
 
          # print(f'Train: {train_dataset} - group')
          # train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
-         # method=method, cerebellum=cereb_atlas,
-         #              cortical_cerebellar_act='avg',)
+         #              method=method, cerebellum=cereb_atlas, parcellation=parcellation,
+         #              cortical_cerebellar_act='avg', logalpha_list=[0, 2, 4, 6, 8, 10, 12])
 
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
@@ -1084,8 +1096,10 @@ if __name__ == "__main__":
                               mix_param=p, cond_num='rnd_eval', dir_extra='_CV', append=True)
                else:
                   eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
-                              add_rest=add_rest, std_cortex=std_cortex, model=model, method=method,
-                              cortical_act='avg', eval_id=eval_id+"-Cavg")
+                              add_rest=add_rest, std_cortex=std_cortex, model=model, method=method, parcellation=parcellation,
+                              cortical_act='avg', eval_id=eval_id+"-Cavg",
+                              # logalpha_list=[None, 0])
+                              logalpha_list=[0, 2, 4, 6, 8, 10, 12])
          
          if do_region_eval:
             if train_dataset != eval_dataset:
@@ -1111,7 +1125,7 @@ if __name__ == "__main__":
                          weight='voxel-rel-WTA',
                          model=model,   # "avg" or "bayes"
                          method=method,
-                         parcellation='Icosahedron1002',
+                         parcellation=parcellation,
                          cerebellum=cereb_atlas,
                          eval_id=eval_id)
          
@@ -1125,9 +1139,9 @@ if __name__ == "__main__":
                            add_rest=[value[1] for value in eval_types.values()],
                            std_cortex=[value[2] for value in eval_types.values()],
                            logalpha=[value[3] for value in train_types.values()],
-                           model=model,   # "avg" or "bayes"
+                           model=model,   # "avg" or "group" or "bayes"
                            method=method,
-                           parcellation='Icosahedron1002',
+                           parcellation=parcellation,
                            cerebellum=cereb_atlas,
                            cortical_act='avg',
                            eval_id=eval_id,
@@ -1141,7 +1155,7 @@ if __name__ == "__main__":
                         eval_ses=[value[0] for value in eval_types.values()],
                         logalpha=[value[3] for value in train_types.values()],
                         method=method,
-                        parcellation='Icosahedron1002',
+                        parcellation=parcellation,
                         cerebellum=cereb_atlas,
                         eval_id=eval_id)
       
@@ -1155,36 +1169,39 @@ if __name__ == "__main__":
                         weight=[1]*len(train_types),
                         method=method,
                         model=model,
-                        parcellation='Icosahedron1002',
+                        parcellation=parcellation,
                         cerebellum=cereb_atlas,
                         fuse_id=fuse_id)
    
    if do_train_global:
-      print(f'Training global models')
+      print(f'\nTraining global models')
       for ds in list(train_types.keys()):
          d = gl.datasets.index(ds)
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
-         train_dscode = train_dscode.replace('Ht', '')
+         # train_dscode=''.join(gl.dscode)
+      # for net in range(17):
          print(f'{train_dscode}:')
-         # train_dscode = ''.join(gl.dscode).replace('Ht', '')
          train_global_model(train_dscode=train_dscode,
                            method=method,
                            cerebellum=cereb_atlas,
-                           mname=None,
-                           logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+                           parcellation=parcellation,
+                           # mname_ext=f"_no-yeo{net+1}",
+                           # exc_net=net+1,
+                           logalpha_list=[None, 0, 1, 2])
             
    if do_eval_global:
-      for ds in list(train_types.keys()):
-         print(f'Evaluating global model for {ds}')
+      for ds in list(eval_types.keys()):
+         print(f'\nEvaluating global model for {ds}')
          d = gl.datasets.index(ds)
-         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:]).train_dscode.replace('Ht', '')
-         # train_dscode = ''.join(gl.dscode).replace('Ht', '')
+         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
          eval_id = train_dscode + '-global-Cavg'
          eval_global_model(train_dscode=train_dscode,
                            eval_dataset=ds,
                            cerebellum=cereb_atlas,
+                           parcellation=parcellation,
                            method=method,
-                           logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                           # mname_ext="_fixSTD",
+                           logalpha_list=[None, 0, 1, 2],
                            eval_id=eval_id)
                
    if do_fuse_lodo_mix:
