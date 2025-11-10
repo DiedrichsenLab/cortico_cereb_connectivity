@@ -652,7 +652,7 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
          conn_model = getattr(model, config["method"])(alpha)
          mname_spec = f"{mname}_A{la}_global"
       else:
-         conn_model = getattr(model, config["method"])()
+         conn_model = getattr(model, config["method"])(0)
          mname_spec = f"{mname}_global"
 
       # Fit model, get train and validate metrics
