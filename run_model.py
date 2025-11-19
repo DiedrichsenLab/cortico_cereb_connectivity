@@ -458,7 +458,7 @@ def get_cerebellar_data(dataset,sessions,subj,config):
    return YY, info 
 
 
-def train_model(config, save_path=None, mname=None):
+def train_model(config, save_path=None, mname=None, save_name=None):
    """
    training a specific model based on the config file created
    model will be trained on cerebellar voxels and average within cortical tessels.
@@ -503,6 +503,20 @@ def train_model(config, save_path=None, mname=None):
       XX=XX.mean(axis=0,keepdims=True) # get average cortical data
       YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
       subj = ['group']
+
+   if save_name is not None:
+      Yatlas,_ = at.get_atlas(config['cerebellum'])
+      row_axis = config['train_dataset'] + '_' + info.names 
+      Ycifti = Yatlas.data_to_cifti(YY[0,:,:], row_axis=row_axis)
+      nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
+
+      Xatlas,_ = at.get_atlas(config['cortex'])
+      Xatlas.get_parcel(config['label_img'], unite_struct = False)      
+      Xparcelaxis  = Xatlas.get_parcel_axis()
+      Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
+      header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
+      Xcifti = nb.Cifti2Image(XX[0,:,:], header=header)
+      nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_name}_cortex.pscalar.nii')
 
    for i,sub in enumerate(subj):
       X=XX[i,:,:] # get the data for the subject
