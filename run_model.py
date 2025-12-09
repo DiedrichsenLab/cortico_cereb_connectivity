@@ -503,6 +503,10 @@ def train_model(config, save_path=None, mname=None, save_name=None):
       XX=XX.mean(axis=0,keepdims=True) # get average cortical data
       YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
       subj = ['group']
+   elif config['cortical_cerebellar_act'] == 'loo':
+      XX = (XX.sum(axis=0,keepdims=True) - XX)/(XX.shape[0]-1)
+      YY = (YY.sum(axis=0,keepdims=True) - YY)/(YY.shape[0]-1)
+      subj = [s+'_group_loo' for s in subj]
 
    if save_name is not None:
       Yatlas,_ = at.get_atlas(config['cerebellum'])
@@ -814,23 +818,18 @@ def get_fitted_models(model_dirs,model_names,config):
          train_info = config['train_info']
       else:
          raise ValueError('config["model"] must be a list of strings or a list of models')
-   elif config['model']=='group':
+   elif config['model']=='avg' or config['model']=='group':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_group"
+         fname = model_path + f"/{m}_{config['model']}"
          mo,inf = cio.load_model(fname)
          fitted_model.append(mo)
          train_info.append(inf)
-   elif config['model']=='avg':
-      for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         fname = model_path + f"/{m}_avg"
-         mo,inf = cio.load_model(fname)
-         fitted_model.append(mo)
-         train_info.append(inf)
-   elif config['model']=='ind':
+   elif config['model']=='ind' or config['model']=='group_loo':
       # get list of subject for model
       model_subj = get_subj_list(config["subj_list"], config["dataset"])
+      if config['model']=='group_loo':
+         model_subj = [s+'_group_loo' for s in model_subj]
       fitted_model = []
       train_info = []
       for d,m in zip(model_dirs,model_names):
@@ -849,7 +848,11 @@ def get_fitted_models(model_dirs,model_names,config):
       train_info = []
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         ext = '_' + m.split('_')[-1]
+         if m.startswith(d):
+            ext = m[len(d):]
+         else:
+            ext = ''
+         # ext = '_' + m.split('_')[-1]
          # if 'L2reghalf' in d:
          #    fm,fi = calc_avrg_model(config['dataset'],d,ext,
          #                            cerebellum=config['cerebellum'],
