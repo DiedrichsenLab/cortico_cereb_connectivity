@@ -500,10 +500,20 @@ def train_model(config, save_path=None, mname=None, save_name=None):
 
    # average cortical and cerebellar data across subjects, if needed
    if config['cortical_cerebellar_act'] == 'avg':
+      if config['subj_list'] != 'all':
+         # Get cerebellar abd cortical data
+         all_subj = get_subj_list('all', config["train_dataset"])
+         YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],all_subj,config)
+         XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],all_subj,config)
       XX=XX.mean(axis=0,keepdims=True) # get average cortical data
       YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
       subj = ['group']
    elif config['cortical_cerebellar_act'] == 'loo':
+      if config['subj_list'] != 'all':
+         # Get cerebellar abd cortical data
+         all_subj = get_subj_list('all', config["train_dataset"])
+         YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],all_subj,config)
+         XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],all_subj,config)
       XX = (XX.sum(axis=0,keepdims=True) - XX)/(XX.shape[0]-1)
       YY = (YY.sum(axis=0,keepdims=True) - YY)/(YY.shape[0]-1)
       subj = [s+'_group_loo' for s in subj]
