@@ -58,7 +58,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    config["subj_list"] = rm.get_subj_list(subj_list, dataset)
 
    if mname is None:
-      config, conn_list, df_tmp = rm.train_model(config)
+      config, conn_list, df_tmp = rm.train_model(config)#, save_name=f'{dataset}_data')
    else:
       config, conn_list, df_tmp = rm.train_model(config, mname=mname)
    return df_tmp
@@ -843,7 +843,7 @@ def train_global_model(train_dscode=''.join(gl.dscode),
    if exc_net is not None:
       config['exclude_network'] = exc_net
    
-   rm.train_global_model(config, mname=mname)#, save_data_name='MdWfIbDeHtNiSoScLa_fixSTD_parcel')
+   rm.train_global_model(config, mname=mname)#, save_data_name=f'{train_dscode}_data')
 
 
 def eval_global_model(train_dscode=''.join(gl.dscode),
@@ -985,7 +985,7 @@ def eval_mix_model(train_dscode='WfIbDeNiSoScLa',
 
 if __name__ == "__main__":
    do_train = False
-   do_eval = True
+   do_eval = False
    do_region_eval = False
    do_loso_fuse = False
    do_lodo_fuse = False
@@ -994,21 +994,16 @@ if __name__ == "__main__":
    do_train_global = False
    do_eval_global = False
    do_fuse_lodo_mix = False
-   method = 'L2reg'
+   method = 'NNLS'
    cereb_atlas = 'MNISymC3'
    parcellation = 'Icosahedron1002'
    global_best_la = [0, 2, 2, 0, 2, 0, 0, 0, 0]
    
-   # models = ["loo", "bayes", "bayes_vox"]
-   # models = ["ind"]
-   # models = ["avg", "bayes"]
-   # models = ["bayes"]
-   # models = [["avg"], ["bayes"]]
    # models = [['avg']]
    # models = ['avg', 'loo']
-   # models = ["loo", "bayes-loo"]
    # models = ['avg']
    # models = ['loo']
+   # models = ['group_loo']
    # models = ['avg-half']
    models = ['group']
    # models = ['group', 'avg']
@@ -1016,14 +1011,14 @@ if __name__ == "__main__":
 
    #  Dataset_name   (train_ses, add_rest, std_cortex, best_logalpha)
    train_types = {
-      # 'MDTB':        ('all',                 False,   'parcel',   0),
-      # 'Language':    ('ses-localizer',       False,   'parcel',   0),
-      # 'Social':      ('ses-social',          False,   'parcel',   0),
-      # 'WMFS':        ('all',                 True,    'global',   0),
-      # 'Demand':      ('all',                 True,    'parcel',   0),
-      # 'Somatotopic': ('all',                 True,    'global',   0),
-      # 'Nishimoto':   ('all',                 False,   'parcel',   0),
-      # 'IBC':         ('all',                 True,    'parcel',   0),
+      'MDTB':        ('all',                 False,   'parcel',   0),
+      'Language':    ('ses-localizer',       False,   'parcel',   0),
+      'Social':      ('ses-social',          False,   'parcel',   0),
+      'WMFS':        ('all',                 True,    'global',   0),
+      'Demand':      ('all',                 True,    'parcel',   0),
+      'Somatotopic': ('all',                 True,    'global',   0),
+      'Nishimoto':   ('all',                 False,   'parcel',   0),
+      'IBC':         ('all',                 True,    'parcel',   0),
       'HCPur100':    ('all',                 True,    'parcel',   0),
    }
 
@@ -1048,20 +1043,21 @@ if __name__ == "__main__":
 
          # print(f'Train: {train_dataset} - individual')
          # train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
-         #              method=method, cerebellum=cereb_atlas, parcellation=parcellation, cond_num=cond_num,
+         #              method=method, cerebellum=cereb_atlas, parcellation=parcellation,
          #             #  mname=f"{train_dataset}_{train_ses}_{parcellation}_{method}_CV",
-         #              logalpha_list=[None, 0])
+         #             #  subj_list=np.arange(12, 22),
+         #              logalpha_list=[None])
 
          # print(f'Train: {train_dataset} - avg')
          # avrg_model(train_data=train_dataset, train_ses=train_ses, method=method,
          #            cerebellum=cereb_atlas, parcellation=parcellation,
-         #            logalpha_list=[None, 0])
+         #            logalpha_list=[2])
                   #   avrg_mode='avg-half')
 
-         # print(f'Train: {train_dataset} - group')
-         # train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
-         #              method=method, cerebellum=cereb_atlas, parcellation=parcellation,
-         #              cortical_cerebellar_act='avg', logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+         print(f'Train: {train_dataset} - group')
+         train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
+                      method=method, cerebellum=cereb_atlas, parcellation=parcellation,
+                      cortical_cerebellar_act='loo', logalpha_list=[0])
 
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
@@ -1098,8 +1094,8 @@ if __name__ == "__main__":
                   eval_models(train_dataset=train_dataset, train_ses=train_ses, eval_dataset=[eval_dataset], eval_ses=eval_ses,
                               add_rest=add_rest, std_cortex=std_cortex, model=model, method=method, parcellation=parcellation,
                               cortical_act='avg', eval_id=eval_id+"-Cavg",
-                              # logalpha_list=[None, 0])
-                              logalpha_list=[0, 2, 4, 6, 8, 10, 12])
+                              logalpha_list=[0], append=True)
+                              # logalpha_list=[None])#, 4, 6, 8, 10, 12])
          
          if do_region_eval:
             if train_dataset != eval_dataset:
@@ -1174,11 +1170,11 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      print(f'\nTraining global models')
-      for ds in list(train_types.keys()):
-         d = gl.datasets.index(ds)
-         train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
-         # train_dscode=''.join(gl.dscode)
+      # print(f'\nTraining global models')
+      # for ds in list(train_types.keys()):
+      #    d = gl.datasets.index(ds)
+      #    train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
+         train_dscode=''.join(gl.dscode)
       # for net in range(17):
          print(f'{train_dscode}:')
          train_global_model(train_dscode=train_dscode,
@@ -1187,7 +1183,7 @@ if __name__ == "__main__":
                            parcellation=parcellation,
                            # mname_ext=f"_no-yeo{net+1}",
                            # exc_net=net+1,
-                           logalpha_list=[None, 0, 1, 2])
+                           logalpha_list=[4])
             
    if do_eval_global:
       for ds in list(eval_types.keys()):
@@ -1201,7 +1197,8 @@ if __name__ == "__main__":
                            parcellation=parcellation,
                            method=method,
                            # mname_ext="_fixSTD",
-                           logalpha_list=[None, 0, 1, 2],
+                           # logalpha_list=[None, 0, 1, 2],
+                           logalpha_list=[None, 0, 2, 4, 6, 8, 10],
                            eval_id=eval_id)
                
    if do_fuse_lodo_mix:
