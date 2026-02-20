@@ -1,0 +1,91 @@
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
+
+def get_color_palette():
+    color_palette = dict()
+    color_palette['L2reg'] = "#8b70ae"  # purple
+    color_palette['NNLS'] = "#5f9f90"  # cyan
+    return color_palette
+# purple: #805173
+# pink: #dcc2d7
+# green: #327078
+# olive: #95a389
+# orange: #bc9553
+
+
+def plot_heatmap_annotate(df, x_order, y_order, fig=None,
+                          column=['train_dataset'], row=['eval_dataset'], value=['R_eval_adj'],
+                          cmap='rocket', vmin=0, vmax=1, cbar=True,
+                          ax=None, linewidths=0.5):
+    
+    # create heatmap from the dataframe
+    V = pd.pivot_table(df, columns=column, index=row, values=value)
+    V = V.reindex(y_order, axis=0)
+    V = V.reindex(x_order, level=1, axis=1)
+
+    if fig is None:
+        fig = plt.figure(figsize=(9, 7.2))
+
+    # make two separate axes for dataset vs global
+    if len(x_order) != len(y_order):
+        n = len(y_order)
+        extra = len(x_order) - n
+
+        gs = GridSpec(1, 2, width_ratios=[n, extra], wspace=0.05)
+        ax1 = fig.add_subplot(gs[0])
+        ax2 = fig.add_subplot(gs[1])
+        ax2.sharey(ax1)
+
+        sns.heatmap(V.values[:, :n], annot=True, fmt=".2f", cmap=cmap, vmin=vmin, vmax=vmax, 
+                    xticklabels=V.columns.get_level_values(1).values[:n], 
+                    yticklabels=V.index.values, square=True, ax=ax1, cbar=False, linewidths=linewidths)
+        
+        sns.heatmap(V.values[:, n:], annot=True, fmt=".2f", cmap=cmap, vmin=vmin, vmax=vmax, 
+                xticklabels=V.columns.get_level_values(1).values[n:], 
+                yticklabels=V.index.values, square=True, ax=ax2, cbar=False, linewidths=linewidths)
+        
+        ax1.tick_params(axis="x", labelrotation=90)
+        ax2.tick_params(axis="x", labelrotation=90)
+        ax2.tick_params(left=False, labelleft=False)
+
+        # add cbar
+        if cbar:
+            cbar_ax = fig.colorbar(ax2.collections[0], ax=[ax1, ax2], orientation="vertical", fraction=0.035, pad=0.04)
+            cbar_ax.outline.set_visible(False)
+        else:
+            cbar_ax = None
+
+    else:
+        sns.heatmap(V.values, annot=True, fmt=".2f", cmap=cmap, vmin=vmin, vmax=vmax, 
+                    xticklabels=V.columns.get_level_values(1).values, 
+                    yticklabels=V.index.values, square=True, ax=ax, cbar=cbar, linewidths=linewidths)
+
+    return fig, ax1, ax2, cbar_ax
+
+def plot_barplot_with_error(df_all, palette=get_color_palette(), alpha1=0.5, alpha2=0.9):
+    sns.stripplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method', dodge=True, alpha=alpha1, marker='o', size=3, legend=False, palette=palette)
+    sns.barplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method', errorbar='ci', alpha=alpha2, palette=palette)
+
+
+def plot_boxplot_strip(df, width=0.8, gap=0.4, linewidth=1, alpha=0.3, palette=get_color_palette()):
+    ax = sns.boxplot(df, x='train_dataset', y='R_eval_adj', hue='method',
+                width=width, gap=gap, linewidth=linewidth, showfliers=False, palette=palette)
+
+    for patch in ax.patches:
+        patch.set_alpha(alpha-0.1)
+        patch.set_edgecolor(patch.get_facecolor())
+        patch.set_linewidth(linewidth)
+
+    for line in ax.lines:
+        line.set_alpha(1.0)
+        line.set_linewidth(linewidth)
+
+    sns.stripplot(df, x='train_dataset', y='R_eval_adj', hue='method',
+                  dodge=True, alpha=alpha, marker='o', size=2, legend=False, palette=palette)
+    
+    return ax
+    
+
