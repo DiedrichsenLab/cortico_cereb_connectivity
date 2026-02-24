@@ -284,35 +284,35 @@ def cross_data(Y,info,mode):
       Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
-def subset_cond(Y, info, cond_num):
+def subset_cond(data, info, cond_num):
    if isinstance(cond_num, list):
       cond_mask = info['cond_num'].isin(cond_num)
-      XX = XX[..., cond_mask.values, :]
+      data = data[..., cond_mask.values, :]
       info = info[cond_mask]
    else:
       codes = np.unique(info.cond_num)
       if cond_num == 'train':
          codes_mask = info.cond_num.isin(codes[:len(codes)//3])
-         Y = Y[..., codes_mask, :]
+         data = data[..., codes_mask, :]
          info = info[codes_mask]
       elif cond_num == 'eval':
          codes_mask = info.cond_num.isin(codes[len(codes)//3:])
-         Y = Y[..., codes_mask, :]
+         data = data[..., codes_mask, :]
          info = info[codes_mask]
       elif cond_num == 'rnd_train':
          rng = np.random.default_rng(seed=42)
          shuffled = rng.permutation(codes)
          codes_mask = info.cond_num.isin(shuffled[:len(shuffled)//3])
-         Y = Y[..., codes_mask, :]
+         data = data[..., codes_mask, :]
          info = info[codes_mask]
       elif cond_num == 'rnd_eval':
          rng = np.random.default_rng(seed=42)
          shuffled = rng.permutation(codes)
          codes_mask = info.cond_num.isin(shuffled[len(shuffled)//3:])
-         Y = Y[..., codes_mask, :]
+         data = data[..., codes_mask, :]
          info = info[codes_mask]
 
-   return Y, info
+   return data, info
 
 def add_rest(Y,info):
    """Add rest to each session and half
