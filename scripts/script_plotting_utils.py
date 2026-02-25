@@ -5,9 +5,10 @@ from matplotlib.gridspec import GridSpec
 
 
 def get_color_palette():
+    palette = sns.diverging_palette(240, 10, n=2)
     color_palette = dict()
-    color_palette['L2reg'] = "#8b70ae"  # purple
-    color_palette['NNLS'] = "#5f9f90"  # cyan
+    color_palette['L2reg'] = palette[1]
+    color_palette['NNLS'] = palette[0]
     return color_palette
 # purple: #805173
 # pink: #dcc2d7
@@ -19,7 +20,7 @@ def get_color_palette():
 def plot_heatmap_annotate(df, x_order, y_order, fig=None,
                           column=['train_dataset'], row=['eval_dataset'], value=['R_eval_adj'],
                           cmap='rocket', vmin=0, vmax=1, cbar=True,
-                          ax=None, linewidths=0.5):
+                          ax=None, linewidths=0.5, annot_kws={"fontsize": 7}):
     
     # create heatmap from the dataframe
     V = pd.pivot_table(df, columns=column, index=row, values=value)
@@ -41,12 +42,12 @@ def plot_heatmap_annotate(df, x_order, y_order, fig=None,
 
         sns.heatmap(V.values[:, :n], annot=True, fmt=".2f", cmap=cmap, vmin=vmin, vmax=vmax, 
                     xticklabels=V.columns.get_level_values(1).values[:n], 
-                    yticklabels=V.index.values, square=True, ax=ax1, cbar=False, linewidths=linewidths)
+                    yticklabels=V.index.values, square=True, ax=ax1, cbar=False, linewidths=linewidths, annot_kws=annot_kws)
         
         sns.heatmap(V.values[:, n:], annot=True, fmt=".2f", cmap=cmap, vmin=vmin, vmax=vmax, 
                 xticklabels=V.columns.get_level_values(1).values[n:], 
-                yticklabels=V.index.values, square=True, ax=ax2, cbar=False, linewidths=linewidths)
-        
+                yticklabels=V.index.values, square=True, ax=ax2, cbar=False, linewidths=linewidths, annot_kws=annot_kws)
+
         ax1.tick_params(axis="x", labelrotation=90)
         ax2.tick_params(axis="x", labelrotation=90)
         ax2.tick_params(left=False, labelleft=False)
@@ -65,9 +66,18 @@ def plot_heatmap_annotate(df, x_order, y_order, fig=None,
 
     return fig, ax1, ax2, cbar_ax
 
-def plot_barplot_with_error(df_all, palette=get_color_palette(), alpha1=0.5, alpha2=0.9):
-    sns.stripplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method', dodge=True, alpha=alpha1, marker='o', size=3, legend=False, palette=palette)
-    sns.barplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method', errorbar='ci', alpha=alpha2, palette=palette)
+def plot_barplot_with_error(df_all, dots='strip', palette=get_color_palette(), alpha1=0.2, alpha2=1):
+    ax = sns.barplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method',
+                errorbar='se', alpha=alpha2, palette=palette, saturation=1.0, gap=0.05)
+    
+    if dots == 'strip':
+        sns.stripplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method',
+                      dodge=True, alpha=alpha1, marker='o', size=1.5, legend=False, palette='dark:black')
+    elif dots == 'swarm':
+        sns.swarmplot(data=df_all, x='train_dataset', y='R_eval_adj', hue='method',
+                      dodge=True, alpha=alpha1, marker='o', size=1.5, legend=False, palette='dark:black')
+        
+    return ax
 
 
 def plot_boxplot_strip(df, width=0.8, gap=0.4, linewidth=1, alpha=0.3, palette=get_color_palette()):
