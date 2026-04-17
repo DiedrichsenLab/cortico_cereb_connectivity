@@ -99,3 +99,12 @@ def plot_boxplot_strip(df, width=0.8, gap=0.4, linewidth=1, alpha=0.3, palette=g
     return ax
     
 
+def plot_emp_CDF(x_r, y_r, x_n, y_n, palette=get_color_palette()):
+    plt.plot(x_r, y_r, color=palette['L2reg'])
+    plt.plot(x_n, y_n, color=palette['NNLS'])
+    ax = plt.gca()
+
+    ax.axhline(y=0, color='gray', linestyle='--', linewidth=0.8)
+    ax.axhline(y=1, color='gray', linestyle='--', linewidth=0.8)
+
+    return ax
