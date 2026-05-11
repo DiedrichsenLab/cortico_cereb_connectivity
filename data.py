@@ -6,7 +6,7 @@ import ProbabilisticParcellation.util as ut
 import cortico_cereb_connectivity.globals as gl
 
 
-# make sure you have extrated data in functional fusion framework before running these function
+# make sure you have extracted data in functional fusion framework before running these function
 
 
 def extract_group_data(dataset="MDTB", ses_id='ses-s1'):

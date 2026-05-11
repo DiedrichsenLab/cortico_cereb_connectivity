@@ -66,6 +66,5 @@ To summarize further by cortical ROI:
 Summary figures (by MSHBM_Prior_15_fsLR32)
 ```notebooks/cortical_connectivity.ipynb```
 
-
 Full connectivity maps:
 ```notebooks/connectivity_weights.ipynb``` (Fig S5 & Fig S6)

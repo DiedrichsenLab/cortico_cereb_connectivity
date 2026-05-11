@@ -52,7 +52,9 @@ def stats_weight_map_cortex(traindata,
                     method = 'L2reg',
                     extension='A8_avg',
                     stats = 'mean'):
-    """ returns cifti image of average cortical input weight"""
+    """ returns cifti image of average cortical input weight
+    
+    """
     model,info = get_model(traindata,cortex_roi,method,extension)
     if stats == 'mean':
         result = np.mean(model.coef_,axis=0,keepdims=True)
@@ -353,6 +355,7 @@ def plot_cortical_inflated(data,axes = None, cscale=None):
                 cmap="hot",
                 vmin=cscale[0],
                 vmax=cscale[1],
-                axes=axes[row*2 + hem] 
+                axes=axes[row*2 + hem],
+                colorbar=False
             )
 
