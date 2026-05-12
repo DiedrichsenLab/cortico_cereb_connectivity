@@ -351,6 +351,10 @@ def add_rest(Y,info):
    return Ys,infos
 
 def std_data(Y,mode):
+   """ Standarize the data to unit norm
+   
+   
+   """
    if mode is None:
       return Y
    elif mode=='parcel':
@@ -397,7 +401,10 @@ def ready_data(data, info, config):
    return data, info
 
 def get_cortical_data(dataset,sessions,subj,config):
-   """ Get cortical data according to the training of evaluation config file."""
+   """ Get cortical data according to the training of evaluation config file.
+
+      Args:
+   """
    XX, info, _ = fdata.get_dataset(gl.base_dir,
                                    dataset,
                                    sess=sessions,

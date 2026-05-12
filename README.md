@@ -42,6 +42,8 @@ Nettekoven, C., Zhi, D., Ladan, S., Pinho, A. L., Saadon Grosmannn, N., Buckner,
 Shahshahani, L., King, M., Nettekoven, C., Ivry, R., & Diedrichsen, J. (2023). Selective recruitment: Evidence for task-dependent gating of inputs to the cerebellum. bioRxiv, 2023.01.25.525395.
 
 ### Details on Fusion model in Nettekoven et al. (2024)
+All models are in `SUIT3` space.
+
 Models were trained evaluated ```ccc.run_model```, which is called from ```ccc.scripts.script_train_eval_models.py```
 
 Models are then fused (i.e. simply averaged) using ```ccc.scripts.script_fuse_models.py```
@@ -68,3 +70,17 @@ Summary figures (by MSHBM_Prior_15_fsLR32)
 
 Full connectivity maps:
 ```notebooks/connectivity_weights.ipynb``` (Fig S5 & Fig S6)
+
+### Details for Shahbazi et al. (in preparation)
+New models are all in the `MNISym3` space. 
+
+More detailed exploration for connectivity models with the following non-backwards compatible changes: 
+
+* Scaling is performed for the datasets and not learned in the model anymore. Scaling is now performed in the `run_model.get_cortical_data` and `get_cerebellar_data` functions. The old way is still in `L2regression`, but the new way is now in `L2reg`. 
+* The datasets used and the scaling and whether rest is added is determined in `globals.py`. 
+* Single dataset modes are trained on inidividual subjects, averaged across subejcts (avg), trained on the group data (group) and trianed the the group data with subject left our (group_loo). 
+* Multi-dataset models are traiend on the concatinated data across datasets with codes (`MdWfIbDeHtNiSoScLa`) for the nine datasets (`gl.ds_code`). Using NNLS and L2Reg. 
+* Regularization was determined by doing leave-one-dataset-out cross-validation and finding the log-alpha that had the best performance. This resulted in NNLS to A0 and L2Reg A2.
+* For the paper we then also report the leave-one-out performances at that regualization level. 
+* `avg` is the averaged individual models, and `group` are the averaged group models from the single dataset models. 
+
