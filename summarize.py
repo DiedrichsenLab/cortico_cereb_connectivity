@@ -1,6 +1,6 @@
-""" Summarize and describe the connectivity weights""" 
+""" Summarize and describe the connectivity weights"""
 """
-Functions to summarize and plot the group average weights based on cerebellar ROIs. 
+Functions to summarize and plot the group average weights based on cerebellar ROIs.
 """
 import os
 import numpy as np
@@ -19,25 +19,35 @@ import nilearn.plotting as npl
 from pathlib import Path
 import warnings
 import surfAnalysisPy as surf
-import SUITPy as suit 
+import SUITPy as suit
 
-def get_model(traindata,cortex_roi,method,extension,cerebellum_atlas="MNISymC3"): 
-    """ Loads a model 
+def get_model(traindata,cortex_roi,method,extension,cerebellum_atlas="MNISymC3"):
+    """ Loads a model specific model
+
     Args:
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
         cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
         method (str, optional): method used to train the model. Defaults to 'L2reg'.
         extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+    Returns:
+        model: the trained model object
+        info: a dictionary with the model information (e.g. training data, method, etc
     """
     mroot = f"{traindata}_{cortex_roi}_{method}"
     model_name = f"{mroot}_{extension}"
     fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{mroot}"
     # load the avg model
-    model,info = cio.load_model(fpath + f"/{model_name}")   
+    model,info = cio.load_model(fpath + f"/{model_name}")
     return model, info
 
 def sort_roi_rows(cifti_img):
-    """ sort the rows of a cifti image alphabetically by the name of the cerebellar parcel"""
+    """ sort the rows of a cifti image alphabetically by the name of the cerebellar parcel
+
+    Args:
+        cifti_img: a cifti image
+    Returns:
+        cifti_img_new: a cifti image with the rows sorted alphabetically by the name of the cerebellar parcel
+    """
     row_axis = cifti_img.header.get_axis(0)
     p_axis = cifti_img.header.get_axis(1)
     indx = row_axis.name.argsort()
@@ -52,8 +62,16 @@ def stats_weight_map_cortex(traindata,
                     method = 'L2reg',
                     extension='A8_avg',
                     stats = 'mean'):
-    """ returns cifti image of average cortical input weight
-    
+    """ returns cifti image of a statistics of the input weight for each cortical parcel
+
+    Args:
+        traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
+        cortex_roi (str, optional): name of cortical parcellation. Defaults to "Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'L2reg'.
+        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        stats (str, optional): statistic to compute. ['mean', 'prob']
+    Returns:
+        cifti_img (nibabel.Cifti2Image): cifti image with the statistic of the input weights for each cortical parcel.
     """
     model,info = get_model(traindata,cortex_roi,method,extension)
     if stats == 'mean':
@@ -70,7 +88,18 @@ def stats_weight_map_cerebellum(traindata,
                     extension='A8_avg',
                     cerebellar_space = 'MNISymC3',
                     stats = 'mean'):
-    """ returns cifti image of average cortical input weight"""
+    """ Returns nifti image of a statistics of the input weights for each cerebellar voxel.
+
+    Args:
+        traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
+        cortex_roi (str, optional): name of cortical parcellation. Defaults to "Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'L2reg'.
+        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        cerebellar_space (str, optional): name of the cerebellar space. Defaults to 'MNISymC3'.
+        stats (str, optional): statistic to compute. ['mean', 'prob', 'quant']
+    Returns:
+        nifti_img (nibabel.Nifti1Image): nifti image with the statistic of the input weights for each cerebellar voxel.
+    """
     model,info = get_model(traindata,cortex_roi,method,extension)
     myatlas,_ = am.get_atlas(cerebellar_space)
     if stats == 'mean':
@@ -79,7 +108,7 @@ def stats_weight_map_cerebellum(traindata,
         result = np.mean(model.coef_>0,axis=1)
     if stats == 'quant':
         result = np.mean(model.coef_>0.05,axis=1)
-    nifti_img = myatlas.data_to_nifti(result) 
+    nifti_img = myatlas.data_to_nifti(result)
     return nifti_img
 
 def avrg_weight_map_roi(traindata,
@@ -88,7 +117,7 @@ def avrg_weight_map_roi(traindata,
                     extension='A8_avg',
                     cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "MNISymC3"):
-    """ Makes cifti image with the cortical maps average connectivity weights for the different cerebellar parcels - it uses the average connectivity weights (across subjects)
+    """ Makes cortical maps with average connectivity weights for different cerebellar parcels
 
     Args:
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
@@ -104,7 +133,7 @@ def avrg_weight_map_roi(traindata,
     # make model name
     # load in the connectivity average connectivity model
 
-    # Load model 
+    # Load model
     model,info = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas)
 
     # get the weights
@@ -137,12 +166,12 @@ def avrg_weight_map_roi(traindata,
                                    type = 'scalar')
     return cifti_img
 
-def calc_relative_input_size(traindata,
+def stats_weight_roi_cerebellum(traindata,
                     cortex_roi = "Icosahedron1002",
-                    cerebellum_roi = "NettekovenSym32",
+                    roi_cerebellum  = "NettekovenSym32",
                     cerebellum_atlas = "MNISymC3"):
-    """ Returns a dataframe with the relative size and input size of each cerebellar parcel - averaed across hemisphere. 
-    This is based on the average group data- assigning each cortical parcel to the cerebellar parcel with the highest correlation. 
+    """ Returns a dataframe with the relative size and input size of each cerebellar parcel - averaed across hemisphere.
+    This is based on the average group data- assigning each cortical parcel to the cerebellar parcel with the highest correlation.
 
     Args:
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
@@ -153,29 +182,29 @@ def calc_relative_input_size(traindata,
         cerebellum_roi (str, optional): name of the cerebellar parcellation. Defaults to "NettekovenSym32".
         cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
     Returns:
-        result (pd.DataFrame) 
+        result (pd.DataFrame)
     """
     # make model name
     # load in the connectivity average connectivity model
 
-    # Load model 
+    # Load model
     Cereb = nb.load(f'{gl.conn_dir}/maps/MdWfIbDeHtNiSoScLa_data_cerebellum.dscalar.nii')
     Cort = nb.load(f'{gl.conn_dir}/maps/MdWfIbDeHtNiSoScLa_data_cortex.pscalar.nii')
-    
+
     # get the average cortical weights for each cerebellar parcel
     atlas_cereb,ainf = am.get_atlas(cerebellum_atlas)
-    label_cereb = gl.atlas_dir + f"/{ainf['dir']}/atl-{cerebellum_roi}_space-{ainf['space']}_dseg.nii"
+    label_cereb = gl.atlas_dir + f"/{ainf['dir']}/atl-{roi_cerebellum}_space-{ainf['space']}_dseg.nii"
     atlas_cereb.get_parcel(label_cereb)
     Cereb_V, labels = fdata.agg_parcels(Cereb.get_fdata(), atlas_cereb.label_vector, fcn=np.nanmean)
-    Cereb_V = Cereb_V/np.std(Cereb_V,axis=0,keepdims=True)    
-    
+    Cereb_V = Cereb_V/np.std(Cereb_V,axis=0,keepdims=True)
+
     Cort_data = Cort.get_fdata()
     Cort_data = Cort_data/np.std(Cort_data,axis=0,keepdims=True)
     Corr = Cort_data.T @ Cereb_V/Cort_data.shape[0]
-    winner = np.argmax(Corr,axis=1)+1 
+    winner = np.argmax(Corr,axis=1)+1
     size_parcel,_ = fdata.agg_parcels(np.ones(atlas_cereb.P), atlas_cereb.label_vector, fcn=np.size)
     # load the lookup table for the cerebellar parcellation to get the names of the parcels
-    index,colors,label_names = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
+    index,colors,label_names = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{roi_cerebellum}.lut")
 
     T = pd.DataFrame()
     for i in range(max(labels)):
@@ -188,16 +217,27 @@ def calc_relative_input_size(traindata,
         T = pd.concat([T,pd.DataFrame(t)],ignore_index=True)
     return T
 
-def get_weight_by_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
+def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
                     cortex_roi = "Icosahedron1002",
                     method = "NNLS",
-                    extension = 'A2_group',
+                    extension = 'A0_global',
                     cerebellum_atlas = "MNISymC3",
-                    sum_cortex = 'yeo17',
+                    roi_cortex = 'yeo17',
                     sum_method = 'positive'
                     ):
     """ Make table of the connectivity weights for each cortical parcel,
     averaged across the entire cerebellum.
+
+    Args:
+        traindata (str, optional): name of the training data. Defaults to 'MdWfIbDeHtNiSoScLa'.
+        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
+        method (str, optional): method used to train the model. Defaults to 'NNLS'.
+        extension (str, optional): extension to the model name. Defaults to 'A0_global'.
+        cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
+        roi_cortex (str, optional): name of the cortical parcellation to summarize the data. Defaults to 'yeo17'.
+        sum_method (str, optional): method to summarize the data. 'positive' only sums the positive weights
+    Returns:
+        T (pd.DataFrame): dataframe with the average connectivity weight for each cortical parcel, as well as the size of the parcel and its name.
     """
     model,info  = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas)
 
@@ -214,7 +254,7 @@ def get_weight_by_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
     label_conn, l_conn = atlas_fs.get_parcel(label_conn_fname, unite_struct = False)
 
     # load the label file for summarizing the cortex
-    label_sum_fname = [gl.atlas_dir + f"/tpl-fs32k/{sum_cortex}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    label_sum_fname = [gl.atlas_dir + f"/tpl-fs32k/{roi_cortex}.{hemi}.label.gii" for hemi in ["L", "R"]]
     label_sum, l_sum = atlas_fs.get_parcel(label_sum_fname, unite_struct = True)
 
     # Expand data, threshold, and then summarize
@@ -237,28 +277,36 @@ def get_weight_by_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
     cort_size = cort_size/cort_size.sum()*100
     weight_sum = weight_sum/weight_sum.sum()*100
 
-    T = pd.DataFrame({'cort_size':cort_size,
+    T = pd.DataFrame({  'traindata':traindata,
+                        'method': method,
+                        'extension': extension,
+                        'cort_size':cort_size,
                         'cereb_size':weight_sum,
                         'name':label_names[1:],
                         'color_r': colors[1:,0],
                         'color_g': colors[1:,1],
                         'color_b': colors[1:,2]})
-    
+
     return T
 
 
-
-
 def pscalar_to_smoothed_dscalar(infile,outfilename=None,sigma=4.0,wdir=f'{gl.conn_dir}/maps'):
-    """ Takes a pscalar file, projects it to the full surface and smoothes"""
+    """ Takes a pscalar file, projects it to the full surface and smoothes it
+
+    Args:
+        infile (str or nibabel.Cifti2Image): input pscalar cifti image or filename
+        outfilename (str, optional): name of the output dscalar file. Defaults to None, in which case it will be saved as 'smoothed_{infile}'.
+        sigma (float, optional): smoothing kernel size in mm. Defaults to 4.0.
+        wdir (str, optional): working directory where the output file will be saved. Defaults to f'{gl.conn_dir}/maps'.
+    """
     hem_name_bm = ['cortex_left','cortex_right']
-    if isinstance(infile,str): 
+    if isinstance(infile,str):
         infile= nb.load(wdir + '/' + infile)
-    if not isinstance(infile,nb.Cifti2Image): 
+    if not isinstance(infile,nb.Cifti2Image):
         raise(NameError('Input needs to be cifti image or cifti filename'))
     full_data = nt.surf_from_cifti(infile)
     bm=[]
-    for h,hem_name in enumerate(hem_name_bm): 
+    for h,hem_name in enumerate(hem_name_bm):
         bm.append(nb.cifti2.BrainModelAxis.from_mask(np.ones((full_data[h].shape[1],)),hem_name_bm[h]))
     row_axis = infile.header.get_axis(0)
     header = nb.Cifti2Header.from_axes((row_axis,bm[0]+bm[1]))
@@ -285,18 +333,18 @@ def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     src_roi=src_roi,
                     fname=f'data/{file_name}',
                     dtype = 'float32')
-    return C 
+    return C
 
-def plot_cortical_flatmap(data,axes = None, 
+def plot_cortical_flatmap(data,axes = None,
                           cscale=None,
                           cmap='bwr',
-                          overlay_type='func'): 
-    # determine scaling 
+                          overlay_type='func'):
+    # determine scaling
     if cscale is None:
         data_min = np.nanmin(data[0])
         data_max = np.nanmax(data[0])
         cscale = [data_min, data_max]
-    
+
     if axes is None:
         fig, axes = plt.subplots(1, 2,figsize=(10, 4))
 
@@ -322,9 +370,9 @@ def plot_cortical_flatmap(data,axes = None,
         )
 
 def plot_cortical_inflated(data,axes = None, cscale=None):
-    adir = am.default_atlas_dir 
+    adir = am.default_atlas_dir
     vinf = [f"{adir}/tpl-fs32k/tpl-fs32k_hemi-L_veryinflated.surf.gii",
-            f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"] 
+            f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"]
     depth = f"{adir}/tpl-fs32k/tpl-fs32k_sulc.dscalar.nii"
 
     surf_data = []
@@ -335,7 +383,7 @@ def plot_cortical_inflated(data,axes = None, cscale=None):
     depth_data = nt.surf_from_cifti(Depth)
     if axes is None:
         fig, axes = plt.subplots(1, 4, subplot_kw={'projection': '3d'},figsize=(8, 4))
-    
+
     hemi = ['left', 'right']
     view = ['lateral', 'medial']
 
@@ -343,7 +391,7 @@ def plot_cortical_inflated(data,axes = None, cscale=None):
         data_min = np.nanmin(data[0])
         data_max = np.nanmax(data[0])
         cscale = [data_min, data_max]
-        
+
     for hem in range(2):
         for row in range(2):
             npl.plot_surf(

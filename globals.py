@@ -7,6 +7,8 @@ if not Path(base_dir).exists():
     base_dir = '/cifs/diedrichsen/data/FunctionalFusion_new'
 if not Path(base_dir).exists():
     base_dir = 'A:\\data\\FunctionalFusion_new'
+if not Path(base_dir).exists():
+    raise FileNotFoundError('Base directory not found. Please check the path.')
 
 conn_dir = '/Volumes/diedrichsen_data$/data/Cerebellum/connectivity'
 if not Path(conn_dir).exists():
@@ -15,6 +17,8 @@ if not Path(conn_dir).exists():
     conn_dir = '/cifs/diedrichsen/data/Cerebellum/connectivity'
 if not Path(conn_dir).exists():
     conn_dir = 'A:\\data\\Cerebellum\\connectivity'
+if not Path(conn_dir).exists():
+    raise FileNotFoundError('Connectivity directory not found. Please check the path.')
 
 atlas_dir = base_dir + '/Atlases'
 
@@ -28,8 +32,18 @@ std_cortex = ['parcel', 'global', 'parcel', 'parcel', 'parcel', 'parcel',   'glo
 dscode   = ['Md',      'Wf',        'Ib',   'De',     'Ht',      'Ni',        'So',         'Sc',     'La']
 
 def get_ldo_names():
+   # Returns all the leave-one-dataset-out combinations of the dataset codes in gl.dscode
    num_ds = len(dscode)
    ldo_names = []
    for i in range(num_ds):
       ldo_names.append(''.join(dscode[:i]+dscode[i+1:]))
    return ldo_names
+
+def traindata_string(dataset_loo=None):
+    # Returns the string of dataset codes for the training data, given the index of the dataset to leave out
+    str = ''
+    for i,s in enumerate(dscode):
+        if i!=dataset_loo:
+            str += s
+    return str
+
