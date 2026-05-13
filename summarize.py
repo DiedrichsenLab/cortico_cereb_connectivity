@@ -170,7 +170,7 @@ def stats_weight_roi_cerebellum(traindata,
                     cortex_roi = "Icosahedron1002",
                     roi_cerebellum  = "NettekovenSym32",
                     cerebellum_atlas = "MNISymC3"):
-    """ Returns a dataframe with the relative size and input size of each cerebellar parcel - averaed across hemisphere.
+    """ Returns a dataframe with the relative size and input size of each cerebellar parcel - averaged across hemisphere.
     This is based on the average group data- assigning each cortical parcel to the cerebellar parcel with the highest correlation.
 
     Args:
@@ -257,24 +257,26 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
     label_sum_fname = [gl.atlas_dir + f"/tpl-fs32k/{roi_cortex}.{hemi}.label.gii" for hemi in ["L", "R"]]
     label_sum, l_sum = atlas_fs.get_parcel(label_sum_fname, unite_struct = True)
 
-    # Expand data, threshold, and then summarize
+    # Expand data from Iscosahedron to full vertices, threshold
     ex_weights = weights[:,label_conn-1]
     if sum_method == 'positive':
         ex_weights[ex_weights<0]=0
 
-    # Get region names and colors
+    # Get region names and colors for cortex
     gii = nb.load(label_sum_fname[0])
     label_names = nt.get_gifti_labels(gii)
     colors,_ = nt.get_gifti_colortable(gii)
 
-    # Summarize the data
+    # Summarize expanded the data by the roi_cortex labels
     N = l_sum.shape[0]
     cort_size = np.zeros(N,)
     weight_sum = np.zeros((N,))
     for l in l_sum:
-        cort_size[l-1] = np.sum(label_sum==l)
+        cort_size[l-1] = np.sum(label_sum==l)  # Number of vertices in cortical parcel
         weight_sum[l-1] = np.nansum(ex_weights[:,label_sum==l])
+    # Normalize the cortical size by the entire size
     cort_size = cort_size/cort_size.sum()*100
+    # Normalize the weight sum by the entire weight sum
     weight_sum = weight_sum/weight_sum.sum()*100
 
     T = pd.DataFrame({  'traindata':traindata,
@@ -286,7 +288,6 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
                         'color_r': colors[1:,0],
                         'color_g': colors[1:,1],
                         'color_b': colors[1:,2]})
-
     return T
 
 
