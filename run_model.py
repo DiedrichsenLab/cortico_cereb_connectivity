@@ -2,7 +2,7 @@
    Designed to work together with Functional_Fusion package.
    Dataset, session, and parcellation names are as in Functional_Fusion.
    The main work is being done by train_model and eval_model functions.
-   @authors: Ladan Shahshahani, Maedbh King, Jörn Diedrichsen, Ali Shahbazi
+   @authors: Ladan Shahshahani, Maedbh King, Ali Shahbazi, Jörn Diedrichsen
 """
 
 # from audioop import cross
@@ -28,20 +28,18 @@ import matplotlib.pyplot as plt
 # warnings.filterwarnings("ignore")
 
 def get_train_config(train_dataset = "MDTB",
-                     train_ses = "ses-s1",
+                     train_ses = "all",
                      run = 'all',
                      cond_num = 'all',
                      task_code = 'all',
                      subj_list = 'all',
-                     method = "L2regression",
+                     method = "L2reg",
                      log_alpha = 8,
-                     cerebellum = "SUIT3",
+                     cerebellum = "MNICymC3",
                      cortex = "fs32k",
                      parcellation = "Icosahedron1002",
                      type = "CondHalf",
                      crossed = "half", # or None
-                     validate_model = True,
-                     cv_fold = 4,
                      add_rest = True,
                      append = False,
                      cortical_cerebellar_act = 'ind',
@@ -53,19 +51,24 @@ def get_train_config(train_dataset = "MDTB",
 
    Args:
       train_dataset (str): training_dataset. Defaults to "MDTB".
-      train_ses (str): Training session. Defaults to "ses-s1".
-      method (str): Model class. Defaults to "L2regression".
+      train_ses (str): Training session. Defaults to "all".
+      run (list, str): Training run (e.g. [1,2]). Defaults to "all".
+      cond_num (list, str): Training conditions (e.g. [1,2,3,4,5]). Defaults to "all".
+      task_code (list, str): Training task codes (e.g. [1,2,3]). Defaults to "all".
+      subj_list (list, str): Training subject list. Defaults to "all".
+      method (str): Model class. Defaults to "L2reg".
       log_alpha (int): log of regularization. Defaults to 8.
-      cerebellum (str): Atlas for cerebellum. Defaults to "SUIT3".
+      cerebellum (str): Atlas for cerebellum. Defaults to "MNICymC3".
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron-1002_Sym.32k".
-      type (str): _description_. Defaults to "CondHalf".
+      type (str): Training type, could be "CondHalf", "CondAll", "CondRun". see Functional_Fusion. Defaults to "CondHalf".
       crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
-      validate_model (bool): Do cross-validation in training set for hyperparameter tuning? Defaults to True.
-      cv_fold (int): Number of validation folds. Defaults to 4.
       add_rest (bool): Add rest condition to each session and half. Defaults to True.
-      std_cortex(): z-Standardize the cortical data. (Defaults to None)
-      std_cerebelum(): z-Standardize the cortical data. (Defaults to None)
+      append (bool): Append the current training info to the previous one. Defaults to False.
+      cortical_cerebellar_act (str): 'ind': individual X and Y, 'avg': average X and Y accross subjects. Defaults to 'ind'.
+      std_cortex (str): z-Standardize the cortical data. (Defaults to parcel normalization)
+      std_cerebellum (str): z-Standardize the cerebellar data. (Defaults to global normalization)
+
    Returns:
       dict: Dictionary containing the default training configuration
    """
@@ -82,9 +85,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['cortex'] = cortex
    train_config['parcellation'] = parcellation
    train_config['crossed'] = crossed
-   train_config["validate_model"] = validate_model
    train_config["type"] = type
-   train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['add_rest'] = add_rest
    train_config['cortical_cerebellar_act'] = cortical_cerebellar_act
    train_config['std_cortex'] = std_cortex
@@ -98,6 +99,7 @@ def get_train_config(train_dataset = "MDTB",
 
    return train_config
 
+
 def get_model_config(dataset = "MDTB",
                      subj_list = 'all',
                      model = 'avg',
@@ -105,12 +107,14 @@ def get_model_config(dataset = "MDTB",
                      mix_param = None):
    """
    create a config dictionary containing the info for the model
+   
    Args:
       dataset (str): training_dataset. Defaults to "MDTB".
       subj_list (str or list): List of subjects to train on. Defaults to 'all'.
       model (str or list): Model type to use. Defaults to 'avg'.
       cerebellum (str): Atlas for cerebellum. Defaults to "MNISymC3".
       mix_param (float): Mixing parameter for 'mix' model. Defaults to None.
+
    Returns:
       dict: Dictionary containing the default model configuration
    """
@@ -123,13 +127,14 @@ def get_model_config(dataset = "MDTB",
 
    return model_config
 
+
 def get_eval_config(eval_dataset = 'MDTB',
-            eval_ses = 'ses-s2',
+            eval_ses = 'all',
             subj_list = 'all',
             run = 'all',
             cond_num = 'all',
             task_code = 'all',
-            cerebellum = 'SUIT3',
+            cerebellum = 'MNICymC3',
             cortex = "fs32k",
             parcellation = "Icosahedron1002",
             crossed = "half", # or None
@@ -140,14 +145,16 @@ def get_eval_config(eval_dataset = 'MDTB',
             std_cerebellum = 'global',
             cortical_act = 'avg'):
    """
-   create a config file for evaluation
+   create a config dictionary for evaluation of the model
+
    Args:
       eval_dataset (str): evaluation dataset. Defaults to 'MDTB'.
-      eval_ses (str): evaluation session. Defaults to 'ses-s2'.
+      eval_ses (str): evaluation session. Defaults to 'all'.
       subj_list (str or list): List of subjects to evaluate. Defaults to 'all'.
-      eval_run (str or list): List of runs to evaluate. Defaults to 'all'.
-      eval_cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
-      cerebellum (str): Atlas for cerebellum. Defaults to 'SUIT3'.
+      run (str or list): List of runs to evaluate. Defaults to 'all'.
+      cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
+      task_code (str or list): List of task codes to evaluate. Defaults to 'all'.
+      cerebellum (str): Atlas for cerebellum. Defaults to 'MNICymC3'.
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron1002".
       crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
@@ -186,86 +193,82 @@ def get_eval_config(eval_dataset = 'MDTB',
 
    return eval_config
 
+
 def train_metrics(model, X, Y):
-    """computes training metrics (rmse and R) on X and Y
+   """computes training metrics (rmse and R) on X and Y
 
-    Args:
-        model (class instance): must be fitted model
-        X (nd-array):
-        Y (nd-array):
-    Returns:
-        rmse_train (scalar), R_train (scalar)
-    """
-    Y_pred = model.predict(X)
+   Args:
+      model (class instance): must be fitted model
+      X (nd-array): Input features
+      Y (nd-array): Target variables
 
-    # get train rmse and R
-    R_train, _ = ev.calculate_R(Y, Y_pred)
-    R2_train,_ = ev.calculate_R2(Y, Y_pred)
+   Returns:
+      rmse_train (scalar), R_train (scalar)
+   """
+   Y_pred = model.predict(X)
 
-    return R_train, R2_train
+   # get train rmse and R
+   R_train, _ = ev.calculate_R(Y, Y_pred)
+   R2_train,_ = ev.calculate_R2(Y, Y_pred)
 
-def validate_metrics(model, X, Y, cv_fold):
-    """computes CV training metrics (rmse and R) on X and Y
+   return R_train, R2_train
 
-    Args:
-        model (class instance): must be fitted model
-        X (nd-array):
-        Y (nd-array):
-        cv_fold (int): number of CV folds
-    Returns:
-        rmse_cv (scalar), R_cv (scalar)
-    """
-
-    # TO DO: implement train/validate splits for "sess", "run"
-    r_cv_all = cross_val_score(model, X, Y, scoring=ev.calculate_R_cv, cv=cv_fold)
-
-    return np.nanmean(r_cv_all)
 
 def eval_metrics(Y, Y_pred, info):
-    """Compute evaluation, returning summary and voxel data.
+   """Compute evaluation, returning summary and voxel data.
 
-    Args:
-        Y (np array):
-        Y_pred (np array):
-        Y_info (pd dataframe):
-    Returns:
-        dict containing evaluations (R, R2, noise).
-    """
-    # initialise dictionary
-    data = {}
+   Args:
+      Y (np array): The observed data
+      Y_pred (np array): The predicted data
+      Y_info (pd dataframe): The information dataframe for Y
 
-    # Add the evaluation
-    data["R_eval"], data["R_vox"] = ev.calculate_R(Y=Y, Y_pred=Y_pred)
+   Returns:
+      dict containing evaluations (R, R2, noise).
+   """
+   # initialise dictionary
+   data = {}
 
-    # R between predicted and observed
-    data["R2_eval"], data["R2_vox"] = ev.calculate_R2(Y=Y, Y_pred=Y_pred)
+   # R between predicted and observed
+   data["R_eval"], data["R_vox"] = ev.calculate_R(Y=Y, Y_pred=Y_pred)
 
-    # R2 between predicted and observed
-    (
-        data["noise_Y_R"],
-        data["noise_Y_R_vox"],
-        data["noise_Y_R2"],
-        data["noise_Y_R2_vox"],
-    ) = ev.calculate_reliability(Y=Y, dataframe = info)
+   # R2 between predicted and observed
+   data["R2_eval"], data["R2_vox"] = ev.calculate_R2(Y=Y, Y_pred=Y_pred)
 
-    # Noise ceiling for predicted cerebellum (squared)
-    (
-        data["noise_X_R"],
-        data["noise_X_R_vox"],
-        data["noise_X_R2"],
-        data["noise_X_R2_vox"],
-    ) = ev.calculate_reliability(Y=Y_pred, dataframe = info)
+   # # Noise ceiling for observed cerebellum
+   # (
+   #    data["noise_Y_R"],
+   #    data["noise_Y_R_vox"],
+   #    data["noise_Y_R2"],
+   #    data["noise_Y_R2_vox"],
+   # ) = ev.calculate_reliability(Y=Y, dataframe = info)
 
-    # calculate noise ceiling
-    with warnings.catch_warnings():
+   # # Noise ceiling for predicted cerebellum (squared)
+   # (
+   #    data["noise_X_R"],
+   #    data["noise_X_R_vox"],
+   #    data["noise_X_R2"],
+   #    data["noise_X_R2_vox"],
+   # ) = ev.calculate_reliability(Y=Y_pred, dataframe = info)
+
+   # calculate noise ceiling
+   with warnings.catch_warnings():
       warnings.simplefilter("ignore", category=RuntimeWarning)
 
       data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
       data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"]) * np.sqrt(data["noise_X_R_vox"])
-    return data
+   return data
+
 
 def cross_data(Y,info,mode):
-   """Cross data across halves
+   """Cross data across halves. This part helps reducing overfitting by providing an extra cross-validation.
+
+   Args:
+      Y (ndarray): Data matrix (n_cond,n_vox)
+      info (pd.DataFrame): Information dataframe with columns: sess, half, run; n_cond rows
+      mode (str): 'half' or 'run' to specify the cross-validation mode
+
+   Returns:
+      Ys (ndarray): Crossed data
    """
    if mode=='half':
       Y_list = []
@@ -284,7 +287,20 @@ def cross_data(Y,info,mode):
       Ys = np.concatenate(Y_list,axis=0)
    return Ys
 
+
 def subset_cond(data, info, cond_num):
+   """
+   Subset the data and info based on the condition number.
+
+   Args:
+       data (ndarray): Data matrix (n_cond,n_vox) or (n_subj,n_cond,n_vox)
+       info (pd.DataFrame): Information dataframe with columns: sess, half, run; n_cond rows
+       cond_num (str or list): Condition number(s) to subset
+
+   Returns:
+       data (ndarray): Subsetted data
+       info (pd.DataFrame): Subsetted information
+   """
    if isinstance(cond_num, list):
       cond_mask = info['cond_num'].isin(cond_num)
       data = data[..., cond_mask.values, :]
@@ -314,9 +330,11 @@ def subset_cond(data, info, cond_num):
 
    return data, info
 
+
 def add_rest(Y,info):
    """Add rest to each session and half
    Subtract the mean across all conditions
+
    Args:
        Y (ndarray): Data matrix (n_cond,n_vox) or (n_subj,n_cond,n_vox)
        info (pd.DataFrame): Information dataframe with columns: sess, half, task_code; n_cond rows
@@ -348,12 +366,18 @@ def add_rest(Y,info):
             info_list.append(inf)
    Ys = np.concatenate(Y_list,axis=-2)
    infos = pd.concat(info_list,ignore_index=True)
-   return Ys,infos
+   return Ys, infos
+
 
 def std_data(Y,mode):
-   """ Standarize the data to unit norm
-   
-   
+   """ Standarize the data to unit norm.
+
+   Args:
+       Y (ndarray): Data matrix (n_cond,n_vox) or (n_subj,n_cond,n_vox)
+       mode (str): 'parcel' or 'global' to specify the standardization mode
+
+   Returns:
+       Y (ndarray): Standardized data
    """
    if mode is None:
       return Y
@@ -363,13 +387,22 @@ def std_data(Y,mode):
    elif mode=='global':
       sc=np.sqrt(np.nansum(Y ** 2))# / Y.size)
       return np.nan_to_num(Y/sc)
-   elif mode=='norm':
-      sc=np.linalg.norm(Y, ord='fro')
-      return np.nan_to_num(Y/sc)
    else:
-      raise ValueError('std_mode must be None, "voxel" or "global" or "norm"')
+      raise ValueError('std_mode must be None, "voxel" or "global"')
+   
 
-def ready_data(data, info, config):
+def prepare_data(data, info, config):
+   """ Prepare the data and info for modeling. Including removing NaNs, adding rest conditions, and subsetting.
+
+   Args:
+       data (ndarray): Input features
+       info (pd.DataFrame): Information dataframe
+       config (dict): Configuration dictionary (train_config or eval_config)
+
+   Returns:
+       data (ndarray): Prepared input features
+       info (pd.DataFrame): Prepared information dataframe
+   """
    # Remove Nans
    data = np.nan_to_num(data)
 
@@ -400,17 +433,43 @@ def ready_data(data, info, config):
 
    return data, info
 
-def get_cortical_data(dataset,sessions,subj,config):
-   """ Get cortical data according to the training of evaluation config file.
 
-      Args:
+def exclude_network(XX, config):
+   """ Exclude specific networks from the cortical data based on the Yeo parcellation.
+
+   Args:
+       XX (ndarray): Cortical data.
+       config (dict): Configuration dictionary.
+
+   Returns:
+       XX (ndarray): Cortical data with excluded networks set to zero.
+   """
+   yeo_img = nb.load(gl.conn_dir + f"/maps/yeo17_{config['parcellation']}.plabel.nii")
+   yeo_data = yeo_img.get_fdata().squeeze()
+   XX[..., :, yeo_data==config['exclude_network']] = 0.0
+
+   return XX
+
+
+def get_cortical_data(dataset, sessions, subj, config):
+   """ Get cortical data according to the training or evaluation config file. Uses Functional_Fusion.dataset.
+
+   Args:
+      dataset (str): Name of the dataset to load.
+      sessions (str or list): Session(s) to load data from.
+      subj (str or list): Subject ID to load data for.
+      config (dict): Configuration dictionary (train_config or eval_config).
+
+   Returns:
+      XX (ndarray): Cortical data.
+      info (pd.DataFrame): Information dataframe.
    """
    XX, info, _ = fdata.get_dataset(gl.base_dir,
                                    dataset,
                                    sess=sessions,
-                                   subj =subj,
-                                 atlas=config["cortex"],
-                                 type=config["type"])
+                                   subj=subj,
+                                   atlas=config["cortex"],
+                                   type=config["type"])
    # Average the cortical data over pacels
    X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
    # get the vector containing tessel labels
@@ -418,26 +477,28 @@ def get_cortical_data(dataset,sessions,subj,config):
    # get the mean across tessels for cortical data
    XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-   XX, info = ready_data(XX, info, config)
+   # Prepare the data and info
+   XX, info = prepare_data(XX, info, config)
 
+   # Standardize the data if specified
    for i in range(XX.shape[0]):
       if 'std_cortex' in config.keys():
          XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
 
+   # Exclude specific networks if specified
    if 'exclude_network' in config.keys():
-      yeo_img = nb.load(gl.conn_dir + f"/maps/yeo17_{config['parcellation']}.plabel.nii")
-      yeo_data = yeo_img.get_fdata().squeeze()
-      XX[..., :, yeo_data==config['exclude_network']] = 0.0
+      XX = exclude_network(XX, config)
 
    return XX, info
 
-def get_cerebellar_data(dataset,sessions,subj,config):
+
+def get_cerebellar_data(dataset, sessions, subj, config):
    """Get cerebellar data for training or evaluation.
 
    Args:
       dataset (str): Name of the dataset to load.
       sessions (str or list): Session(s) to load data from.
-      config (dict): Configuration dictionary containing 
+      config (dict): Configuration dictionary containing:
          add_res, run, cond_num, cerebellum, std_cerebellum, type, crossed, 
 
    Returns:
@@ -446,14 +507,16 @@ def get_cerebellar_data(dataset,sessions,subj,config):
    """
    # Load the cerebellar data
    YY, info, _ = fdata.get_dataset(gl.base_dir,
-                                 dataset,
-                                 sess=sessions,
-                                 subj = subj,
-                                 atlas=config["cerebellum"],
-                                 type=config["type"])
-   
-   YY, info = ready_data(YY, info, config)
+                                   dataset,
+                                   sess=sessions,
+                                   subj=subj,
+                                   atlas=config["cerebellum"],
+                                   type=config["type"])
 
+   # Prepare the data and info
+   YY, info = prepare_data(YY, info, config)
+
+   # Standardize the data if specified
    for i in range(YY.shape[0]):
       if 'std_cerebellum' in config.keys():
          YY[i,:,:] = std_data(YY[i,:,:],config['std_cerebellum'])
@@ -465,16 +528,52 @@ def get_cerebellar_data(dataset,sessions,subj,config):
    return YY, info 
 
 
-def train_model(config, save_path=None, mname=None, save_name=None):
+def save_XY_data(save_name, XX, YY, config, info, dataset=None):
    """
-   training a specific model based on the config file created
-   model will be trained on cerebellar voxels and average within cortical tessels.
+   Save the preprocessed cortical and cerebellar data as CIFTI files.
+
    Args:
-      config (dict)      - dictionary with configuration parameters
+      save_name (str): Name to save the CIFTI files.
+      XX (ndarray): Preprocessed cortical data.
+      YY (ndarray): Preprocessed cerebellar data.
+      config (dict): Configuration dictionary.
+      info (pd.DataFrame): Information dataframe.
+      dataset (str): Name of the dataset.
+   """
+
+   if dataset is None:
+      dataset = config['train_dataset']
+
+   Yatlas,_ = at.get_atlas(config['cerebellum'])
+   row_axis = dataset + '_' + info.names 
+   Ycifti = Yatlas.data_to_cifti(YY, row_axis=row_axis)
+   nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
+
+   Xatlas,_ = at.get_atlas(config['cortex'])
+   Xatlas.get_parcel(config['label_img'], unite_struct = False)      
+   Xparcelaxis  = Xatlas.get_parcel_axis()
+   Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
+   header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
+   Xcifti = nb.Cifti2Image(XX, header=header)
+   nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_name}_cortex.pscalar.nii')
+
+   return
+
+
+def train_model(config, save_path=None, mname=None, save_name=None):
+   """training a specific model based on the config file created
+   model will be trained on cerebellar voxels and average within cortical tessels.
+
+   Args:
+      config (dict): dictionary with configuration parameters
+      save_path (str): path to save the trained model
+      mname (str): name of the model
+      save_name (str): name to save the model as a dscalar or pscalar
+
    Returns:
-      conn_model_list (list)    - list of trained models on the list of subjects / log-alphas
-      config (dict)             - dictionary containing info for training. Can be saved as json
-      train_df (pd.DataFrame)   - dataframe containing training information
+      conn_model_list (list): list of trained models on the list of subjects / log-alphas
+      config (dict): dictionary containing info for training. Can be saved as json
+      train_df (pd.DataFrame): dataframe containing training information
    """
 
    # get list of subjects
@@ -501,50 +600,40 @@ def train_model(config, save_path=None, mname=None, save_name=None):
    else:
       train_info = pd.DataFrame()
 
-   # Get cerebellar abd cortical data
-   YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],subj,config)
-   XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],subj,config)
+   # Get cerebellar and cortical data
+   YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], subj, config)
+   XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], subj, config)
 
    # average cortical and cerebellar data across subjects, if needed
    if config['cortical_cerebellar_act'] == 'avg':
       if config['subj_list'] != 'all':
-         # Get cerebellar abd cortical data
+         # Get cerebellar and cortical data
          all_subj = get_subj_list('all', config["train_dataset"])
-         YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],all_subj,config)
-         XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],all_subj,config)
-      XX=XX.mean(axis=0,keepdims=True) # get average cortical data
-      YY=YY.mean(axis=0,keepdims=True) # get the average cerebellar data
+         YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
+      XX = XX.mean(axis=0,keepdims=True) # get average cortical data
+      YY = YY.mean(axis=0,keepdims=True) # get the average cerebellar data
       subj = ['group']
+
    elif config['cortical_cerebellar_act'] == 'loo':
       if config['subj_list'] != 'all':
-         # Get cerebellar abd cortical data
+         # Get cerebellar and cortical data
          all_subj = get_subj_list('all', config["train_dataset"])
-         YY,info = get_cerebellar_data(config["train_dataset"],config["train_ses"],all_subj,config)
-         XX,info = get_cortical_data(config["train_dataset"],config["train_ses"],all_subj,config)
+         YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
       XX = (XX.sum(axis=0,keepdims=True) - XX)/(XX.shape[0]-1)
       YY = (YY.sum(axis=0,keepdims=True) - YY)/(YY.shape[0]-1)
       subj = [s+'_group_loo' for s in subj]
 
    if save_name is not None:
-      Yatlas,_ = at.get_atlas(config['cerebellum'])
-      row_axis = config['train_dataset'] + '_' + info.names 
-      Ycifti = Yatlas.data_to_cifti(YY[0,:,:], row_axis=row_axis)
-      nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
-
-      Xatlas,_ = at.get_atlas(config['cortex'])
-      Xatlas.get_parcel(config['label_img'], unite_struct = False)      
-      Xparcelaxis  = Xatlas.get_parcel_axis()
-      Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
-      header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
-      Xcifti = nb.Cifti2Image(XX[0,:,:], header=header)
-      nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_name}_cortex.pscalar.nii')
+      save_XY_data(save_name, XX[0,:,:], YY[0,:,:], config, info)
 
    for i,sub in enumerate(subj):
-      X=XX[i,:,:] # get the data for the subject
-      Y=YY[i,:,:] # get the data for the subject
+      X = XX[i,:,:] # get the data for the subject
+      Y = YY[i,:,:] # get the data for the subject
 
       for la in config["logalpha"]:
-         print(f'- Train {sub} {config["method"]} logalpha {la}')
+         print(f'- Train {sub}, {config["method"]}, logalpha {la}')
 
          if la is not None:
             # Generate new model
@@ -560,49 +649,49 @@ def train_model(config, save_path=None, mname=None, save_name=None):
             conn_model.fit(X, Y, info)
          elif config["method"] == 'L2reghalf':
             conn_model.fit(X, Y, config, info)
-         elif config["method"] == 'L2reg2':
-            conn_model.fit(X, Y, info)
          else:
             conn_model.fit(X, Y)
-         R_train,R2_train = train_metrics(conn_model, X, Y)
-         # conn_model_list.append(conn_model)
+         R_train, R2_train = train_metrics(conn_model, X, Y)
+         # conn_model_list.append(conn_model) # commented to prevent memory issues
 
          # collect train metrics ( R)
-         model_info = {
-                        "subj_id": sub,
-                        "mname": mname_spec,
-                        "R_train": R_train,
-                        "R2_train": R2_train,
-                        "num_regions": X.shape[1],
-                        "logalpha": la
-                        }
-
-         # run cross validation and collect metrics (rmse and R)
-         if config['validate_model']:
-            R_cv = validate_metrics(conn_model, X, Y, config["cv_fold"][0])
-            model_info.update({"R_cv": conn_model.R_cv})
+         model_info = {"subj_id": sub,
+                       "mname": mname_spec,
+                       "R_train": R_train,
+                       "R2_train": R2_train,
+                       "num_regions": X.shape[1],
+                       "logalpha": la
+                       }
 
          # Copy over all scalars or strings from config to eval dict:
          for key, value in config.items():
-            if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
+            if not isinstance(value, (list, dict, pd.Series, np.ndarray)):
                model_info.update({key: value})
-         # Save the individuals info files
-         cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
-         train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
-   train_info.to_csv(train_info_name,sep='\t')
+         # Save the individuals model and info files
+         cio.save_model(conn_model, model_info, save_path + "/" + mname_spec)
+         train_info = pd.concat([train_info, pd.DataFrame(model_info)], ignore_index=True)
+
+   # Save training information
+   train_info.to_csv(train_info_name, sep='\t')
    return config, conn_model_list, train_info
 
-def train_global_model(config, save_path=None, mname=None,save_data_name=None):
+
+def train_global_model(config, save_path=None, mname=None, save_data_name=None):
    """
    train a model based on the concatination of multiple datasets from functional fusion.
    Data is group-averaged across subjects. 
+
    Args:
-      config (dict)      - dictionary with configuration parameters
+      config (dict): dictionary with configuration parameters.
+      save_path (str): path to save the trained model and info files.
+      mname (str): name of the model.
+      save_data_name (str): name of the data files to save.
+
    Returns:
-      conn_model_list (list)    - list of trained models on the list of subjects / log-alphas
-      config (dict)             - dictionary containing info for training. Can be saved as json
-      train_df (pd.DataFrame)   - dataframe containing training information
+      conn_model_list (list): list of trained models on the list of subjects / log-alphas
+      config (dict): dictionary containing info for training. Can be saved as json
+      train_df (pd.DataFrame): dataframe containing training information
    """
 
    # get list of datasets - interpret them over globals.dscode 
@@ -621,6 +710,7 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
          std_cortex.append(gl.std_cortex[indx])
       else:
          raise ValueError(f"Dataset code {code} not found in globals.dscode")   
+      
    # Compile lists of activity patterns 
    XX = []
    YY = []
@@ -631,30 +721,19 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
       # Get cerebellar and cortical data
       config['add_rest'] = add_rest[i]
       config['std_cortex'] = std_cortex[i]
-      Y,info = get_cerebellar_data(datasets[i],sessions[i],subj,config)
-      X,_ = get_cortical_data(datasets[i],sessions[i],subj,config)
+      Y, info = get_cerebellar_data(datasets[i], sessions[i], subj, config)
+      X, _ = get_cortical_data(datasets[i], sessions[i], subj, config)
       info['dataset'] = datasets[i]
       XX.append(X.mean(axis=0))
       YY.append(Y.mean(axis=0))
       info_list.append(info)
    
-   XX = np.concatenate(XX,axis=0)
-   YY = np.concatenate(YY,axis=0)
-   info = pd.concat(info_list,ignore_index=True)
+   XX = np.concatenate(XX, axis=0)
+   YY = np.concatenate(YY, axis=0)
+   info = pd.concat(info_list, ignore_index=True)
 
    if save_data_name is not None:
-      Yatlas,_ = at.get_atlas(config['cerebellum'])
-      row_axis = info.dataset + '_' + info.names 
-      Ycifti = Yatlas.data_to_cifti(YY, row_axis=row_axis)
-      nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_data_name}_cerebellum.dscalar.nii')
-
-      Xatlas,_ = at.get_atlas(config['cortex'])
-      Xatlas.get_parcel(config['label_img'], unite_struct = False)      
-      Xparcelaxis  = Xatlas.get_parcel_axis()
-      Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
-      header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
-      Xcifti = nb.Cifti2Image(XX, header=header)
-      nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_data_name}_cortex.pscalar.nii')
+      save_XY_data(save_data_name, XX, YY, config, info, dataset=info.dataset)
 
    conn_model_list = []
 
@@ -676,10 +755,9 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
    else:
       train_info = pd.DataFrame()
 
-
-
+   # Train models for each logalpha
    for la in config["logalpha"]:
-      print(f'- Train {config["method"]} logalpha {la}')
+      print(f'- Train, {config["method"]}, logalpha {la}')
 
       if la is not None:
          # Generate new model
@@ -695,61 +773,55 @@ def train_global_model(config, save_path=None, mname=None,save_data_name=None):
          conn_model.fit(XX, YY, info)
       elif config["method"] == 'L2reghalf':
          conn_model.fit(XX, YY, config, info)
-      elif config["method"] == 'L2reg2':
-         conn_model.fit(XX, YY, info)
       else:
          conn_model.fit(XX, YY)
-      R_train,R2_train = train_metrics(conn_model, XX, YY)
+      R_train, R2_train = train_metrics(conn_model, XX, YY)
       # conn_model_list.append(conn_model)
 
       # collect train metrics ( R)
-      model_info = {
-                     "subj_id": 'group',
-                     "mname": mname_spec,
-                     "R_train": R_train,
-                     "R2_train": R2_train,
-                     "num_regions": XX.shape[1],
-                     "logalpha": la
-                     }
-
-      # run cross validation and collect metrics (rmse and R)
-      if config['validate_model']:
-         R_cv = validate_metrics(conn_model, XX, YY, config["cv_fold"][0])
-         model_info.update({"R_cv": conn_model.R_cv})
+      model_info = {"subj_id": 'group',
+                    "mname": mname_spec,
+                    "R_train": R_train,
+                    "R2_train": R2_train,
+                    "num_regions": XX.shape[1],
+                    "logalpha": la
+                    }
 
       # Copy over all scalars or strings from config to eval dict:
       for key, value in config.items():
          if not isinstance(value, (list, dict,pd.Series,np.ndarray)):
             model_info.update({key: value})
+
       # Save the individuals info files
       cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
       train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
 
+   # Save training information
    train_info.to_csv(train_info_name,sep='\t')
    return config, conn_model_list, train_info
 
 
-
-def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
+def get_model_names(train_dataset, train_ses, parcellation, method, ext_list):
    """ Makes a list of model dirs and model names, based on training set, etc.
 
    Args:
-         train_dataset (str): trainign dataset 
-         train_ses (str): Session 
+         train_dataset (str): training dataset
+         train_ses (str): Session of the training dataset
          parcellation (str): Cortical parcellation
-         method (str): 'L2regression', 'WTA', 'L1regression', 'NNlS', etc
+         method (str): 'L2regression', 'WTA', 'L1regression', 'NNLS', etc
          ext_list (list): List of extensions (numeric or string) to add to model name
    Returns:
          dirname (list): List of model directories 
          mname (list): List of model names 
    """   
-   dirname=[] # Model directory name
-   mname=[] # Model name - without the individual, average, or loo extension
+   dirname = [] # Model directory name
+   mname = [] # Model name - without the individual, average, or loo extension
 
    if train_ses is None:
       root_name = f"{train_dataset}"
    else: 
       root_name = f"{train_dataset}_{train_ses}"
+
    # Build list of to-be-evaluated models
    for a in ext_list:
       dirname.append(f"{root_name}_{parcellation}_{method}")
@@ -764,9 +836,11 @@ def get_model_names(train_dataset,train_ses,parcellation,method,ext_list):
 
 def get_subj_list(subj_list, dataset):
    """Get the list of subjects to evaluate or train on.
+
    Args:
       subj_list (str, int, list): 'all', integer number of subjects, or list of subject ids
       dataset (str): Name of the dataset to get the subject list from
+
    Returns:
       subj_list (list): List of subject ids to use for evaluation or training
    """
@@ -800,18 +874,25 @@ def get_subj_list(subj_list, dataset):
    return subj_list
 
 
-def get_fitted_models(model_dirs,model_names,config):
+def get_fitted_models(model_dirs, model_names, config):
    """Builds a list of fitted models from the saved files
    In case of individual-specific models (ind or loo), it builds a list of lists.
 
+   if model_config['model']=='avg' it will average the models across subjects
+   if model_config['model']=='ind' it will evaluate each subejct individually
+   if model_config['model']=='loo' it will average all other subjects
+   if model_config['model']=='mix_loo' it will do: p*subject + (1-p)*loo
+   if model_config['model']=='mix' it will do: p*subject + (1-p)*given_model
+   For 'ind', 'loo', and 'mix_loo' training and evaluation dataset must be the same 
+
    Args:
-       model_dirs (_type_): List of dirctory names for models 
-       model_names (_type_): List of model names (without subject extension)
-       model_config (dict): Dictonary with model parameters
+      model_dirs (list): List of dirctory names for models 
+      model_names (list): List of model names (without subject extension)
+      model_config (dict): Dictonary with model parameters
 
    Returns:
-       fitted_models (list): _description_
-       train_info (list): information on each trained model
+      fitted_models (list): _description_
+      train_info (list): information on each trained model
    """
 
    # Load all the models to evaluate:
@@ -835,6 +916,7 @@ def get_fitted_models(model_dirs,model_names,config):
          train_info = config['train_info']
       else:
          raise ValueError('config["model"] must be a list of strings or a list of models')
+      
    elif config['model']=='avg' or config['model']=='group':
       for d,m in zip(model_dirs,model_names):
          model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
@@ -842,6 +924,7 @@ def get_fitted_models(model_dirs,model_names,config):
          mo,inf = cio.load_model(fname)
          fitted_model.append(mo)
          train_info.append(inf)
+
    elif config['model']=='ind' or config['model']=='group_loo':
       # get list of subject for model
       model_subj = get_subj_list(config["subj_list"], config["dataset"])
@@ -860,6 +943,7 @@ def get_fitted_models(model_dirs,model_names,config):
             ti.append(inf)
          fitted_model.append(fm)
          train_info.append(ti)
+
    elif config['model']=='loo':
       fitted_model = []
       train_info = []
@@ -880,6 +964,7 @@ def get_fitted_models(model_dirs,model_names,config):
                                  avrg_mode='loo_sep')
          fitted_model.append(fm)
          train_info.append(fi)
+
    elif config['model']=='mix':
       # get list of subject for model
       model_subj = get_subj_list(config["subj_list"], config["dataset"])
@@ -896,6 +981,7 @@ def get_fitted_models(model_dirs,model_names,config):
                                  mix_model=config['mix_model'])
          fitted_model.append(fm)
          train_info.append(fi)
+
    elif config['model']=='mix_loo':
       # get list of subject for model
       model_subj = get_subj_list(config["subj_list"], config["dataset"])
@@ -911,40 +997,24 @@ def get_fitted_models(model_dirs,model_names,config):
                                  mix_param=config['mix_param'])
          fitted_model.append(fm)
          train_info.append(fi)
-   elif config['model'].startswith('bayes'):
-      # get list of subject for model
-      model_subj = get_subj_list(config["subj_list"], config["dataset"])
-      fitted_model = []
-      train_info = []
-      for d,m in zip(model_dirs,model_names):
-         model_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',d)
-         ext = '_' + m.split('_')[-1]
-         fm,fi = calc_avrg_model(config['dataset'],d,ext,
-                                 cerebellum=config['cerebellum'],
-                                 model_subj=model_subj,
-                                 avrg_mode=config['model'])
-         fitted_model.append(fm)
-         train_info.append(fi)
 
-   
    return fitted_model, train_info
 
-def eval_model(model_dirs,model_names,eval_config,model_config):
-   """
-   evaluate group model on a specific dataset and session
-   if model_config['model']=='avg' it will average the models across subjects
-   if model_config['model']=='ind' it will evaluate each subejct individually
-   if model_config['model']=='loo' it will average all other subjects
-   if model_config['model']=='mix_loo' it will do: p*subject + (1-p)*loo
-   if model_config['model']=='mix' it will do: p*subject + (1-p)*given_model
-   if model_config['model']=='bayes' it will integrate individual weights with bayes rule
-   For 'ind', 'loo', and 'mix_loo' training and evaluation dataset must be the same 
+
+def eval_model(model_dirs, model_names, eval_config, model_config):
+   """Evaluate group model on a specific dataset and session.
+   
    Args:
-      model_dirs (list)  - list of model directories
-      model_names (list) - list of full model names (without .h5) to evaluate
-      eval_config (dict)      - dictionary with evaluation parameters
-      model_config (dict)     - dictionary with model parameters
+      model_dirs (list): list of model directories
+      model_names (list): list of full model names (without .h5) to evaluate
+      eval_config (dict): dictionary with evaluation parameters
+      model_config (dict): dictionary with model parameters
+
+   Returns:
+      eval_df (pd.DataFrame): DataFrame with evaluation results
+      eval_voxels (defaultdict): dictionary with voxel-wise evaluation results
    """
+
    # initialize eval dictionary
    eval_df = pd.DataFrame()
    eval_voxels = defaultdict(list)
@@ -953,28 +1023,29 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
    eval_subj = get_subj_list(eval_config["subj_list"], eval_config["eval_dataset"])
 
    # Get the list of fitted models
-   fitted_model,train_info = get_fitted_models(model_dirs,model_names,model_config)
+   fitted_model, train_info = get_fitted_models(model_dirs, model_names, model_config)
 
    # Get cerebellar abd cortical data
-   YY,info = get_cerebellar_data(eval_config["eval_dataset"],eval_config["eval_ses"],eval_subj,eval_config)
-   XX,info = get_cortical_data(eval_config["eval_dataset"],eval_config["eval_ses"],eval_subj,eval_config)
+   YY, info = get_cerebellar_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
+   XX, info = get_cortical_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
 
-   # Caluclated group reliability of subjects 
+   # Calculate group reliability of subjects
    group_noiseceil_lower = frel.between_subj_loo(YY)
    group_noiseceil_upper = frel.between_subj_avrg(YY)
 
+   # Evaluate models
    for i, sub in enumerate(eval_subj):
       print(f'- Evaluate {sub}')
       # Loop over models
       if eval_config['cortical_act'] == 'ind':
-         X=XX[i,:,:] # get the data for the subject
+         X = XX[i,:,:] # get the data for the subject
       elif eval_config['cortical_act'] == 'avg':
-         X=XX.mean(axis=0) # get average cortical data
+         X = XX.mean(axis=0) # get average cortical data
       elif eval_config['cortical_act'] == 'loo':
          n_subj = len(eval_config['subj_list'])
          subj_vec = np.arange(n_subj)
-         X=XX[subj_vec!=i,:,:].mean(axis=0) # get average cortical data
-      Y=YY[i,:,:] # get the data for the subject
+         X = XX[subj_vec!=i,:,:].mean(axis=0) # get average cortical data
+      Y = YY[i,:,:] # get the data for the subject
 
       for j, (fm, tinfo) in enumerate(zip(fitted_model, train_info)):
          # Use subject-specific model? (indiv or loo or mix)
@@ -992,7 +1063,7 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
          Y_pred = fitM.predict(X)
 
          eval_sub = {"eval_subj": sub,
-                  "num_regions": X.shape[1]}
+                     "num_regions": X.shape[1]}
 
          # Copy over all scalars or strings to eval_all dataframe:
          for key, value in ti.items():
@@ -1018,23 +1089,27 @@ def eval_model(model_dirs,model_names,eval_config,model_config):
          # Add group noise ceiling 
          eval_sub['group_noiseceil_Y_upper'] = group_noiseceil_upper[i]
          eval_sub['group_noiseceil_Y_lower'] = group_noiseceil_lower[i]
+
          # don't save voxel data to summary
          eval_df = pd.concat([eval_df,pd.DataFrame(eval_sub,index=[0])],ignore_index= True)
 
    return eval_df, eval_voxels
 
-def comb_eval(models=['Md_s1'],
-              eval_data=["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
-              methods =['L2regression'],
-              cerebellum='SUIT3',
+
+def comb_eval(models = ['Md_s1'],
+              eval_data = ["MDTB", "WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"],
+              methods = ['L2reg'],
+              cerebellum = 'MNISymC3',
               eval_t = 'eval',
               eval_type = None):
    """Combine different tsv files from different datasets into one dataframe
 
    Args:
-       models (list): Strings of eval_ids to include. Defaults to ['Md_s1'].
-       eval_data (list): Evaldatasets _description_. Defaults to ["MDTB","WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
-       cerebellum (str, optional): _description_. Defaults to 'SUIT3'.
+      models (list): Strings of eval_ids to include. Defaults to ['Md_s1'].
+      eval_data (list): Eval datasets to include. Defaults to ["MDTB", "WMFS", "Nishimoto", "Demand", "Somatotopic", "IBC"].
+      cerebellum (str, optional): Cerebellum atlas to use. Defaults to 'MNISymC3'.
+      eval_t (str, optional): Evaluation type. Defaults to 'eval'.
+      eval_type (str, optional): Evaluation type. Defaults to None.
 
    Returns:
        _type_: _description_
@@ -1054,149 +1129,45 @@ def comb_eval(models=['Md_s1'],
                # add a column for the name of the dataset
                # get the noise ceilings
 
-               # Remove negative values from dd.noise_X_R
-               dd.noise_X_R = dd.noise_X_R.apply(lambda x: np.nan if x < 0 else x)
-               dd.noise_Y_R = dd.noise_Y_R.apply(lambda x: np.nan if x < 0 else x)
-               dd['noiseceiling_Y']=np.sqrt(dd.noise_Y_R)
-               dd['noiseceiling_XY']=np.sqrt(dd.noise_Y_R)*np.sqrt(dd.noise_X_R)
-               dd['R_eval_adj'] = dd.R_eval/dd["noiseceiling_XY"]
+               # Remove negative values from dd.noise
+               dd.group_noiseceil_Y_upper = dd.group_noiseceil_Y_upper.apply(lambda x: np.nan if x < 0 else x)
+               dd.group_noiseceil_Y_lower = dd.group_noiseceil_Y_lower.apply(lambda x: np.nan if x < 0 else x)
+               dd['group_noiseceiling'] = ((dd.group_noiseceil_Y_upper)+(dd.group_noiseceil_Y_lower)) /2
+               dd['R_eval_adj'] = dd.R_eval/dd["group_noiseceiling"]
                T.append(dd)
-   df = pd.concat(T,ignore_index=True)
+   df = pd.concat(T, ignore_index=True)
    return df
-
-
-def calc_wopt_var(sub_weight_variance,
-                  avrg_mode,
-                  S):
-   
-   uncertainty = np.reciprocal(sub_weight_variance)
-   wopt_variance_list = [np.nansum(uncertainty[s], axis=0) for s in range(S)]
-   if 'vox' in avrg_mode:
-      for wopt_var in wopt_variance_list:
-         wopt_var[wopt_var == 0] = np.nan
-
-   return wopt_variance_list
-
-
-def calc_bayes_avrg(param_lists,
-                    subject_list,
-                    avrg_mode,
-                    parameters=['coef_','coef_var']):
-   # stack for numpy functions
-   param_coef_ = np.stack(param_lists['coef_'], axis=0)
-   
-   # dimensions
-   S = len(subject_list)
-   n_vox, n_region = param_coef_[0].shape
-
-   if 'loo' in avrg_mode:
-      param_coef_var = np.stack(param_lists['coef_var'], axis=0)
-      # calculate adjusted variance (vs: Sx(S-1))
-      vg, vs = decompose_variance(param_coef_, np.nanmean(param_coef_var, axis=1)/n_region, model_type="loo")
-
-      # reshape param_coef_var for loo
-      idx = np.arange(24)[:, None]
-      param_coef_var = param_coef_var[np.arange(24) != idx].reshape(S, S-1, n_vox)
-      sub_var = vs[:, :, np.newaxis]*n_region + param_coef_var
-
-      if not 'vox' in avrg_mode:
-         sub_var = np.nanmean(sub_var, axis=-1)
-         coef_norm = np.linalg.norm(param_coef_, axis=(1,2))[np.arange(24) != idx].reshape(S, S-1)
-      else:
-         coef_norm = np.linalg.norm(param_coef_, axis=2)[np.arange(24) != idx].reshape(S, S-1, n_vox)
-
-      signal_norm2 = coef_norm**2 - n_vox*sub_var
-      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
-      sub_var /= signal_norm2
-
-      wopt_variance_list = calc_wopt_var(sub_weight_variance=sub_var,
-                                         avrg_mode=avrg_mode,
-                                         S=S)
-      param_w_opt = {}
-      if 'vox' in avrg_mode:
-         # divide each weights by its variance
-         P = [np.delete(param_coef_, s, axis=0) / sub_var[s, :, :, None] for s in range(S)]
-         # sum over subjects and normalize
-         param_w_opt['coef_'] = [np.nansum(P[s], axis=0) / wopt_variance_list[s][:, None] for s in range(S)]
-      else:
-         # divide each weights by its variance
-         P = [np.delete(param_coef_, s, axis=0) / sub_var[s, :, None, None] for s in range(S)]
-         # sum over subjects and normalize
-         param_w_opt['coef_'] = [np.nansum(P[s], axis=0) / wopt_variance_list[s] for s in range(S)]
-
-      param_w_opt['coef_'] = [np.nan_to_num(arr) for arr in param_w_opt['coef_']]
-      param_w_opt['coef_var'] = wopt_variance_list
-   elif 'half' in avrg_mode:
-      param_coef_1 = np.stack(param_lists['coef_1'], axis=0)
-      param_coef_2 = np.stack(param_lists['coef_2'], axis=0)
-      vg, vs, vm = decompose_variance_half(np.stack((param_coef_1, param_coef_2), axis=1))
-      sub_var = vs + vm/2
-
-      coef_norm = np.linalg.norm(param_coef_, axis=(1,2))
-      signal_norm2 = coef_norm**2 - n_vox*n_region*sub_var
-      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
-      sub_var /= signal_norm2
-
-      param_w_opt = {}
-      wopt_variance = np.nan_to_num(np.nansum(1 / sub_var, axis=0))
-      # divide each weights by its variance
-      P = param_coef_ / sub_var[:, None, None]
-      # sum over subjects and normalize
-      param_w_opt['coef_'] = np.nan_to_num(np.nansum(P, axis=0) / wopt_variance)
-      param_w_opt['coef_var'] = wopt_variance
-   else:
-      param_coef_var = np.stack(param_lists['coef_var'], axis=0)
-      # calculate adjusted variance (vs: S)
-      vg, vs = decompose_variance(param_coef_, np.nanmean(param_coef_var, axis=1)/n_region)
-      sub_var = vs[:, np.newaxis]*n_region + param_coef_var
-
-      if not 'vox' in avrg_mode:
-         sub_var = np.nanmean(sub_var, axis=-1)
-         coef_norm = np.linalg.norm(param_coef_, axis=(1,2))
-      else:
-         coef_norm = np.linalg.norm(param_coef_, axis=2)
-   
-      signal_norm2 = coef_norm**2 - n_vox*sub_var
-      param_coef_ /= np.sqrt(signal_norm2).reshape(S, *([1]* (param_coef_.ndim - signal_norm2.ndim)))
-      sub_var /= signal_norm2
-
-      param_w_opt = {}
-      wopt_variance = np.nan_to_num(np.nansum(1 / sub_var, axis=0))
-      if 'vox' in avrg_mode:
-         # divide each weights by its variance
-         P = param_coef_ / sub_var[:, :, None]
-         # sum over subjects and normalize
-         param_w_opt['coef_'] = np.nansum(P, axis=0) / wopt_variance[:, None]
-      else:
-         # divide each weights by its variance
-         P = param_coef_ / sub_var[:, None, None]
-         # sum over subjects and normalize
-         param_w_opt['coef_'] = np.nansum(P, axis=0) / wopt_variance
-      param_w_opt['coef_'] = np.nan_to_num(param_w_opt['coef_'])
-      param_w_opt['coef_var'] = wopt_variance
-
-   return param_w_opt
 
 
 def calc_avrg_model(train_dataset,
                     mname_base,
                     mname_ext,
-                    cerebellum='SUIT3',
-                    parameters=['coef_'],
-                    avrg_mode='avrg_sep',
-                    mix_param=[],
-                    mix_model=None,
-                    subj='all',
-                    model_subj='all'):
-   """Get the fitted models from all the subjects in the training data set
-      and create group-averaged model
+                    cerebellum = 'MNISymC3',
+                    parameters = ['coef_'],
+                    avrg_mode = 'avrg_sep',
+                    mix_param = [],
+                    mix_model = None,
+                    subj = 'all',
+                    model_subj = 'all'):
+   """Get the fitted models from all the subjects in the training data set and create group-averaged model
+
    Args:
-       train_dataset (str): _description_
-       mname_base (str): Directory name for model (MDTB_all_Icosahedron1002_L2regression)
-       mname_ext (str): Extension of name - typically logalpha
-       (_A0)
-       parameters (list): List of parameters to average
+      train_dataset (str): name of the training dataset
+      mname_base (str): Directory name for model (e.g. MDTB_all_Icosahedron1002_L2reg)
+      mname_ext (str): Extension of name - typically logalpha (_A0)
+      parameters (list): List of parameters to average
+      avrg_mode (str): Averaging mode
+      mix_param (list): List of mixing parameters
+      mix_model (str): Name of the mixing model
+      subj (str): Subject to use for fitting
+      model_subj (str): Subject to use for model
+
+   Returns:
+      avrg_model (list): List of fitted models for each subject
+      df (pd.DataFrame): DataFrame with training information for each subject
    """
+
+   # Get the list of subjects
    subject_list = get_subj_list(subj, train_dataset)
    model_subject_list = get_subj_list(model_subj, train_dataset)
 
@@ -1204,16 +1175,6 @@ def calc_avrg_model(train_dataset,
    model_path = gl.conn_dir + f"/{cerebellum}/train/{mname_base}/"
 
    # Collect the parameters in lists
-   if avrg_mode.startswith('bayes') & ('half' not in avrg_mode):
-      parameters = ['coef_', 'coef_var']
-   elif avrg_mode.startswith('bayes') & ('half' in avrg_mode):
-      parameters = ['coef_', 'coef_1', 'coef_2']
-   elif avrg_mode=='avg-half':
-      parameters = ['coef_', 'coef_1', 'coef_2']
-      avrg_mode = 'avrg_sep'
-   elif avrg_mode=='loo-half':
-      parameters = ['coef_', 'coef_1', 'coef_2']
-      avrg_mode = 'loo_sep'
    param_lists={}
    for p in parameters:
       param_lists[p]=[]
@@ -1225,27 +1186,27 @@ def calc_avrg_model(train_dataset,
       # load the model and info file
       fname = model_path + f"/{mname_base}{mname_ext}_{sub}"
       fitted_model, info = cio.load_model(fname)
-      df = pd.concat([df,pd.DataFrame(info,index=[0])],ignore_index=True)
+      df = pd.concat([df, pd.DataFrame(info, index=[0])], ignore_index=True)
 
       for p in parameters:
-         param_lists[p].append(getattr(fitted_model,p))
+         param_lists[p].append(getattr(fitted_model, p))
 
    avrg_model = fitted_model
    if avrg_mode=='avrg_sep':
       for p in parameters:
-         P = np.stack(param_lists[p],axis=0)
-         setattr(avrg_model,p,P.mean(axis=0))
+         P = np.stack(param_lists[p], axis=0)
+         setattr(avrg_model, p, P.mean(axis=0))
 
    elif avrg_mode=='loo_sep':
       avrg_model = []
       subj_ind = np.arange(len(subject_list))
-      for s,sub in enumerate(model_subject_list):
+      for s, sub in enumerate(model_subject_list):
          avrg_model.append(copy(fitted_model))
       for p in parameters:
-         P = np.stack(param_lists[p],axis=0)
-         for s,sub in enumerate(model_subject_list):
+         P = np.stack(param_lists[p], axis=0)
+         for s, sub in enumerate(model_subject_list):
             sel_ind = list(subject_list).index(sub)
-            setattr(avrg_model[s],p,P[subj_ind!=sel_ind].mean(axis=0))
+            setattr(avrg_model[s], p, P[subj_ind != sel_ind].mean(axis=0))
 
    elif avrg_mode=='mix_loo':
       avrg_model = []
@@ -1272,33 +1233,9 @@ def calc_avrg_model(train_dataset,
          for s,sub in enumerate(subject_list):
             attr_value = getattr(mix_model,p)*(1-portion_value) + P[subj_ind==s].mean(axis=0)*(portion_value)
             setattr(avrg_model[s],p,attr_value)
-
-   elif avrg_mode.startswith('bayes'):
-      param_w_opt = calc_bayes_avrg(parameters=parameters,
-                              param_lists=param_lists,
-                              subject_list=subject_list,
-                              avrg_mode=avrg_mode)
-      if 'loo' in avrg_mode:
-         avrg_model = []
-         for s,sub in enumerate(subject_list):
-            avrg_model.append(copy(fitted_model))
-         for s,(coef,var) in enumerate(zip(param_w_opt['coef_'], param_w_opt['coef_var'])):
-            setattr(avrg_model[s], 'coef_', coef)
-            setattr(avrg_model[s], 'coef_var', var)
-      else:
-         avrg_model = fitted_model
-         setattr(avrg_model, 'coef_', param_w_opt['coef_'])
-         setattr(avrg_model, 'coef_var', param_w_opt['coef_var'])
-
-   elif avrg_mode=='avg-half':
-      for p in parameters:
-         P = np.stack(param_lists[p],axis=0)
-         setattr(avrg_model,p,P.mean(axis=0))
-      setattr(avrg_model, 'coef_', (avrg_model.coef_1 + avrg_model.coef_2)/2)
-
          
    # Assemble the summary
-   ## first fill in NoneTypes with Nans. This is a specific case for WTA
+   # first fill in NoneTypes with Nans. This is a specific case for WTA
    df.logalpha.fillna(value=np.nan, inplace=True)
    dict = {'train_dataset': df.train_dataset[0],
            'train_ses': df.train_ses[0],
@@ -1308,357 +1245,6 @@ def calc_avrg_model(train_dataset,
            'method': df.method[0],
            'logalpha': float(df.logalpha[0])
            }
+   
    # save dict as json
    return avrg_model, dict
-
-
-def decompose_variance_half(data):
-    """ Decomposes variance of group, subject, and measurement noise. This is an upgraded version to handle subject-specific scaling.
-    Args:
-        data (ndarray (n_sub, n_rep, n_A, n_B)): the data to decompose, at least 2 for each dimension
-    Returns:
-        vg (ndarray (n_sub,)): group variance scaled for each subject
-        vs (ndarray (n_sub,)): subject variance scaled for each subject
-        vm (ndarray (n_sun,)): measurement noise variance scaled for each subject
-    """
-
-    n_sub, n_rep, n_A, n_B = data.shape
-    n_features = n_A * n_B
-    data = data.reshape((n_sub, n_rep, n_features))    # Shape: (n_sub, n_rep, n_features)
-
-    product_matrices = np.einsum('srf,tkf->stkr', data, data) / n_features  # Shape: (n_sub, n_sub, n_rep, n_rep)
-
-    # Masks
-    mask_self_sub = np.eye(n_sub, dtype=bool)[:, :, None, None] # Shape: (n_sub, n_sub, 1, 1)
-    mask_self_rep = np.eye(n_rep, dtype=bool)[None, None, :, :] # Shape: (1, 1, n_rep, n_rep)
-    
-    # Cross-subject (type 1)
-    # Remove self-pairs by masking
-    type_1 = np.where(mask_self_sub, 0, product_matrices)   # Set self-pairs to 0
-    # Mean over repetitions
-    SS_1 = np.nansum(type_1, axis=(2, 3)) / (n_rep**2)  # Shape: (n_sub, n_sub)
-
-    # Within-subject, diff reps (type 2)
-    # Remove other-pairs and self-reps by masking
-    type_2 = np.where(mask_self_sub, product_matrices, 0)   # Set other-pairs to 0
-    type_2 = np.where(mask_self_rep, 0, type_2) # Set self-reps to 0
-    # Mean over repetitions
-    SS_2 = np.diagonal(np.nansum(type_2, axis=(2,3)) / (n_rep**2-n_rep), axis1=0, axis2=1)    # Shape: (n_sub)
-
-    # Within-subject, same reps (type 3)
-    type_3 = np.where(mask_self_sub, product_matrices, 0)   # Set other-pairs to 0
-    type_3 = np.where(mask_self_rep, type_3, 0) # Set other-reps to 0
-    # Mean over repetitions
-    SS_3 = np.diagonal(np.nansum(type_3, axis=(2,3)) / (n_rep), axis1=0, axis2=1)   # Shape: (n_sub)
-
-    vm = SS_3 - SS_2
-    vg = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub-1)    # Shape: (n_sub)
-    vs = SS_2 - vg
-
-    return vg, vs, vm
-
-
-def decompose_variance_scaled_from_SS(
-    covariance_matrix: np.ndarray,
-    dataset_vec: np.ndarray,
-    sub_vec: np.ndarray,
-    part_vec: np.ndarray,
-    single_scaling: bool = False
-) -> pd.DataFrame:
-    """
-    Decomposes variance components from a covariance matrix.
-    Args:
-        covariance_matrix (np.ndarray): A square covariance matrix.
-        dataset_vec (np.ndarray): A vector containing dataset names for each row/column of the covariance matrix.
-        sub_vec (np.ndarray): A vector containing subject IDs for each row/column of the covariance matrix.
-        part_vec (np.ndarray): A vector containing partition IDs for each row/column of the covariance matrix.
-        single_scaling (bool): If True, assumes a single scale factor for all subjects. Defaults to False.
-    Returns:
-        Q_df (pandas.DataFrame): DataFrame containing variance components:
-            - train_dataset: Dataset names.
-            - subj_id: Subject IDs.
-            - sc: Scale factors for each subject.
-            - v_u: Universal variance component.
-            - v_d: Dataset variance component (dataset-specific).
-            - v_s: Subject variance component (dataset-specific).
-            - v_m: Measurement noise variance component (subject-specific).
-    """
-
-    N_SS = covariance_matrix.shape[0]
-
-    # Identify unique subjects, datasets, and partitions
-    subjects = [(dataset_vec[i], sub_vec[i]) for i in range(N_SS)]
-    unique_subjects = list(dict.fromkeys(subjects))
-    N_subj = len(unique_subjects)
-
-    unique_datasets = list(dict.fromkeys(dataset_vec))
-    N_datasets = len(unique_datasets)
-
-    N_part = len(np.unique(part_vec))
-
-    # ------------------------------
-    # ------- Ckeck inputs ---------
-    # ------------------------------
-    if covariance_matrix.size == 0:
-        raise ValueError("covariance_matrix cannot be empty.")
-
-    if covariance_matrix.ndim != 2 or covariance_matrix.shape[0] != covariance_matrix.shape[1]:
-        raise ValueError("The covariance_matrix must be a square 2D array.")
-
-    if len(dataset_vec) != N_SS or len(sub_vec) != N_SS or len(part_vec) != N_SS:
-        raise ValueError("Input vectors (dataset_vec, sub_vec, part_vec) must have the same length as the covariance matrix dimensions.")
-
-    if N_part == 1:
-        print(
-            "The number of unique parts is 1. Subject variance (v_s) and measurement noise variance (v_m) cannot be distinguished. "
-            "Returning v_i as v_s + v_m."
-        )
-
-    if N_datasets == 1:
-        print(
-            "The number of unique datasets is 1. Universal Variance (v_u) cannot be estimated. "
-            "Returning v_g as v_u + v_d."
-        )
-
-
-    # Map (dataset, sub_id) to index
-    subject_map = {sid: idx for idx, sid in enumerate(unique_subjects)}
-
-    # ---------------------------------------
-    # ----- Compute pairs and bad pairs -----
-    # ---------------------------------------
-    pairs_1 = []
-    pairs_2 = []
-    pairs_3 = []
-    pairs_4 = []
-    bad_pair_1 = 0
-    bad_pair_2 = 0
-    bad_pair_3 = 0
-    bad_pair_4 = 0
-    for i in range(N_SS):
-        for k in range(i, N_SS):
-            # cross-dataset pairs
-            if dataset_vec[i] != dataset_vec[k]:
-                if covariance_matrix[i, k] <= 0:
-                    bad_pair_1 += 1
-                    continue
-                pairs_1.append((i, k))
-
-            # same-dataset
-            else:
-                # cross-subject pairs
-                if (sub_vec[i] != sub_vec[k]):
-                    if covariance_matrix[i, k] <= 0:
-                        bad_pair_2 += 1
-                        continue
-                    pairs_2.append((i, k))
-
-                # same-subject
-                else:
-                    # cross-partition pairs
-                    if (part_vec[i] != part_vec[k]):
-                        if covariance_matrix[i, k] <= 0:
-                            bad_pair_3 += 1
-                            continue
-                        pairs_3.append((i, k))
-
-                    # same-partition pairs
-                    else:
-                        if covariance_matrix[i, k] <= 0:
-                            bad_pair_4 += 1
-                            continue
-                        pairs_4.append((i, k))
-
-    pairs_1 = np.array(pairs_1)
-    pairs_2 = np.array(pairs_2)
-    pairs_3 = np.array(pairs_3)
-    pairs_4 = np.array(pairs_4)
-    M_1 = len(pairs_1)
-    M_2 = len(pairs_2)
-    M_3 = len(pairs_3)
-    M_4 = len(pairs_4)
-    M = M_1 + M_2 + M_3 + M_4
-
-    if N_datasets != 1:
-        print(f"Bad pairs (cross-dataset): {bad_pair_1 / (M_1 + bad_pair_1) * 100:.2f}%")
-    print(f"Bad pairs (cross-subject): {bad_pair_2 / (M_2 + bad_pair_2) * 100:.2f}%")
-    if N_part != 1:
-        print(f"Bad pairs (cross-partition): {bad_pair_3 / (M_3 + bad_pair_3) * 100:.2f}%")
-    print(f"Bad pairs (same-partition): {bad_pair_4 / (M_4 + bad_pair_4) * 100:.2f}%")
-
-
-    # -----------------------------------------------
-    # ----- Construct A and y for least squares -----
-    # -----------------------------------------------
-    if single_scaling:
-       N_scale = 1
-    else:
-       N_scale = N_subj
-    if N_part == 1:
-       A = np.zeros((M, N_scale + N_datasets + N_subj))
-    else:
-       A = np.zeros((M, N_scale + N_datasets + N_datasets + N_subj))
-    y = np.zeros(M)
-
-    # cross-dataset pairs
-    for m, (i, k) in enumerate(pairs_1):
-        # Get subject IDs
-        s_i = subject_map[(dataset_vec[i], sub_vec[i])] if not single_scaling else 0
-        s_k = subject_map[(dataset_vec[k], sub_vec[k])] if not single_scaling else 0
-        # Set 1s for s_i, s_k, v_u
-        A[m, s_i] += 1
-        A[m, s_k] += 1
-        # Set y_m = ln(A_{i,k})
-        y[m] = np.log(covariance_matrix[i, k])
-
-    # same-dataset, cross-subject pairs
-    for m, (i, k) in enumerate(pairs_2, start=M_1):
-        # Get subject IDs
-        s_i = subject_map[(dataset_vec[i], sub_vec[i])] if not single_scaling else 0
-        s_k = subject_map[(dataset_vec[k], sub_vec[k])] if not single_scaling else 0
-        # Set 1s for s_i, s_k
-        A[m, s_i] += 1
-        A[m, s_k] += 1
-        # Set 1s for v_u + v_d
-        d = unique_datasets.index(dataset_vec[i])
-        A[m, N_scale+d] = 1
-        # Set y_m = ln(A_{i,k})
-        y[m] = np.log(covariance_matrix[i, k])
-
-    # same-dataset, same-subject, cross-partition pairs
-    for m, (i, k) in enumerate(pairs_3, start=M_1 + M_2):
-        # Get subject IDs
-        s_i = subject_map[(dataset_vec[i], sub_vec[i])] if not single_scaling else 0
-        # Set 1s for s_i, s_k
-        A[m, s_i] = 2
-        # Set 1s for v_u + v_d + v_s
-        d = unique_datasets.index(dataset_vec[i])
-        A[m, N_scale+N_datasets+d] = 1
-        # Set y_m = ln(A_{i,k})
-        y[m] = np.log(covariance_matrix[i, k])
-
-    # same-dataset, same-subject, same-partition pairs
-    for m, (i, k) in enumerate(pairs_4, start=M_1 + M_2 + M_3):
-        # Get subject IDs
-        s_i = subject_map[(dataset_vec[i], sub_vec[i])] if not single_scaling else 0
-        # Set 1s for s_i, s_k
-        A[m, s_i] = 2
-        # Set 1s for v_u + v_d + v_s + v_m
-        A[m, -(N_subj-subject_map[(dataset_vec[i], sub_vec[i])])] = 1
-        # Set y_m = ln(A_{i,k})
-        y[m] = np.log(covariance_matrix[i, k])
-
-
-    # -------------------------------------------------------
-    # ----- Solve least squares and extract components ------
-    # -------------------------------------------------------
-    x, _, _, _ = np.linalg.lstsq(A, y, rcond=None)
-
-    # Extract parameters
-    sc = np.exp(x[:N_scale])                                          # scales
-    type_1 = np.exp(x[N_scale:N_scale+N_datasets])                    # V_u + V_d
-    type_2 = np.exp(x[N_scale+N_datasets:N_scale+N_part*N_datasets])  # V_u + V_d + V_s
-    type_3 = np.exp(x[N_scale+N_part*N_datasets:])                    # V_u + V_d + V_s + V_m
-
-    if N_datasets == 1:
-        v_g = type_1
-    else:
-        v_u = 1
-        v_d = type_1 - v_u
-    if N_part == 1:
-        v_i = type_3 - type_1[[unique_datasets.index(ds) for ds,_ in unique_subjects]]
-    else:
-        v_s = type_2 - type_1
-        v_m = type_3 - type_2[[unique_datasets.index(ds) for ds,_ in unique_subjects]]
-
-
-    # ----------------------------------
-    # -------- Create DataFrame --------
-    # ----------------------------------
-    train_dataset = [sid[0] for sid in subject_map.keys()]
-    subj_id = [sid[1] for sid in subject_map.keys()]
-
-    if single_scaling:
-        sc = [sc[0]] * len(train_dataset)
-
-    data_dict = {
-        'train_dataset': train_dataset,
-        'subj_id': subj_id,
-        'sc': sc
-    }
-    if N_datasets == 1:
-        data_dict['v_g'] = v_g[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
-    else:
-        data_dict['v_u'] = [v_u] * len(train_dataset)
-        data_dict['v_d'] = v_d[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
-    if N_part == 1:
-        data_dict['v_i'] = v_i
-    else:
-        data_dict['v_s'] = v_s[[unique_datasets.index(ds) for ds, _ in unique_subjects]]
-        data_dict['v_m'] = v_m
-
-    Q_df = pd.DataFrame(data_dict)
-
-    return Q_df
-
-
-def decompose_variance(data, vm_hat, model_type=None):
-   """ Decomposes variance of group, subject, and measurement noise.
-      This is an upgraded version to handle subject-specific scaling.
-      With the vm_hat already estimated, there is no need for different observations.
-   Args:
-      data (ndarray (n_sub, n_A, n_B)): the data to decompose
-      vm_hat (ndarray (n_sub)): estimated variance of measurement noise of subjects
-      model_type (str): either None or 'loo':
-         if 'loo': the output will be stretched by subject size
-   Returns:
-      vg (ndarray (n_sub,)): group variance scaled for each subject
-      vs (ndarray (n_sub,)): subject variance scaled for each subject
-      vm (ndarray (n_sun,)): measurement noise variance scaled for each subject
-      if model_type is 'loo': outputs will be (n_sub, n_sub-1) shape
-   """
-
-   n_sub, n_A, n_B = data.shape
-   n_features = n_A * n_B
-   data = data.reshape((n_sub, n_features))
-
-   product_matrices = np.einsum('sf,kf->sk', data, data) / n_features   # Shape: (n_sub, n_sub)
-
-   if model_type == 'loo':
-      n_sub_loo = n_sub - 1
-      vg = np.zeros((n_sub, n_sub - 1))
-      vs = np.zeros((n_sub, n_sub - 1))
-      for s in range(n_sub):
-         product_matrices_loo = np.delete(np.delete(product_matrices, s, axis=0), s, axis=1)
-
-         # Masks
-         mask_self_sub = np.eye(n_sub_loo, dtype=bool) # Shape: (n_sub, n_sub)
-         
-         # Cross-subject (type 1)
-         SS_1 = np.where(mask_self_sub, 0, product_matrices_loo)   # Set self-pairs to 0
-
-         # Within-subject, same reps (type 3)
-         SS_3 = np.diag(product_matrices_loo)   # Set other-pairs to 0
-
-         SS_2 = SS_3 - np.delete(vm_hat, s, axis=0)
-
-         vg[s] = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub_loo-1)    # Shape: (n_sub)
-         vs[s] = SS_2 - vg[s]
-   elif model_type is None:
-      # Masks
-      mask_self_sub = np.eye(n_sub, dtype=bool) # Shape: (n_sub, n_sub)
-      
-      # Cross-subject (type 1)
-      SS_1 = np.where(mask_self_sub, 0, product_matrices)   # Set self-pairs to 0
-
-      # Within-subject, same reps (type 3)
-      SS_3 = np.diag(product_matrices)   # Set other-pairs to 0
-
-      SS_2 = SS_3 - vm_hat
-
-      vg = np.nansum(np.sqrt(SS_2[:, None] / SS_2) * SS_1, axis=1) / (n_sub-1)    # Shape: (n_sub)
-      vs = SS_2 - vg
-   else:
-      raise ValueError("model_type should be 'loo' or not given")
-   return vg, vs
-
