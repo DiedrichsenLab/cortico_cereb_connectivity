@@ -85,9 +85,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['cortex'] = cortex
    train_config['parcellation'] = parcellation
    train_config['crossed'] = crossed
-   train_config["validate_model"] = validate_model
    train_config["type"] = type
-   train_config["cv_fold"] = cv_fold, #TO IMPLEMENT: "ses_id", "run", "dataset", "tasks"
    train_config['add_rest'] = add_rest
    train_config['cortical_cerebellar_act'] = cortical_cerebellar_act
    train_config['std_cortex'] = std_cortex
@@ -100,6 +98,7 @@ def get_train_config(train_dataset = "MDTB",
       train_config['label_img'].append(gl.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
 
    return train_config
+
 
 def get_model_config(dataset = "MDTB",
                      subj_list = 'all',
@@ -127,6 +126,7 @@ def get_model_config(dataset = "MDTB",
    model_config['mix_param'] = mix_param
 
    return model_config
+
 
 def get_eval_config(eval_dataset = 'MDTB',
             eval_ses = 'all',
@@ -193,6 +193,7 @@ def get_eval_config(eval_dataset = 'MDTB',
 
    return eval_config
 
+
 def train_metrics(model, X, Y):
    """computes training metrics (rmse and R) on X and Y
 
@@ -211,6 +212,7 @@ def train_metrics(model, X, Y):
    R2_train,_ = ev.calculate_R2(Y, Y_pred)
 
    return R_train, R2_train
+
 
 def eval_metrics(Y, Y_pred, info):
    """Compute evaluation, returning summary and voxel data.
@@ -256,6 +258,7 @@ def eval_metrics(Y, Y_pred, info):
       data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"]) * np.sqrt(data["noise_X_R_vox"])
    return data
 
+
 def cross_data(Y,info,mode):
    """Cross data across halves. This part helps reducing overfitting by providing an extra cross-validation.
 
@@ -283,6 +286,7 @@ def cross_data(Y,info,mode):
          Y_list.append(Y[(info.sess==s) & (info.run.isin(first_runs)),:])
       Ys = np.concatenate(Y_list,axis=0)
    return Ys
+
 
 def subset_cond(data, info, cond_num):
    """
@@ -326,6 +330,7 @@ def subset_cond(data, info, cond_num):
 
    return data, info
 
+
 def add_rest(Y,info):
    """Add rest to each session and half
    Subtract the mean across all conditions
@@ -361,7 +366,8 @@ def add_rest(Y,info):
             info_list.append(inf)
    Ys = np.concatenate(Y_list,axis=-2)
    infos = pd.concat(info_list,ignore_index=True)
-   return Ys,infos
+   return Ys, infos
+
 
 def std_data(Y,mode):
    """ Standarize the data to unit norm.
@@ -383,6 +389,7 @@ def std_data(Y,mode):
       return np.nan_to_num(Y/sc)
    else:
       raise ValueError('std_mode must be None, "voxel" or "global"')
+   
 
 def prepare_data(data, info, config):
    """ Prepare the data and info for modeling. Including removing NaNs, adding rest conditions, and subsetting.
@@ -426,6 +433,7 @@ def prepare_data(data, info, config):
 
    return data, info
 
+
 def exclude_network(XX, config):
    """ Exclude specific networks from the cortical data based on the Yeo parcellation.
 
@@ -441,6 +449,7 @@ def exclude_network(XX, config):
    XX[..., :, yeo_data==config['exclude_network']] = 0.0
 
    return XX
+
 
 def get_cortical_data(dataset, sessions, subj, config):
    """ Get cortical data according to the training or evaluation config file. Uses Functional_Fusion.dataset.
@@ -481,6 +490,7 @@ def get_cortical_data(dataset, sessions, subj, config):
       XX = exclude_network(XX, config)
 
    return XX, info
+
 
 def get_cerebellar_data(dataset, sessions, subj, config):
    """Get cerebellar data for training or evaluation.
@@ -665,6 +675,7 @@ def train_model(config, save_path=None, mname=None, save_name=None):
    # Save training information
    train_info.to_csv(train_info_name, sep='\t')
    return config, conn_model_list, train_info
+
 
 def train_global_model(config, save_path=None, mname=None, save_data_name=None):
    """
