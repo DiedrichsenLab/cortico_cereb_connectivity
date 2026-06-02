@@ -1,9 +1,7 @@
 # Cortico_Cereb_Connectivity
-This repository includes the code to train and test cortico-cerebellar-connectivity models, as described in King et al. (2023).
+This repository includes the code to train and test cortico-cerebellar-connectivity models, as first described in King et al. (2023).
 The original code underlying that paper is maintained in a different repository (https://github.com/maedbhk/cerebellum_connectivity).
-This repository is a cleaned-up version of the original code, that also uses the FunctionalFusion framework (https://github.com/DiedrichsenLab/Functional_Fusion) to integrate knowledge across different datasets.
-
-Results with the new, updated connectivity models are reported in Nettekoven et al. (2024), and are being used in Shahshahani et al. (2024).
+This repository is a cleaned-up version of the original code, that also uses the FunctionalFusion framework (https://github.com/DiedrichsenLab/Functional_Fusion) to integrate knowledge across different datasets. The repository includes new group-based connectivity model reported in Nettekoven et al. (2024), and are being used in Shahshahani et al. (2024).
 
 ### Dependencies
 The code requires the following packages:
@@ -72,7 +70,7 @@ Full connectivity maps:
 ```notebooks/connectivity_weights.ipynb``` (Fig S5 & Fig S6)
 
 ### Details for Shahbazi et al. (in preparation)
-New models are all in the `MNISym3` space. 
+New models are all in the `MNISymC3` space. 
 
 More detailed exploration for connectivity models with the following non-backwards compatible changes: 
 

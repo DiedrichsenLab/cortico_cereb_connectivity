@@ -3,5 +3,6 @@ globals.py
 env/
 .DS_Store
 .vscode/
-data/
+models_SUIT3/
+models_MNISymC3/
 notebooks/init_paths.py

@@ -7,9 +7,8 @@ from joblib import Parallel, delayed
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
-import cortico_cereb_connectivity.evaluation as ev
-import cortico_cereb_connectivity.cio as cio
 import cortico_cereb_connectivity.run_model as rm
+import Functional_Fusion.atlas_map as am # from functional fusion module
 import warnings
 import nibabel as nb
 """
@@ -20,8 +19,6 @@ be easily used.
 
 @authors: Jörn Diedrichsen, Maedbh King, Ladan Shahshahani,
 """
-
-
 
 class Model:
     def __init__(self, name = None):
@@ -47,25 +44,67 @@ class Model:
                  src_roi = None,
                  trg_roi = None,
                  fname = None,
-                 dtype = 'float32'):
-        """ Convert the weights to a cifti conn-image. """
+                 dtype = 'float32',
+                 type = 'conn'):
+        """ Convert the weights to a cifti conn-image. 
+        
+        Args:
+            src_atlas (str): name of the source atlas (cortex)
+            trg_atlas (str): name of the target atlas (cerebellum)
+            src_roi (list of str): list of filenames for the source atlas rois (cortex)
+            trg_roi (list of str): list of filenames for the target atlas rois (cerebellum)
+            fname (str): filename to save the cifti image
+            dtype (str): data type for the cifti image (default: 'float32')
+            type (str): connecectivity (conn) or scalar ('scalar')cifti image: determines the type of axis for the target atlas (parcel or scalar) 
+        Returns:
+            cifti_img (nibabel Cifti2Image): the cifti image containing the model weights
+        """
 
         # Integrate the scaling factor (if present) to the weights
         with warnings.catch_warnings():
             warnings.simplefilter("ignore",category=RuntimeWarning)
-            weights = self.coef_/self.scale_
+            # For backwards compatibility with older models 
+            if hasattr(self, 'scale_'):
+                weights = self.coef_/self.scale_
+            else:
+                weights = self.coef_
 
         # Convert the weights to a cifti image
-        cifti_img = cio.model_to_cifti(weights.astype(dtype),
-                                   src_atlas,
-                                   trg_atlas,
-                                   src_roi,
-                                   trg_roi,
-                                   type = 'conn')
+        if isinstance(src_atlas, str):
+            src_atlas, _ = am.get_atlas(src_atlas)
+        if isinstance(trg_atlas, str):
+            trg_atlas, _ = am.get_atlas(trg_atlas)
 
-        if fname is not None:
-            nb.save(cifti_img,fname)
+        # Getting ROIs src_atlas
+        if src_roi is not None:
+            src_atlas.get_parcel(src_roi)
+            src_axis = src_atlas.get_parcel_axis()
+        else:
+            src_axis = src_atlas.get_brain_model_axis()
+
+        # Getting ROIs for trg_atlas
+        if type == 'conn':
+            if trg_roi is not None:
+                trg_atlas.get_parcel(trg_roi)
+                trg_axis = trg_atlas.get_parcel_axis()
+            else:
+                trg_axis = trg_atlas.get_brain_model_axis()
+        elif type == 'scalar':
+            if isinstance(trg_roi,list):
+                trg_axis = nb.cifti2.ScalarAxis(trg_roi)
+            elif trg_roi is not None:
+                _,labels = trg_atlas.get_parcel(trg_roi)
+                trg_axis = nb.cifti2.ScalarAxis(labels[labels!=0])
+            else:
+                trg_axis = nb.cifti2.ScalarAxis(np.arange(weights.shape[0]))
+        else:
+            raise ValueError("type must be either 'conn' or 'scalar'")
+        # Creating the cifti image
+        header = nb.Cifti2Header.from_axes((trg_axis, src_axis))
+        cifti_img = nb.Cifti2Image(weights, header=header)
+
         return cifti_img
+
 
     def from_cifti(self, fname = None):
         """ Load the model weights from a cifti conn-image.
