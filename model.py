@@ -103,6 +103,9 @@ class Model:
         header = nb.Cifti2Header.from_axes((trg_axis, src_axis))
         cifti_img = nb.Cifti2Image(weights, header=header)
 
+        if fname is not None:
+            cifti_img.to_filename(fname)
+
         return cifti_img
 
 

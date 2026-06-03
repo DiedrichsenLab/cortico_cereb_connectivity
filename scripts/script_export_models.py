@@ -27,10 +27,10 @@ def export_model(model_name,model_ext,file_name,atlas='SUIT3'):
                     fname=f'models_{atlas}/{file_name}',
                     dtype = 'float32',
                     type = 'conn')
-
+    pass 
 
 if __name__ == "__main__":
-    export_model('MdWfIbDeHtNiSoScLa_Icosahedron1002_NNLS','A0_global','Shahbazi_2026_all_NNLS.pdconn.nii',atlas='MNISymC3')
+    # export_model('MdWfIbDeHtNiSoScLa_Icosahedron1002_NNLS','A0_global','Shahbazi_2026_all_NNLS.pdconn.nii',atlas='MNISymC3')
     export_model('MdWfIbDeHtNiSoScLa_Icosahedron1002_L2reg','A2_global','Shahbazi_2026_all_L2.pdconn.nii',atlas='MNISymC3')
 
 
