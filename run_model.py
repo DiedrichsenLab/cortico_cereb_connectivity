@@ -251,11 +251,11 @@ def eval_metrics(Y, Y_pred, info):
    # ) = ev.calculate_reliability(Y=Y_pred, dataframe = info)
 
    # calculate noise ceiling
-   with warnings.catch_warnings():
-      warnings.simplefilter("ignore", category=RuntimeWarning)
+   # with warnings.catch_warnings():
+   #    warnings.simplefilter("ignore", category=RuntimeWarning)
 
-      data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
-      data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"]) * np.sqrt(data["noise_X_R_vox"])
+   #    data["noiseceiling_Y_R_vox"] = np.sqrt(data["noise_Y_R_vox"])
+   #    data["noiseceiling_XY_R_vox"] = np.sqrt(data["noise_Y_R_vox"]) * np.sqrt(data["noise_X_R_vox"])
    return data
 
 
