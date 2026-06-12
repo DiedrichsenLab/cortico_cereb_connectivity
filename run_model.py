@@ -794,7 +794,7 @@ def train_global_model(config, save_path=None, mname=None, save_data_name=None):
 
       # Save the individuals info files
       cio.save_model(conn_model,model_info,save_path + "/" + mname_spec)
-      train_info = pd.concat([train_info,pd.DataFrame(model_info)],ignore_index= True)
+      train_info = pd.concat([train_info,pd.DataFrame([model_info])],ignore_index= True)
 
    # Save training information
    train_info.to_csv(train_info_name,sep='\t')
