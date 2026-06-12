@@ -38,12 +38,11 @@ def get_num_tasks():
     N = []
     for ds in gl.datasets:
         X = load_X_data(ds)
-        print(f"{ds}.shape: {X.shape}")
         N.append(X.shape[0])
 
     return N
 
-def save_model(model):
+def save_model(conn_model, name):
     save_path = os.path.join(gl.conn_dir, 'MNISymC3', 'train', 'sim')
     model_info = {"subj_id": [],
                 "mname": [],
@@ -54,7 +53,7 @@ def save_model(model):
                 }
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    cio.save_model(conn_model, model_info, save_path + "/nnls_sim")
+    cio.save_model(conn_model, model_info, save_path + f"/{name}")
 
 
 def get_fdata(dataset, sessions):
@@ -69,12 +68,12 @@ def get_fdata(dataset, sessions):
 
 if __name__ == "__main__":
     X = load_X_data(gl.traindata_string())
-    print(f"X shape: {X.shape}")
+    X = rm.std_data(X, 'parcel')
 
     N = get_num_tasks()
     Y = generate_Y_data(N, 5445)
 
     conn_model = initiate_model('NNLS', 0)
     conn_model.fit(X, Y)
-    save_model(conn_model)
+    save_model(conn_model, 'nnls_sim_parcel')
     
