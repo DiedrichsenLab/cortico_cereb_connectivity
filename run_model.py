@@ -33,7 +33,7 @@ def get_train_config(train_dataset = "MDTB",
                      cond_num = 'all',
                      task_code = 'all',
                      subj_list = 'all',
-                     method = "L2reg",
+                     method = "NNLS",
                      log_alpha = 8,
                      cerebellum = "MNICymC3",
                      cortex = "fs32k",
@@ -44,7 +44,8 @@ def get_train_config(train_dataset = "MDTB",
                      append = False,
                      cortical_cerebellar_act = 'ind',
                      std_cortex = 'parcel',
-                     std_cerebellum = 'global'
+                     std_cerebellum = 'global',
+                     load_default_group = False
                      ):
    """get_train_config
    Function to create a config dictionary containing the info for the training
@@ -56,7 +57,7 @@ def get_train_config(train_dataset = "MDTB",
       cond_num (list, str): Training conditions (e.g. [1,2,3,4,5]). Defaults to "all".
       task_code (list, str): Training task codes (e.g. [1,2,3]). Defaults to "all".
       subj_list (list, str): Training subject list. Defaults to "all".
-      method (str): Model class. Defaults to "L2reg".
+      method (str): Model class. Defaults to "NNLS".
       log_alpha (int): log of regularization. Defaults to 8.
       cerebellum (str): Atlas for cerebellum. Defaults to "MNICymC3".
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
@@ -68,6 +69,7 @@ def get_train_config(train_dataset = "MDTB",
       cortical_cerebellar_act (str): 'ind': individual X and Y, 'avg': average X and Y accross subjects. Defaults to 'ind'.
       std_cortex (str): z-Standardize the cortical data. (Defaults to parcel normalization)
       std_cerebellum (str): z-Standardize the cerebellar data. (Defaults to global normalization)
+      load_default_group (bool): whether to load existing group data or calculate it.
 
    Returns:
       dict: Dictionary containing the default training configuration
@@ -91,6 +93,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['std_cortex'] = std_cortex
    train_config['std_cerebellum'] = std_cerebellum
    train_config['append'] = append
+   train_config['load_default_group'] = load_default_group
 
    # get label images for left and right hemisphere
    train_config['label_img'] = []
@@ -104,7 +107,8 @@ def get_model_config(dataset = "MDTB",
                      subj_list = 'all',
                      model = 'avg',
                      cerebellum = "MNISymC3",
-                     mix_param = None):
+                     mix_param = None
+                     ):
    """
    create a config dictionary containing the info for the model
    
@@ -129,21 +133,23 @@ def get_model_config(dataset = "MDTB",
 
 
 def get_eval_config(eval_dataset = 'MDTB',
-            eval_ses = 'all',
-            subj_list = 'all',
-            run = 'all',
-            cond_num = 'all',
-            task_code = 'all',
-            cerebellum = 'MNICymC3',
-            cortex = "fs32k",
-            parcellation = "Icosahedron1002",
-            crossed = "half", # or None
-            type = "CondHalf",
-            splitby = None,
-            add_rest = True,
-            std_cortex = 'parcel',
-            std_cerebellum = 'global',
-            cortical_act = 'avg'):
+                    eval_ses = 'all',
+                    subj_list = 'all',
+                    run = 'all',
+                    cond_num = 'all',
+                    task_code = 'all',
+                    cerebellum = 'MNICymC3',
+                    cortex = "fs32k",
+                    parcellation = "Icosahedron1002",
+                    crossed = "half", # or None
+                    type = "CondHalf",
+                    splitby = None,
+                    add_rest = True,
+                    std_cortex = 'parcel',
+                    std_cerebellum = 'global',
+                    cortical_act = 'avg',
+                    load_default_group = False
+                    ):
    """
    create a config dictionary for evaluation of the model
 
@@ -164,6 +170,7 @@ def get_eval_config(eval_dataset = 'MDTB',
       std_cortex (str): Standardization method for cortex. Defaults to 'parcel'.
       std_cerebellum (str): Standardization method for cerebellum. Defaults to 'global'.
       cortical_act (str): Type of cortical activity to use. ['ind', 'avg', 'loo'].
+      load_default_group (bool): whether to load existing group data or calculate it.
 
    Returns:
       dict: Dictionary containing the evaluation configuration
@@ -185,6 +192,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config["type"] = type
    eval_config['subj_list'] = subj_list
    eval_config['cortical_act'] = cortical_act
+   eval_config['load_default_group'] = load_default_group
    
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
@@ -464,30 +472,36 @@ def get_cortical_data(dataset, sessions, subj, config):
       XX (ndarray): Cortical data.
       info (pd.DataFrame): Information dataframe.
    """
-   XX, info, _ = fdata.get_dataset(gl.base_dir,
-                                   dataset,
-                                   sess=sessions,
-                                   subj=subj,
-                                   atlas=config["cortex"],
-                                   type=config["type"])
-   # Average the cortical data over pacels
-   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
-   # get the vector containing tessel labels
-   X_atlas.get_parcel(config['label_img'], unite_struct = False)
-   # get the mean across tessels for cortical data
-   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
+   
+   if config['load_default_group']:
+      # to be implemented with info
+      # fname = f"{gl.conn_dir}/maps/{dataset}_data_cortex.pscalar.nii"
+      # data = nb.load(fname).get_fdata().squeeze()
+   else:
+      XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                      dataset,
+                                      sess=sessions,
+                                      subj=subj,
+                                      atlas=config["cortex"],
+                                      type=config["type"])
+      # Average the cortical data over pacels
+      X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
+      # get the vector containing tessel labels
+      X_atlas.get_parcel(config['label_img'], unite_struct = False)
+      # get the mean across tessels for cortical data
+      XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
 
-   # Prepare the data and info
-   XX, info = prepare_data(XX, info, config)
+      # Prepare the data and info
+      XX, info = prepare_data(XX, info, config)
 
-   # Standardize the data if specified
-   for i in range(XX.shape[0]):
-      if 'std_cortex' in config.keys():
-         XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
+      # Standardize the data if specified
+      for i in range(XX.shape[0]):
+         if 'std_cortex' in config.keys():
+            XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
 
-   # Exclude specific networks if specified
-   if 'exclude_network' in config.keys():
-      XX = exclude_network(XX, config)
+      # Exclude specific networks if specified
+      if 'exclude_network' in config.keys():
+         XX = exclude_network(XX, config)
 
    return XX, info
 
