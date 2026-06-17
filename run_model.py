@@ -475,8 +475,8 @@ def get_cortical_data(dataset, sessions, subj, config):
    
    if config['load_default_group']:
       # to be implemented with info
-      # fname = f"{gl.conn_dir}/maps/{dataset}_data_cortex.pscalar.nii"
-      # data = nb.load(fname).get_fdata().squeeze()
+      fname = f"{gl.conn_dir}/maps/{dataset}_data_cortex.pscalar.nii"
+      data = nb.load(fname).get_fdata().squeeze()
    else:
       XX, info, _ = fdata.get_dataset(gl.base_dir,
                                       dataset,
