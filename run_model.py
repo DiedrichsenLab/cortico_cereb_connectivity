@@ -677,7 +677,7 @@ def train_model(config, save_path=None, mname=None, save_name=None):
    return config, conn_model_list, train_info
 
 
-def train_global_model(config, save_path=None, mname=None, save_data_name=None):
+def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_data_name=None):
    """
    train a model based on the concatination of multiple datasets from functional fusion.
    Data is group-averaged across subjects. 
@@ -741,7 +741,11 @@ def train_global_model(config, save_path=None, mname=None, save_data_name=None):
    if mname is None:
       mname = f"{config['train_dataset']}_{config['parcellation']}_{config['method']}"
    if save_path is None:
-      save_path = os.path.join(gl.conn_dir,config['cerebellum'],'train',mname)
+      save_path = os.path.join(gl.conn_dir, config['cerebellum'], 'train', mname)
+   if mname_ext is None:
+      mname_plus = mname
+   else:
+      mname_plus = mname + f"_{mname_ext}"
    # check if the directory exists
    try:
       os.makedirs(save_path)
@@ -763,10 +767,10 @@ def train_global_model(config, save_path=None, mname=None, save_data_name=None):
          # Generate new model
          alpha = np.exp(la) # get alpha
          conn_model = getattr(model, config["method"])(alpha)
-         mname_spec = f"{mname}_A{la}_global"
+         mname_spec = f"{mname_plus}_A{la}_global"
       else:
          conn_model = getattr(model, config["method"])(0)
-         mname_spec = f"{mname}_global"
+         mname_spec = f"{mname_plus}_global"
 
       # Fit model, get train and validate metrics
       if config["method"] == 'L2reg':
