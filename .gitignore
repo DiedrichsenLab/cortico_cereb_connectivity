@@ -6,3 +6,4 @@ env/
 models_SUIT3/
 models_MNISymC3/
 notebooks/init_paths.py
+tsv/
