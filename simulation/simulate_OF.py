@@ -68,12 +68,12 @@ def get_fdata(dataset, sessions):
 
 if __name__ == "__main__":
     X = load_X_data(gl.traindata_string())
-    X = rm.std_data(X, 'parcel')
+    # X = rm.std_data(X, 'parcel')
 
     N = get_num_tasks()
     Y = generate_Y_data(N, 5445)
 
-    conn_model = initiate_model('NNLS', 0)
+    conn_model = initiate_model('L2reg', 2)
     conn_model.fit(X, Y)
-    save_model(conn_model, 'nnls_sim_parcel')
+    save_model(conn_model, 'ridge_sim')
     

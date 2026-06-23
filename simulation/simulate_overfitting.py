@@ -51,9 +51,10 @@ def run_multiple_simulations(N=45, Q=180, P=550, la_list=[0, 2, 4, 6, 7], n_runs
 
 if __name__ == "__main__":
     n_runs = 1
-    Q = 900
-    P = 2750
-    N = 225
+    D = 10
+    Q = 1800 // D
+    P = 5500 // D
+    N = 450 // D
     la_list = [0, 2, 4, 6, 8]
     # ext = "_nostd"
     ext = ""
