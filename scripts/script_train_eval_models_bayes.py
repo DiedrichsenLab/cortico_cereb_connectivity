@@ -48,7 +48,6 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
                                  method=method,
                                  train_ses=train_ses,
                                  add_rest=add_rest,
-                                 validate_model=validate_model,
                                  std_cortex=std_cortex,
                                  std_cerebellum=std_cerebellum,
                                  cortical_cerebellar_act=cortical_cerebellar_act,
@@ -832,18 +831,16 @@ def train_global_model(train_dscode=''.join(gl.dscode),
                        exc_net=None):
    """Train a global model for the given dataset and session by concatenating dataset models."""
 
-   mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
-
    config = rm.get_train_config(train_dataset = train_dscode,
                                 method = method,
                                 log_alpha = logalpha_list,
-                                cerebellum = cerebellum,
-                                validate_model = False)
+                                parcellation=parcellation,
+                                cerebellum = cerebellum)
    
    if exc_net is not None:
       config['exclude_network'] = exc_net
    
-   rm.train_global_model(config, mname=mname)#, save_data_name=f'{train_dscode}_data')
+   rm.train_global_model(config, mname_ext=mname_ext)#, save_data_name=f'{train_dscode}_data')
 
 
 def eval_global_model(train_dscode=''.join(gl.dscode),
@@ -991,13 +988,13 @@ if __name__ == "__main__":
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
-   do_train_global = False
+   do_train_global = True
    do_eval_global = False
    do_fuse_lodo_mix = False
    method = 'NNLS'
    cereb_atlas = 'MNISymC3'
    parcellation = 'Icosahedron1002'
-   global_best_la = [0, 2, 2, 0, 2, 0, 0, 0, 0]
+   global_best_la = 0
    
    # models = [['avg']]
    # models = ['avg', 'loo']
@@ -1012,10 +1009,10 @@ if __name__ == "__main__":
    #  Dataset_name   (train_ses, add_rest, std_cortex, best_logalpha)
    train_types = {
       'MDTB':        ('all',                 False,   'parcel',   0),
-      'Language':    ('ses-localizer',       False,   'parcel',   0),
-      'Social':      ('ses-social',          False,   'parcel',   0),
+      'Language':    ('ses-localizer',       False,   'parcel',   2),
+      'Social':      ('ses-social',          False,   'parcel',   2),
       'WMFS':        ('all',                 True,    'global',   0),
-      'Demand':      ('all',                 True,    'parcel',   0),
+      'Demand':      ('all',                 True,    'parcel',   2),
       'Somatotopic': ('all',                 True,    'global',   0),
       'Nishimoto':   ('all',                 False,   'parcel',   0),
       'IBC':         ('all',                 True,    'parcel',   0),
@@ -1057,7 +1054,7 @@ if __name__ == "__main__":
          print(f'Train: {train_dataset} - group')
          train_models(dataset=train_dataset, train_ses=train_ses, add_rest=add_rest, std_cortex=std_cortex,
                       method=method, cerebellum=cereb_atlas, parcellation=parcellation,
-                      cortical_cerebellar_act='loo', logalpha_list=[0])
+                      cortical_cerebellar_act='avg', logalpha_list=[best_la])
 
          # print(f'Train: {train_dataset} - bayes')
          # bayes_avrg_model(train_data=train_dataset, train_ses=train_ses, method=method, cerebellum=cereb_atlas)
@@ -1170,20 +1167,21 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      # print(f'\nTraining global models')
-      # for ds in list(train_types.keys()):
-      #    d = gl.datasets.index(ds)
-      #    train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
-         train_dscode=''.join(gl.dscode)
-      # for net in range(17):
-         print(f'{train_dscode}:')
-         train_global_model(train_dscode=train_dscode,
-                           method=method,
-                           cerebellum=cereb_atlas,
-                           parcellation=parcellation,
-                           # mname_ext=f"_no-yeo{net+1}",
-                           # exc_net=net+1,
-                           logalpha_list=[4])
+      print(f'\nTraining global models')
+      train_dscode = gl.get_ldo_names()
+            # train_dscode=''.join(gl.dscode)
+      for tr_ds in train_dscode:
+         for net in range(1, 18):
+            if net in [1, 3, 10, 12, 13]:
+               continue
+            print(f'{tr_ds}: no yeo{net}')
+            train_global_model(train_dscode=tr_ds,
+                              method=method,
+                              cerebellum=cereb_atlas,
+                              parcellation=parcellation,
+                              mname_ext=f"no-yeo{net}",
+                              exc_net=net,
+                              logalpha_list=[0])
             
    if do_eval_global:
       for ds in list(eval_types.keys()):
@@ -1214,7 +1212,7 @@ if __name__ == "__main__":
                         std_cortex=std_cortex,
                         cerebellum=cereb_atlas,
                         method=method,
-                        global_logalpha=global_best_la[i],
+                        global_logalpha=global_best_la,
                         logalpha_list=[la],
                         cond_num='rnd_eval',
                         cortical_act='ind',
