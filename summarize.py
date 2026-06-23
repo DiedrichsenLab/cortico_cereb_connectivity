@@ -59,21 +59,26 @@ def sort_roi_rows(cifti_img):
 
 def stats_weight_map_cortex(traindata,
                     cortex_roi = "Icosahedron1002",
-                    method = 'L2reg',
-                    extension='A8_avg',
+                    method = 'NNLS',
+                    extension='A0_global',
                     stats = 'mean'):
     """ returns cifti image of a statistics of the input weight for each cortical parcel
 
     Args:
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
         cortex_roi (str, optional): name of cortical parcellation. Defaults to "Icosahedron1002".
-        method (str, optional): method used to train the model. Defaults to 'L2reg'.
-        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        method (str, optional): method used to train the model. Defaults to 'NNLS'.
+        extension (str, optional): extension to the model name. Defaults to 'A0_global'.
         stats (str, optional): statistic to compute. ['mean', 'prob']
     Returns:
         cifti_img (nibabel.Cifti2Image): cifti image with the statistic of the input weights for each cortical parcel.
     """
+    # load X
+    X = nb.load(gl.conn_dir + f"/maps/{traindata}_data_cortex.pscalar.nii").get_fdata()
+    # load mdoel
     model,info = get_model(traindata,cortex_roi,method,extension)
+    # normalize by X length
+    model.coef_ *= np.sqrt(np.nansum(X**2, axis=0))
     if stats == 'mean':
         result = np.mean(model.coef_,axis=0,keepdims=True)
     if stats == 'prob':
@@ -84,8 +89,8 @@ def stats_weight_map_cortex(traindata,
 
 def stats_weight_map_cerebellum(traindata,
                     cortex_roi = "Icosahedron1002",
-                    method = 'L2reg',
-                    extension='A8_avg',
+                    method = 'NNLS',
+                    extension='A0_global',
                     cerebellar_space = 'MNISymC3',
                     stats = 'mean'):
     """ Returns nifti image of a statistics of the input weights for each cerebellar voxel.
@@ -93,14 +98,19 @@ def stats_weight_map_cerebellum(traindata,
     Args:
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
         cortex_roi (str, optional): name of cortical parcellation. Defaults to "Icosahedron1002".
-        method (str, optional): method used to train the model. Defaults to 'L2reg'.
-        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
+        method (str, optional): method used to train the model. Defaults to 'NNLS'.
+        extension (str, optional): extension to the model name. Defaults to 'A0_global'.
         cerebellar_space (str, optional): name of the cerebellar space. Defaults to 'MNISymC3'.
         stats (str, optional): statistic to compute. ['mean', 'prob', 'quant']
     Returns:
         nifti_img (nibabel.Nifti1Image): nifti image with the statistic of the input weights for each cerebellar voxel.
     """
+    # load X
+    X = nb.load(gl.conn_dir + f"/maps/{traindata}_data_cortex.pscalar.nii").get_fdata()
+    # load model
     model,info = get_model(traindata,cortex_roi,method,extension)
+    # normalize by X length
+    model.coef_ *= np.sqrt(np.nansum(X**2, axis=0))
     myatlas,_ = am.get_atlas(cerebellar_space)
     if stats == 'mean':
         result = np.mean(model.coef_,axis=1)
