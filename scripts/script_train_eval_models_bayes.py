@@ -57,7 +57,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
    config["subj_list"] = rm.get_subj_list(subj_list, dataset)
 
    if mname is None:
-      config, conn_list, df_tmp = rm.train_model(config)#, save_name=f'{dataset}_data')
+      config, conn_list, df_tmp = rm.train_model(config)#, save_name=f'{dataset}_{train_ses}_data')
    else:
       config, conn_list, df_tmp = rm.train_model(config, mname=mname)
    return df_tmp
