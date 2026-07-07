@@ -369,7 +369,8 @@ def add_rest(Y,info):
             inf = info[indx]
             newD = {'task_code':['rest'],
                     'sess':[inf.sess.iloc[0]],
-                    'half':[inf.half.iloc[0]]}
+                    'half':[inf.half.iloc[0]],
+                    'names':[f'rest_task_half{h}']}
             inf = pd.concat([inf,pd.DataFrame(newD)],ignore_index=True)
             info_list.append(inf)
    Ys = np.concatenate(Y_list,axis=-2)
