@@ -31,12 +31,18 @@ add_rest = [False,      True ,     True,     True,     True,      False,       T
 std_cortex = ['parcel', 'global', 'parcel', 'parcel', 'parcel', 'parcel',   'global',       'parcel', 'parcel']
 dscode   = ['Md',      'Wf',        'Ib',   'De',     'Ht',      'Ni',        'So',         'Sc',     'La']
 
-def get_ldo_names():
+def get_ldo_names(exclude=None):
    # Returns all the leave-one-dataset-out combinations of the dataset codes in gl.dscode
    num_ds = len(dscode)
    ldo_names = []
    for i in range(num_ds):
-      ldo_names.append(''.join(dscode[:i]+dscode[i+1:]))
+        if exclude is None:
+            ldo_names.append(''.join(dscode[:i]+dscode[i+1:]))
+        elif i != exclude:
+            if i < exclude:
+                ldo_names.append(''.join(dscode[:i]+dscode[i+1:exclude]+dscode[exclude+1:]))
+            else:
+                ldo_names.append(''.join(dscode[:exclude]+dscode[exclude+1:i]+dscode[i+1:]))
    return ldo_names
 
 def traindata_string(dataset_loo=None):
