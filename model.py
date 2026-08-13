@@ -4,6 +4,7 @@ import pandas as pd
 from scipy import sparse
 import scipy.optimize as so
 from joblib import Parallel, delayed
+from threadpoolctl import threadpool_limits
 from sklearn.base import BaseEstimator
 from sklearn.linear_model import Ridge
 from sklearn.linear_model import Lasso
@@ -385,21 +386,22 @@ class NNLS(Model):
     def fit(self, X, Y):
         Q = X.shape[1]
         P = Y.shape[1]
-        self.coef_ = np.zeros((P,Q))
-
-        def solve_nnls_single(X, y, alpha):
-            Q = X.shape[1]
-            if alpha > 0:
-                A = np.vstack((X, np.sqrt(alpha) * np.eye(Q)))
-                b = np.concatenate([y, np.zeros(Q)])
-            else:
-                A = X
+        if self.alpha > 0:
+            A = np.vstack((X, np.sqrt(self.alpha) * np.eye(Q)))
+            zero = np.zeros(Q)
+            def solve_nnls_single(y):
+                b = np.concatenate([y, zero])
+                return so.nnls(A, b)[0]
+        else:
+            A = X
+            def solve_nnls_single(y):
                 b = y
-            return so.nnls(A, b)[0]
+                return so.nnls(A, b)[0]
 
-        results = Parallel(n_jobs=self.n_jobs)(
-            delayed(solve_nnls_single)(X, Y[:, i], self.alpha) for i in range(P)
-        )
+        with threadpool_limits(limits=1):
+            results = Parallel(n_jobs=self.n_jobs)(
+                delayed(solve_nnls_single)(Y[:, i]) for i in range(P)
+            )
         self.coef_ = np.array(results)
         return self
     
