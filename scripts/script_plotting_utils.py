@@ -2,6 +2,10 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from surfplot import Plot
+from neuromaps.datasets import fetch_fslr
+import nitools as nt
+import numpy as np
 
 
 def get_color_palette():
@@ -108,3 +112,40 @@ def plot_emp_CDF(x_r, y_r, x_n, y_n, palette=get_color_palette()):
     ax.axhline(y=1, color='gray', linestyle='--', linewidth=0.8)
 
     return ax
+
+
+def plot_cortex_map(cifti_img, cmap='seismic', cscale=None, alpha=0.7, zero_transparent=False):
+
+    surfaces = fetch_fslr()
+
+    lh, rh = surfaces['inflated']
+    sulc_lh, sulc_rh = surfaces['sulc']
+
+    p = Plot(lh, rh)
+
+    # cortical shading
+    p.add_layer(
+        {'left': sulc_lh, 'right': sulc_rh},
+        cmap='binary_r',
+        cbar=False
+    )
+
+    # surface data
+    data = nt.surf_from_cifti(cifti_img)
+    lh_data = data[0].squeeze()
+    rh_data = data[1].squeeze()
+
+    if cscale == 'Sym':
+        maxval = max(np.nanmax(np.abs(lh_data)), np.nanmax(np.abs(rh_data)))
+        cscale = [-maxval, maxval]
+    
+    p.add_layer(
+        {'left': lh_data, 'right': rh_data},
+        cmap=cmap,
+        color_range=cscale,
+        alpha=alpha,
+        zero_transparent=zero_transparent,
+    )
+
+    fig = p.build()
+    fig.show()
