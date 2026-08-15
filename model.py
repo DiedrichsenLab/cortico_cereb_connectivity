@@ -328,14 +328,14 @@ class L1regression(Lasso, Model):
         super().__init__(alpha=alpha, fit_intercept=False)
 
     def fit(self, X, Y):
-        self.scale_ = np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        # self.scale_ = 1.0#np.sqrt(np.nansum(X ** 2, 0) / X.shape[0])
+        # Xs = X / self.scale_
+        Xs = np.nan_to_num(X) # there are 0 values after scaling
         return super().fit(Xs, Y)
 
     def predict(self, X):
-        Xs = X / self.scale_
-        Xs = np.nan_to_num(Xs) # there are 0 values after scaling
+        # Xs = X / self.scale_
+        Xs = np.nan_to_num(X) # there are 0 values after scaling
         return Xs @ self.coef_.T  # weights need to be transposed (throws error otherwise)
 
 class WTA(BaseEstimator, Model):
