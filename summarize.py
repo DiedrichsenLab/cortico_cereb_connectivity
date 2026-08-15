@@ -390,7 +390,7 @@ def plot_cortical_flatmap(data,axes = None,
             borders=border[h],
         )
 
-def plot_cortical_inflated(data,axes = None, cscale=None):
+def plot_cortical_inflated(data,axes = None, cmap='hot', cscale=None, colorbar=False):
     adir = am.default_atlas_dir
     vinf = [f"{adir}/tpl-fs32k/tpl-fs32k_hemi-L_veryinflated.surf.gii",
             f"{adir}/tpl-fs32k/tpl-fs32k_hemi-R_veryinflated.surf.gii"]
@@ -413,18 +413,21 @@ def plot_cortical_inflated(data,axes = None, cscale=None):
         data_max = np.nanmax(data[0])
         cscale = [data_min, data_max]
 
+    cbar = False
     for hem in range(2):
         for row in range(2):
+            if colorbar and hem==1 and row==1:
+                cbar = True
             npl.plot_surf(
                 surf_data[hem],
                 data[hem],
                 depth_data[hem],
                 hemi=hemi[hem],
                 view=view[row],
-                cmap="hot",
+                cmap=cmap,
                 vmin=cscale[0],
                 vmax=cscale[1],
                 axes=axes[row*2 + hem],
-                colorbar=False
+                colorbar=cbar
             )
 
