@@ -114,14 +114,24 @@ def plot_emp_CDF(x_r, y_r, x_n, y_n, palette=get_color_palette()):
     return ax
 
 
-def plot_cortex_map(cifti_img, cmap='seismic', cscale=None, alpha=0.7, zero_transparent=False):
+def plot_cortex_map(cifti_img,
+                    layout='grid', figsize=None,
+                    threshold=None,
+                    cbar=True, cmap='seismic', cscale=None, alpha=0.7, zero_transparent=False):
 
     surfaces = fetch_fslr()
 
     lh, rh = surfaces['inflated']
     sulc_lh, sulc_rh = surfaces['sulc']
 
-    p = Plot(lh, rh)
+    if layout == 'grid':
+        size = (500, 400)
+    elif layout == 'row':
+        size = (1100, 200)
+    elif layout == 'column':
+        size = (200, 1100)
+
+    p = Plot(lh, rh, layout=layout, size=size)
 
     # cortical shading
     p.add_layer(
@@ -135,17 +145,25 @@ def plot_cortex_map(cifti_img, cmap='seismic', cscale=None, alpha=0.7, zero_tran
     lh_data = data[0].squeeze()
     rh_data = data[1].squeeze()
 
-    if cscale == 'Sym':
+    if threshold is not None:
+        lh_data[lh_data < threshold] = np.nan
+        rh_data[rh_data < threshold] = np.nan
+
+    if cscale == 'sym':
         maxval = max(np.nanmax(np.abs(lh_data)), np.nanmax(np.abs(rh_data)))
         cscale = [-maxval, maxval]
-    
+    elif cscale == 'from0':
+        maxval = max(np.nanmax(lh_data), np.nanmax(rh_data))
+        cscale = [0, maxval]
+
     p.add_layer(
         {'left': lh_data, 'right': rh_data},
         cmap=cmap,
         color_range=cscale,
         alpha=alpha,
         zero_transparent=zero_transparent,
+        cbar=cbar
     )
 
-    fig = p.build()
+    fig = p.build(figsize=figsize)
     fig.show()
