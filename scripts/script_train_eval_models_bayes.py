@@ -826,7 +826,7 @@ def train_global_model(train_dscode=''.join(gl.dscode),
                        method='L2reg',
                        cerebellum='MNISymC3',
                        parcellation='Icosahedron1002',
-                       mname_ext="",
+                       mname_ext=None,
                        logalpha_list=[0, 2, 4, 6, 8, 10, 12],
                        exc_net=None):
    """Train a global model for the given dataset and session by concatenating dataset models."""
@@ -839,7 +839,7 @@ def train_global_model(train_dscode=''.join(gl.dscode),
    
    if exc_net is not None:
       config['exclude_network'] = exc_net
-   
+
    rm.train_global_model(config, mname_ext=mname_ext)#, save_data_name=f'{train_dscode}_data')
 
 
@@ -991,7 +991,7 @@ if __name__ == "__main__":
    do_train_global = True
    do_eval_global = False
    do_fuse_lodo_mix = False
-   method = 'NNLS'
+   method = 'L1regression'
    cereb_atlas = 'MNISymC3'
    parcellation = 'Icosahedron1002'
    global_best_la = 0
@@ -1167,21 +1167,20 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      print(f'\nTraining global models')
-      train_dscode = gl.get_ldo_names()
-            # train_dscode=''.join(gl.dscode)
-      for tr_ds in train_dscode:
-         for net in range(1, 18):
-            if net in [1, 3, 10, 12, 13]:
-               continue
-            print(f'{tr_ds}: no yeo{net}')
-            train_global_model(train_dscode=tr_ds,
+      # print(f'\nTraining global models')
+      # train_dscode = gl.get_ldo_names(exclude=6)
+            train_dscode=''.join(gl.dscode)
+      # for tr_ds in train_dscode:
+            # print(f'{tr_ds}:')
+         # for net in range(1, 18):
+            # print(f'{tr_ds}: no yeo{net}')
+            train_global_model(train_dscode=train_dscode,
                               method=method,
                               cerebellum=cereb_atlas,
                               parcellation=parcellation,
-                              mname_ext=f"no-yeo{net}",
-                              exc_net=net,
-                              logalpha_list=[0])
+                              # mname_ext=f"no-yeo{net}",
+                              # exc_net=net,
+                              logalpha_list=[-2, 0])
             
    if do_eval_global:
       for ds in list(eval_types.keys()):
