@@ -67,13 +67,14 @@ def sort_roi_rows(cifti_img):
     cifti_img_new = nb.Cifti2Image(data, header=header)
     return cifti_img_new
 
-def stats_weight_map_cortex(traindata,
-                    cortex_roi = "Icosahedron1002",
-                    method = 'NNLS',
-                    extension='A0_global',
-                    stats = 'mean',
-                    mean_mode = '',
-                    norm = True):
+def stats_weight_map_cortex(traindata = None,
+                            model = None,
+                            cortex_roi = "Icosahedron1002",
+                            method = 'NNLS',
+                            extension='A0_global',
+                            stats = 'mean',
+                            mean_mode = '',
+                            norm = True):
     """ returns cifti image of a statistics of the input weight for each cortical parcel
 
     Args:
@@ -85,8 +86,15 @@ def stats_weight_map_cortex(traindata,
     Returns:
         cifti_img (nibabel.Cifti2Image): cifti image with the statistic of the input weights for each cortical parcel.
     """
-    # load mdoel
-    model,info = get_model(traindata,cortex_roi,method,extension,norm=norm)
+
+    if traindata is None and model is None:
+        raise ValueError("Either traindata or model must be provided.")
+    elif traindata is not None and model is not None:
+        raise ValueError("Only one of traindata or model should be provided.")
+    elif model is None:
+        # load model
+        model,_ = get_model(traindata, cortex_roi, method, extension, norm=norm)
+
     if stats == 'mean':
         if mean_mode == 'pos':
             model.coef_ = np.where(model.coef_ > 0, model.coef_, 0)
@@ -95,6 +103,7 @@ def stats_weight_map_cortex(traindata,
         result = np.mean(model.coef_,axis=0,keepdims=True)
     if stats == 'prob':
         result = np.mean(model.coef_>0,axis=0,keepdims=True)
+        
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
     cifti_img = cio.model_to_cifti(result,src_roi = label_fs)
     return cifti_img
@@ -136,6 +145,7 @@ def avrg_weight_map_roi(traindata,
                     extension='A8_avg',
                     cerebellum_roi = "NettekovenSym32",
                     cerebellum_atlas = "MNISymC3",
+                    cerebellum_space = "MNI152NLin2009cSymC",
                     norm = True):
     """ Makes cortical maps with average connectivity weights for different cerebellar parcels
 
@@ -168,7 +178,7 @@ def avrg_weight_map_roi(traindata,
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
     # label file for the cerebellum
-    label_suit = gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}_space-{cerebellum_atlas}_dseg.nii"
+    label_suit = gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii"
 
     # get the average cortical weights for each cerebellar parcel
     atlas_cereb,ainf = am.get_atlas(cerebellum_atlas)
@@ -176,7 +186,7 @@ def avrg_weight_map_roi(traindata,
     weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
 
     # load the lookup table for the cerebellar parcellation to get the names of the parcels
-    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-SUIT/atl-{cerebellum_roi}.lut")
+    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}.lut")
 
     cifti_img = cio.model_to_cifti(weights_parcel.T,
                                    src_atlas = "fs32k",
