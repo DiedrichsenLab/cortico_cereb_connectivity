@@ -166,4 +166,5 @@ def plot_cortex_map(cifti_img,
     )
 
     fig = p.build(figsize=figsize)
-    fig.show()
+    # fig.show()
+    return fig
