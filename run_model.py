@@ -575,6 +575,29 @@ def save_XY_data(save_name, XX, YY, config, info, dataset=None):
    return
 
 
+def load_XY_data(save_name):
+   """
+   Load the preprocessed cortical and cerebellar data from CIFTI files.
+
+   Args:
+      save_name (str): Name which CIFTI files have been saved with.
+
+   Returns:
+      XX (ndarray): Preprocessed cortical data.
+      YY (ndarray): Preprocessed cerebellar data.
+   """
+
+   print(f'Loading preprocessed data for {save_name}')
+   
+   Ycifti = nb.load(f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
+   YY = Ycifti.get_fdata().squeeze()
+
+   Xcifti = nb.load(f'{gl.conn_dir}/maps/{save_name}_cortex.pscalar.nii')
+   XX = Xcifti.get_fdata().squeeze()
+
+   return XX, YY
+
+
 def train_model(config, save_path=None, mname=None, save_name=None):
    """training a specific model based on the config file created
    model will be trained on cerebellar voxels and average within cortical tessels.
@@ -692,7 +715,7 @@ def train_model(config, save_path=None, mname=None, save_name=None):
    return config, conn_model_list, train_info
 
 
-def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_data_name=None):
+def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_data_name=None, load_data=False):
    """
    train a model based on the concatination of multiple datasets from functional fusion.
    Data is group-averaged across subjects. 
@@ -727,27 +750,30 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
          raise ValueError(f"Dataset code {code} not found in globals.dscode")   
       
    # Compile lists of activity patterns 
-   XX = []
-   YY = []
-   info_list = [] 
-   for i in range(num_ds):
-      print(f'Loading data for {datasets[i]}')
-      subj = get_subj_list('all', datasets[i])
-      # Get cerebellar and cortical data
-      config['add_rest'] = add_rest[i]
-      config['std_cortex'] = std_cortex[i]
-      Y, info = get_cerebellar_data(datasets[i], sessions[i], subj, config)
-      X, _ = get_cortical_data(datasets[i], sessions[i], subj, config)
-      info['dataset'] = datasets[i]
-      XX.append(X.mean(axis=0))
-      YY.append(Y.mean(axis=0))
-      info_list.append(info)
-   
-   XX = np.concatenate(XX, axis=0)
-   YY = np.concatenate(YY, axis=0)
-   info = pd.concat(info_list, ignore_index=True)
+   if load_data is False:
+      XX = []
+      YY = []
+      info_list = [] 
+      for i in range(num_ds):
+         print(f'Loading data for {datasets[i]}')
+         subj = get_subj_list('all', datasets[i])
+         # Get cerebellar and cortical data
+         config['add_rest'] = add_rest[i]
+         config['std_cortex'] = std_cortex[i]
+         Y, info = get_cerebellar_data(datasets[i], sessions[i], subj, config)
+         X, _ = get_cortical_data(datasets[i], sessions[i], subj, config)
+         info['dataset'] = datasets[i]
+         XX.append(X.mean(axis=0))
+         YY.append(Y.mean(axis=0))
+         info_list.append(info)
+      
+      XX = np.concatenate(XX, axis=0)
+      YY = np.concatenate(YY, axis=0)
+      info = pd.concat(info_list, ignore_index=True)
+   else:
+      XX, YY = load_XY_data(save_data_name)
 
-   if save_data_name is not None:
+   if save_data_name is not None and not load_data:
       save_XY_data(save_data_name, XX, YY, config, info, dataset=info.dataset)
 
    conn_model_list = []
@@ -788,7 +814,7 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
          mname_spec = f"{mname_plus}_global"
 
       # Fit model, get train and validate metrics
-      if config["method"] == 'L2reg':
+      if config["method"] == 'L2reg' and not load_data:
          conn_model.fit(XX, YY, info)
       elif config["method"] == 'L2reghalf':
          conn_model.fit(XX, YY, config, info)
