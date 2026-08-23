@@ -405,3 +405,14 @@ class NNLS(Model):
         self.coef_ = np.array(results)
         return self
     
+
+class NPLS(NNLS):
+    """
+        It is NNLS but with negative Y, so basically 'Non-Positively Least Squares'.
+    """
+
+    def fit(self, X, Y):
+        super().fit(X, -Y)
+        self.coef_ *= -1
+        return self
+    
