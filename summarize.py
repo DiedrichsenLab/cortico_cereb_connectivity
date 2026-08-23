@@ -98,6 +98,8 @@ def stats_weight_map_cortex(traindata = None,
     if stats == 'mean':
         if mean_mode == 'pos':
             model.coef_ = np.where(model.coef_ > 0, model.coef_, 0)
+        if mean_mode == 'neg':
+            model.coef_ = np.where(model.coef_ < 0, model.coef_, 0)
         elif mean_mode == 'abs':
             model.coef_ = np.abs(model.coef_)
         result = np.mean(model.coef_,axis=0,keepdims=True)
