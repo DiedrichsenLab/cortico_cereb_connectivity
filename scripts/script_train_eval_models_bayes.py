@@ -828,19 +828,23 @@ def train_global_model(train_dscode=''.join(gl.dscode),
                        parcellation='Icosahedron1002',
                        mname_ext=None,
                        logalpha_list=[0, 2, 4, 6, 8, 10, 12],
-                       exc_net=None):
+                       exc_net=None,
+                       hippocampus=None,
+                       append=False):
    """Train a global model for the given dataset and session by concatenating dataset models."""
 
    config = rm.get_train_config(train_dataset = train_dscode,
                                 method = method,
                                 log_alpha = logalpha_list,
                                 parcellation=parcellation,
-                                cerebellum = cerebellum)
+                                cerebellum = cerebellum,
+                                hippocampus=hippocampus,
+                                append=append)
    
    if exc_net is not None:
       config['exclude_network'] = exc_net
 
-   rm.train_global_model(config, mname_ext=mname_ext)#, save_data_name=f'{train_dscode}_data')
+   rm.train_global_model(config, mname_ext=mname_ext, save_data_name=f'{train_dscode}_data', load_data=True)
 
 
 def eval_global_model(train_dscode=''.join(gl.dscode),
@@ -850,6 +854,7 @@ def eval_global_model(train_dscode=''.join(gl.dscode),
                       method='L2reg',
                       mname_ext="",
                       logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                      hippocampus=None,
                       append=False,
                       eval_id='MdWfIbDeNiSoScLa-global-Cavg'):
    """Evaluate a global model for the given dataset and session"""
@@ -861,13 +866,18 @@ def eval_global_model(train_dscode=''.join(gl.dscode),
                                     add_rest=gl.add_rest[indx],
                                     std_cortex=gl.std_cortex[indx],
                                     cortical_act='avg',
-                                    cerebellum=cerebellum)
+                                    cerebellum=cerebellum,
+                                    hippocampus=hippocampus)
    
    model_config = rm.get_model_config(dataset=train_dscode,
-                                      cerebellum=cerebellum)
+                                      cerebellum=cerebellum,
+                                      hippocampus=hippocampus)
    
    df_all = pd.DataFrame()
-   mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
+   if hippocampus is not None:
+      mname = f"{train_dscode}_{parcellation}-{hippocampus}_{method}{mname_ext}"
+   else:
+      mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
    model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
    for la in logalpha_list:
       if la is not None:
@@ -988,10 +998,10 @@ if __name__ == "__main__":
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
-   do_train_global = True
-   do_eval_global = False
+   do_train_global = False
+   do_eval_global = True
    do_fuse_lodo_mix = False
-   method = 'L1regression'
+   method = 'NPLS'
    cereb_atlas = 'MNISymC3'
    parcellation = 'Icosahedron1002'
    global_best_la = 0
@@ -1167,20 +1177,22 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      # print(f'\nTraining global models')
-      # train_dscode = gl.get_ldo_names(exclude=6)
-            train_dscode=''.join(gl.dscode)
-      # for tr_ds in train_dscode:
-            # print(f'{tr_ds}:')
+      print(f'\nTraining global models')
+      train_dscode = gl.get_ldo_names()
+      train_dscode = train_dscode[5:]
+            # train_dscode=''.join(gl.dscode)
+      for tr_ds in train_dscode:
+            print(f'{tr_ds}:')
          # for net in range(1, 18):
             # print(f'{tr_ds}: no yeo{net}')
-            train_global_model(train_dscode=train_dscode,
+            train_global_model(train_dscode=tr_ds,
                               method=method,
                               cerebellum=cereb_atlas,
                               parcellation=parcellation,
                               # mname_ext=f"no-yeo{net}",
                               # exc_net=net,
-                              logalpha_list=[-2, 0])
+                              logalpha_list=[2],
+                              append=True)
             
    if do_eval_global:
       for ds in list(eval_types.keys()):
@@ -1194,8 +1206,8 @@ if __name__ == "__main__":
                            parcellation=parcellation,
                            method=method,
                            # mname_ext="_fixSTD",
-                           # logalpha_list=[None, 0, 1, 2],
-                           logalpha_list=[None, 0, 2, 4, 6, 8, 10],
+                           logalpha_list=[2], append=True,
+                           # logalpha_list=[None, 0, 2, 4, 6, 8, 10],
                            eval_id=eval_id)
                
    if do_fuse_lodo_mix:

@@ -37,6 +37,7 @@ def get_train_config(train_dataset = "MDTB",
                      log_alpha = 8,
                      cerebellum = "MNICymC3",
                      cortex = "fs32k",
+                     hippocampus = None,
                      parcellation = "Icosahedron1002",
                      type = "CondHalf",
                      crossed = "half", # or None
@@ -94,6 +95,7 @@ def get_train_config(train_dataset = "MDTB",
    train_config['std_cerebellum'] = std_cerebellum
    train_config['append'] = append
    train_config['load_default_group'] = load_default_group
+   train_config['hippocampus'] = hippocampus
 
    # get label images for left and right hemisphere
    train_config['label_img'] = []
@@ -107,6 +109,7 @@ def get_model_config(dataset = "MDTB",
                      subj_list = 'all',
                      model = 'avg',
                      cerebellum = "MNISymC3",
+                     hippocampus = None,
                      mix_param = None
                      ):
    """
@@ -128,6 +131,7 @@ def get_model_config(dataset = "MDTB",
    model_config['model'] = model
    model_config['cerebellum'] = cerebellum
    model_config['mix_param'] = mix_param
+   model_config['hippocampus'] = hippocampus
 
    return model_config
 
@@ -140,6 +144,7 @@ def get_eval_config(eval_dataset = 'MDTB',
                     task_code = 'all',
                     cerebellum = 'MNICymC3',
                     cortex = "fs32k",
+                    hippocampus = None,
                     parcellation = "Icosahedron1002",
                     crossed = "half", # or None
                     type = "CondHalf",
@@ -193,6 +198,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['subj_list'] = subj_list
    eval_config['cortical_act'] = cortical_act
    eval_config['load_default_group'] = load_default_group
+   eval_config['hippocampus'] = hippocampus
    
    # get label images for left and right hemisphere
    eval_config['label_img'] = []
@@ -504,6 +510,18 @@ def get_cortical_data(dataset, sessions, subj, config):
       if 'exclude_network' in config.keys():
          XX = exclude_network(XX, config)
 
+   if config['hippocampus'] is not None:
+      # Load Hippocampus data
+      HH, info_h, _ = fdata.get_dataset(gl.base_dir,
+                                       dataset,
+                                       sess=sessions,
+                                       subj=subj,
+                                       atlas=config["hippocampus"],
+                                       type=config["type"])
+
+      HH, _ = prepare_data(HH, info_h, config)
+      XX = np.concatenate([XX, HH], axis=-1)
+
    return XX, info
 
 
@@ -780,7 +798,10 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
 
    # Generate model name and create directory
    if mname is None:
-      mname = f"{config['train_dataset']}_{config['parcellation']}_{config['method']}"
+      if config['hippocampus'] is not None:
+         mname = f"{config['train_dataset']}_{config['parcellation']}-{config['hippocampus']}_{config['method']}"
+      else:
+         mname = f"{config['train_dataset']}_{config['parcellation']}_{config['method']}"
    if save_path is None:
       save_path = os.path.join(gl.conn_dir, config['cerebellum'], 'train', mname)
    if mname_ext is None:
