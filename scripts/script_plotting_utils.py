@@ -117,7 +117,8 @@ def plot_emp_CDF(x_r, y_r, x_n, y_n, palette=get_color_palette()):
 def plot_cortex_map(cifti_img,
                     layout='grid', figsize=None,
                     threshold=None,
-                    cbar=True, cmap='seismic', cscale=None, alpha=0.7, zero_transparent=False):
+                    cbar=True, cmap='seismic', cscale=None, cbar_loc='bottom', cbar_decimals=1,
+                    alpha=0.7, zero_transparent=False):
 
     surfaces = fetch_fslr()
 
@@ -165,6 +166,8 @@ def plot_cortex_map(cifti_img,
         cbar=cbar
     )
 
-    fig = p.build(figsize=figsize)
+    kws = {'location': cbar_loc, 'decimals': cbar_decimals} #fontsize
+
+    fig = p.build(figsize=figsize, cbar_kws=kws)
     # fig.show()
     return fig
