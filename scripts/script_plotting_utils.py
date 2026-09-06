@@ -116,13 +116,13 @@ def plot_emp_CDF(x_r, y_r, x_n, y_n, palette=get_color_palette()):
 
 def plot_cortex_map(cifti_img,
                     layout='grid', figsize=None,
-                    threshold=None,
+                    threshold=None, surface='inflated',
                     cbar=True, cmap='seismic', cscale=None, cbar_loc='bottom', cbar_decimals=1,
                     alpha=0.7, zero_transparent=False):
 
     surfaces = fetch_fslr()
 
-    lh, rh = surfaces['inflated']
+    lh, rh = surfaces[surface]
     sulc_lh, sulc_rh = surfaces['sulc']
 
     if layout == 'grid':
