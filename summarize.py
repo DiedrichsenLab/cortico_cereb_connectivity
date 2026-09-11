@@ -146,6 +146,8 @@ def avrg_weight_map_roi(traindata,
                     method = 'L2reg',
                     extension='A8_avg',
                     cerebellum_roi = "NettekovenSym32",
+                    labels = None,
+                    agg_domain = False,
                     cerebellum_atlas = "MNISymC3",
                     cerebellum_space = "MNI152NLin2009cSymC",
                     norm = True):
@@ -179,16 +181,36 @@ def avrg_weight_map_roi(traindata,
     # label file for the cortex
     label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
 
-    # label file for the cerebellum
-    label_suit = gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii"
+    atlas_cereb, _ = am.get_atlas(cerebellum_atlas)
+    if isinstance(cerebellum_roi, nb.Nifti1Image):
+        atlas_cereb.get_parcel(cerebellum_roi)
+        if labels is not None:
+            labels = labels
+        else:
+            raise ValueError("when passing Nifti as cerebellum_roi, labels should be specified")
+    elif isinstance(cerebellum_roi, str):
+        # label file for the cerebellum
+        label_suit = gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii"
+
+        atlas_cereb.get_parcel(label_suit)
+        # load the lookup table for the cerebellar parcellation to get the names of the parcels
+        index, _, labels = nt.read_lut(gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}.lut")
+
+        if agg_domain:
+            domains = ['M', 'A', 'D', 'S']
+            new_label_vector = np.zeros_like(atlas_cereb.label_vector)
+            for d, domain in enumerate(domains, start=1):
+                ind = np.where(np.char.startswith(labels, domain))[0]
+                parcel_ids = index[ind].squeeze()
+                new_label_vector[np.isin(atlas_cereb.label_vector, parcel_ids)] = d
+
+            labels = ['0'] + domains
+            atlas_cereb.label_vector = new_label_vector
+    else:
+        raise ValueError("cerebellum_roi must be a string or a nibabel.Nifti1Image")
 
     # get the average cortical weights for each cerebellar parcel
-    atlas_cereb,ainf = am.get_atlas(cerebellum_atlas)
-    atlas_cereb.get_parcel(label_suit)
-    weights_parcel, labels = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
-
-    # load the lookup table for the cerebellar parcellation to get the names of the parcels
-    index,colors,labels = nt.read_lut(gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}.lut")
+    weights_parcel, _ = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
 
     cifti_img = cio.model_to_cifti(weights_parcel.T,
                                    src_atlas = "fs32k",
