@@ -141,83 +141,91 @@ def stats_weight_map_cerebellum(traindata,
     nifti_img = myatlas.data_to_nifti(result)
     return nifti_img
 
-def avrg_weight_map_roi(traindata,
-                    cortex_roi = "Icosahedron1002",
-                    method = 'L2reg',
-                    extension='A8_avg',
-                    cerebellum_roi = "NettekovenSym32",
-                    labels = None,
-                    agg_domain = False,
-                    cerebellum_atlas = "MNISymC3",
-                    cerebellum_space = "MNI152NLin2009cSymC",
-                    norm = True):
+def avrg_weight_map_roi(model=None,
+                        traindata=gl.traindata_string(),
+                        cortex_roi="Icosahedron1002",
+                        method="L2reg",
+                        extension="A2_avg",
+                        cerebellum_roi="NettekovenSym32",
+                        cereb_roi_labels=None,
+                        cerebellum_atlas="MNISymC3",
+                        cerebellum_space="MNI152NLin2009cSymC",
+                        norm=True):
     """ Makes cortical maps with average connectivity weights for different cerebellar parcels
 
     Args:
+        model (Model, optional): can pass a desired connectivity model. Defaults to None.
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
-        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "
-        Icosahedron1002".
+        cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
         method (str, optional): method used to train the model. Defaults to 'L2reg'.
-        extension (str, optional): extension to the model name. Defaults to 'A8_avg'.
-        cerebellum_roi (str, optional): name of the cerebellar parcellation. Defaults to "NettekovenSym32".
+        extension (str, optional): extension to the model name. Defaults to 'A2_avg'.
+        cerebellum_roi (Nifti, str, optional): Nifti file or name of the cerebellar parcellation. Defaults to "NettekovenSym32".
+        cereb_roi_labels (list of str, optional): if the Nifti file does not contain names of ROIs. Defaults to None.
         cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
+        cerebellum_space (str, optional): if roi is str, used to locate the nifti file. Defaults to "MNI152NLin2009cSymC".
+        norm (bool, optional): whether to normalize the weights by cortical length. Defaults to True.
     Returns:
         cifti_img (nibabel.Cifti2Image) pscalar cifti image for the cortical maps. ready to be saved!
     """
-    # make model name
-    # load in the connectivity average connectivity model
 
-    # Load model
-    model,info = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas,norm=norm)
 
-    # get the weights
-    if hasattr(model,'scale_'):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore",category=RuntimeWarning)
-            weights = model.coef_/model.scale_
-    else:
-        weights = model.coef_
+    # -------------------------------
+    # Load model and get weights
+    # -------------------------------
+    if model is None:
+        model,_ = get_model(traindata, cortex_roi, method, extension, cerebellum_atlas, norm=norm)
+    weights = model.coef_
 
+    # -------------------------------
     # label file for the cortex
-    label_fs = [gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii" for hemi in ["L", "R"]]
+    # -------------------------------
+    cortex_labels = [
+        gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii"
+        for hemi in ("L", "R")
+    ]
 
+
+    # -------------------------------
+    # Cerebellar ROI
+    # -------------------------------
     atlas_cereb, _ = am.get_atlas(cerebellum_atlas)
     if isinstance(cerebellum_roi, nb.Nifti1Image):
         atlas_cereb.get_parcel(cerebellum_roi)
-        if labels is not None:
-            labels = labels
-        else:
-            raise ValueError("when passing Nifti as cerebellum_roi, labels should be specified")
+        if cereb_roi_labels is None:
+            cereb_roi_labels = atlas_cereb.labels
     elif isinstance(cerebellum_roi, str):
-        # label file for the cerebellum
-        label_suit = gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii"
-
+        # look for the dseg file
+        label_suit = (Path(gl.atlas_dir) / f"tpl-{cerebellum_space}" / f"atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii")
+        if not label_suit.exists():
+            raise FileNotFoundError(f"Cerebellar ROI file not found: {label_suit}")
+        # get data
         atlas_cereb.get_parcel(label_suit)
-        # load the lookup table for the cerebellar parcellation to get the names of the parcels
-        index, _, labels = nt.read_lut(gl.atlas_dir + f"/tpl-{cerebellum_space}/atl-{cerebellum_roi}.lut")
-
-        if agg_domain:
-            domains = ['M', 'A', 'D', 'S']
-            new_label_vector = np.zeros_like(atlas_cereb.label_vector)
-            for d, domain in enumerate(domains, start=1):
-                ind = np.where(np.char.startswith(labels, domain))[0]
-                parcel_ids = index[ind].squeeze()
-                new_label_vector[np.isin(atlas_cereb.label_vector, parcel_ids)] = d
-
-            labels = ['0'] + domains
-            atlas_cereb.label_vector = new_label_vector
+        # load the lookup table for the names
+        lut_file = (Path(gl.atlas_dir) / f"tpl-{cerebellum_space}" / f"atl-{cerebellum_roi}.lut")
+        if not lut_file.exists():
+            raise FileNotFoundError(f"LUT file not found: {lut_file}")
+        _, _, cereb_roi_labels = nt.read_lut(lut_file)
     else:
-        raise ValueError("cerebellum_roi must be a string or a nibabel.Nifti1Image")
+        raise TypeError("cerebellum_roi must be a string or a nibabel.Nifti1Image")
 
-    # get the average cortical weights for each cerebellar parcel
+    if cereb_roi_labels[0] == "0":
+        cereb_roi_labels = cereb_roi_labels[1:]
+
+    # -------------------------------
+    # Aggregate weights within ROI
+    # -------------------------------
     weights_parcel, _ = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
 
+    # -------------------------------
+    # Convert to CIFTI
+    # -------------------------------
     cifti_img = cio.model_to_cifti(weights_parcel.T,
-                                   src_atlas = "fs32k",
-                                   trg_atlas = cerebellum_atlas,
-                                   src_roi = label_fs,
-                                   trg_roi = labels[1:],
-                                   type = 'scalar')
+                                   src_atlas="fs32k",
+                                   trg_atlas=cerebellum_atlas,
+                                   src_roi=cortex_labels,
+                                   trg_roi=cereb_roi_labels,
+                                   type='scalar')
+    
     return cifti_img
 
 def stats_weight_roi_cerebellum(traindata,
