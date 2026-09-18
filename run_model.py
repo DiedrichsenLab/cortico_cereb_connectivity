@@ -102,6 +102,10 @@ def get_train_config(train_dataset = "MDTB",
    for hemi in ['L', 'R']:
       train_config['label_img'].append(gl.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
 
+   train_config['hipp_label_img'] = []
+   for hemi in ['L', 'R']:
+      train_config['hipp_label_img'].append(gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_hem-{hemi}_dseg.nii')
+
    return train_config
 
 
@@ -273,33 +277,56 @@ def eval_metrics(Y, Y_pred, info):
    return data
 
 
-def cross_data(Y,info,mode):
-   """Cross data across halves. This part helps reducing overfitting by providing an extra cross-validation.
+def cross_data(Y, info, mode):
+    """Cross data across halves/runs and reorder info in the same way.
 
-   Args:
-      Y (ndarray): Data matrix (n_cond,n_vox)
-      info (pd.DataFrame): Information dataframe with columns: sess, half, run; n_cond rows
-      mode (str): 'half' or 'run' to specify the cross-validation mode
+    Args:
+        Y (ndarray): Data matrix (n_cond, n_vox)
+        info (pd.DataFrame): Information dataframe with columns: sess, half, run
+        mode (str): 'half' or 'run'
 
-   Returns:
-      Ys (ndarray): Crossed data
-   """
-   if mode=='half':
-      Y_list = []
-      for s in np.unique(info.sess):
-         Y_list.append(Y[(info.sess==s) & (info.half==2),:])
-         Y_list.append(Y[(info.sess==s) & (info.half==1),:])
-      Ys = np.concatenate(Y_list,axis=0)
-   elif mode=='run':
-      unique_runs = sorted(info.run.unique())
-      first_runs = unique_runs[:len(unique_runs)//2]
-      second_runs = unique_runs[len(unique_runs)//2:]
-      Y_list = []
-      for s in np.unique(info.sess):
-         Y_list.append(Y[(info.sess==s) & (info.run.isin(second_runs)),:])
-         Y_list.append(Y[(info.sess==s) & (info.run.isin(first_runs)),:])
-      Ys = np.concatenate(Y_list,axis=0)
-   return Ys
+    Returns:
+        Ys (ndarray): Crossed data
+        infos (pd.DataFrame): Reordered information dataframe
+    """
+    Y_list = []
+    info_list = []
+
+    if mode == 'half':
+        for s in info.sess.unique():
+            # half 2 first
+            idx = (info.sess == s) & (info.half == 2)
+            Y_list.append(Y[idx, :])
+            info_list.append(info.loc[idx])
+
+            # half 1 second
+            idx = (info.sess == s) & (info.half == 1)
+            Y_list.append(Y[idx, :])
+            info_list.append(info.loc[idx])
+
+    elif mode == 'run':
+        unique_runs = info.run.unique()
+        first_runs = unique_runs[:len(unique_runs)//2]
+        second_runs = unique_runs[len(unique_runs)//2:]
+
+        for s in np.unique(info.sess):
+            # second runs first
+            idx = (info.sess == s) & (info.run.isin(second_runs))
+            Y_list.append(Y[idx, :])
+            info_list.append(info.loc[idx])
+
+            # first runs second
+            idx = (info.sess == s) & (info.run.isin(first_runs))
+            Y_list.append(Y[idx, :])
+            info_list.append(info.loc[idx])
+
+    else:
+        raise ValueError("mode must be 'half' or 'run'")
+
+    Ys = np.concatenate(Y_list, axis=0)
+    infos = pd.concat(info_list, axis=0).reset_index(drop=True)
+
+    return Ys, infos
 
 
 def subset_cond(data, info, cond_num):
@@ -403,7 +430,7 @@ def std_data(Y,mode):
       sc=np.sqrt(np.nansum(Y ** 2))# / Y.size)
       return np.nan_to_num(Y/sc)
    else:
-      raise ValueError('std_mode must be None, "voxel" or "global"')
+      raise ValueError('std_mode must be None, "parcel" or "global"')
    
 
 def prepare_data(data, info, config):
@@ -480,47 +507,54 @@ def get_cortical_data(dataset, sessions, subj, config):
       info (pd.DataFrame): Information dataframe.
    """
    
-   if config['load_default_group']:
-      # to be implemented with info
-      fname = f"{gl.conn_dir}/maps/{dataset}_data_cortex.pscalar.nii"
-      data = nb.load(fname).get_fdata().squeeze()
-   else:
-      XX, info, _ = fdata.get_dataset(gl.base_dir,
-                                      dataset,
-                                      sess=sessions,
-                                      subj=subj,
-                                      atlas=config["cortex"],
-                                      type=config["type"])
-      # Average the cortical data over pacels
-      X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
-      # get the vector containing tessel labels
-      X_atlas.get_parcel(config['label_img'], unite_struct = False)
-      # get the mean across tessels for cortical data
-      XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector,fcn=np.nanmean)
-
-      # Prepare the data and info
-      XX, info = prepare_data(XX, info, config)
-
-      # Standardize the data if specified
-      for i in range(XX.shape[0]):
-         if 'std_cortex' in config.keys():
-            XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
-
-      # Exclude specific networks if specified
-      if 'exclude_network' in config.keys():
-         XX = exclude_network(XX, config)
+   XX, info, _ = fdata.get_dataset(gl.base_dir,
+                                    dataset,
+                                    sess=sessions,
+                                    subj=subj,
+                                    atlas=config["cortex"],
+                                    type=config["type"])
+   # Average the cortical data over pacels
+   X_atlas, _ = at.get_atlas(config['cortex'],gl.atlas_dir)
+   # get the vector containing tessel labels
+   X_atlas.get_parcel(config['label_img'], unite_struct = False)
+   # get the mean across tessels for cortical data
+   XX, labels = fdata.agg_parcels(XX, X_atlas.label_vector, fcn=np.nanmean)
 
    if config['hippocampus'] is not None:
       # Load Hippocampus data
-      HH, info_h, _ = fdata.get_dataset(gl.base_dir,
-                                       dataset,
-                                       sess=sessions,
-                                       subj=subj,
-                                       atlas=config["hippocampus"],
-                                       type=config["type"])
+      HH, _, _ = fdata.get_dataset(gl.base_dir,
+                                    dataset,
+                                    sess=sessions,
+                                    subj=subj,
+                                    atlas=config["hippocampus"],
+                                    type=config["type"])
 
-      HH, _ = prepare_data(HH, info_h, config)
+      # Average the hippocampal data over pacels
+      H_atlas, _ = at.get_atlas('Platchi5')
+      # get the vector containing tessel labels
+      H_atlas.get_parcel(config['hipp_label_img'][0])
+      label_L = H_atlas.label_vector
+      H_atlas.get_parcel(config['hipp_label_img'][1])
+      label_R = H_atlas.label_vector
+      label_R[label_R > 0] += 5
+      H_atlas.label_vector = label_L + label_R
+      # get the mean across tessels for hippocampal data
+      HH, _ = fdata.agg_parcels(HH, H_atlas.label_vector, fcn=np.nanmean)
+
+      # concatenate cortex with hippocampus
       XX = np.concatenate([XX, HH], axis=-1)
+
+   # Prepare the data and info
+   XX, info = prepare_data(XX, info, config)
+
+   # Standardize the data if specified
+   for i in range(XX.shape[0]):
+      if 'std_cortex' in config.keys():
+         XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
+
+   # Exclude specific networks if specified
+   if 'exclude_network' in config.keys():
+      XX = exclude_network(XX, config)
 
    return XX, info
 
@@ -552,16 +586,16 @@ def get_cerebellar_data(dataset, sessions, subj, config):
    # Standardize the data if specified
    for i in range(YY.shape[0]):
       if 'std_cerebellum' in config.keys():
-         YY[i,:,:] = std_data(YY[i,:,:],config['std_cerebellum'])
+         YY[i,:,:] = std_data(YY[i,:,:], config['std_cerebellum'])
 
       # cross the halves within each session
       if config["crossed"] is not None:
-         YY[i,:,:] = cross_data(YY[i,:,:],info,config["crossed"])
+         YY[i,:,:], info = cross_data(YY[i,:,:], info, config["crossed"])
 
    return YY, info 
 
 
-def save_XY_data(save_name, XX, YY, config, info, dataset=None):
+def save_XY_data(save_name, XX, YY, config, info_x, info_y, dataset=None):
    """
    Save the preprocessed cortical and cerebellar data as CIFTI files.
 
@@ -578,14 +612,15 @@ def save_XY_data(save_name, XX, YY, config, info, dataset=None):
       dataset = config['train_dataset']
 
    Yatlas,_ = at.get_atlas(config['cerebellum'])
-   row_axis = dataset + '_' + info.names 
-   Ycifti = Yatlas.data_to_cifti(YY, row_axis=row_axis)
+   row_axis_y = dataset + '_' + info_y.names 
+   Ycifti = Yatlas.data_to_cifti(YY, row_axis=row_axis_y)
    nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
 
    Xatlas,_ = at.get_atlas(config['cortex'])
    Xatlas.get_parcel(config['label_img'], unite_struct = False)      
    Xparcelaxis  = Xatlas.get_parcel_axis()
-   Xrowaxis = nb.cifti2.ScalarAxis(row_axis)
+   row_axis_x = dataset + '_' + info_x.names 
+   Xrowaxis = nb.cifti2.ScalarAxis(row_axis_x)
    header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
    Xcifti = nb.Cifti2Image(XX, header=header)
    nb.save(Xcifti,f'{gl.conn_dir}/maps/{save_name}_cortex.pscalar.nii')
@@ -657,16 +692,16 @@ def train_model(config, save_path=None, mname=None, save_name=None):
       train_info = pd.DataFrame()
 
    # Get cerebellar and cortical data
-   YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], subj, config)
-   XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], subj, config)
+   YY, info_y = get_cerebellar_data(config["train_dataset"], config["train_ses"], subj, config)
+   XX, info_x = get_cortical_data(config["train_dataset"], config["train_ses"], subj, config)
 
    # average cortical and cerebellar data across subjects, if needed
    if config['cortical_cerebellar_act'] == 'avg':
       if config['subj_list'] != 'all':
          # Get cerebellar and cortical data
          all_subj = get_subj_list('all', config["train_dataset"])
-         YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
-         XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         YY, info_y = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         XX, info_x = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
       XX = XX.mean(axis=0,keepdims=True) # get average cortical data
       YY = YY.mean(axis=0,keepdims=True) # get the average cerebellar data
       subj = ['group']
@@ -675,14 +710,14 @@ def train_model(config, save_path=None, mname=None, save_name=None):
       if config['subj_list'] != 'all':
          # Get cerebellar and cortical data
          all_subj = get_subj_list('all', config["train_dataset"])
-         YY, info = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
-         XX, info = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         YY, info_y = get_cerebellar_data(config["train_dataset"], config["train_ses"], all_subj, config)
+         XX, info_x = get_cortical_data(config["train_dataset"], config["train_ses"], all_subj, config)
       XX = (XX.sum(axis=0,keepdims=True) - XX)/(XX.shape[0]-1)
       YY = (YY.sum(axis=0,keepdims=True) - YY)/(YY.shape[0]-1)
       subj = [s+'_group_loo' for s in subj]
 
    if save_name is not None:
-      save_XY_data(save_name, XX[0,:,:], YY[0,:,:], config, info)
+      save_XY_data(save_name, XX[0,:,:], YY[0,:,:], config, info_x, info_y)
 
    for i,sub in enumerate(subj):
       X = XX[i,:,:] # get the data for the subject
@@ -702,9 +737,9 @@ def train_model(config, save_path=None, mname=None, save_name=None):
 
          # Fit model, get train and validate metrics
          if config["method"] == 'L2reg':
-            conn_model.fit(X, Y, info)
+            conn_model.fit(X, Y, info_x)
          elif config["method"] == 'L2reghalf':
-            conn_model.fit(X, Y, config, info)
+            conn_model.fit(X, Y, config, info_x)
          else:
             conn_model.fit(X, Y)
          R_train, R2_train = train_metrics(conn_model, X, Y)
@@ -771,28 +806,32 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
    if load_data is False:
       XX = []
       YY = []
-      info_list = [] 
+      info_x_list = []
+      info_y_list = [] 
       for i in range(num_ds):
          print(f'Loading data for {datasets[i]}')
          subj = get_subj_list('all', datasets[i])
          # Get cerebellar and cortical data
          config['add_rest'] = add_rest[i]
          config['std_cortex'] = std_cortex[i]
-         Y, info = get_cerebellar_data(datasets[i], sessions[i], subj, config)
-         X, _ = get_cortical_data(datasets[i], sessions[i], subj, config)
-         info['dataset'] = datasets[i]
+         Y, info_y = get_cerebellar_data(datasets[i], sessions[i], subj, config)
+         X, info_x = get_cortical_data(datasets[i], sessions[i], subj, config)
+         info_x['dataset'] = datasets[i]
+         info_y['dataset'] = datasets[i]
          XX.append(X.mean(axis=0))
          YY.append(Y.mean(axis=0))
-         info_list.append(info)
+         info_x_list.append(info_x)
+         info_y_list.append(info_y)
       
       XX = np.concatenate(XX, axis=0)
       YY = np.concatenate(YY, axis=0)
-      info = pd.concat(info_list, ignore_index=True)
+      info_x = pd.concat(info_x_list, ignore_index=True)
+      info_y = pd.concat(info_y_list, ignore_index=True)
    else:
       XX, YY = load_XY_data(save_data_name)
 
    if save_data_name is not None and not load_data:
-      save_XY_data(save_data_name, XX, YY, config, info, dataset=info.dataset)
+      save_XY_data(save_data_name, XX, YY, config, info_x, info_y, dataset=info_x.dataset)
 
    conn_model_list = []
 

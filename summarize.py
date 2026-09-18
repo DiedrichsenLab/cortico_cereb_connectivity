@@ -151,14 +151,14 @@ def avrg_weight_map_roi(model=None,
                         cerebellum_atlas="MNISymC3",
                         cerebellum_space="MNI152NLin2009cSymC",
                         norm=True):
-    """ Makes cortical maps with average connectivity weights for different cerebellar parcels
+    """ Makes cortical maps with average connectivity weights for different cerebellar ROIs.
 
     Args:
         model (Model, optional): can pass a desired connectivity model. Defaults to None.
         traindata (str): name of the training data, e.g. 'MdWfIbDeHtNiSoScLa'
         cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
-        method (str, optional): method used to train the model. Defaults to 'L2reg'.
-        extension (str, optional): extension to the model name. Defaults to 'A2_avg'.
+        method (str, optional): method used to train the model. Defaults to "L2reg".
+        extension (str, optional): extension to the model name. Defaults to "A2_avg".
         cerebellum_roi (Nifti, str, optional): Nifti file or name of the cerebellar parcellation. Defaults to "NettekovenSym32".
         cereb_roi_labels (list of str, optional): if the Nifti file does not contain names of ROIs. Defaults to None.
         cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
@@ -167,7 +167,6 @@ def avrg_weight_map_roi(model=None,
     Returns:
         cifti_img (nibabel.Cifti2Image) pscalar cifti image for the cortical maps. ready to be saved!
     """
-
 
     # -------------------------------
     # Load model and get weights
@@ -183,7 +182,6 @@ def avrg_weight_map_roi(model=None,
         gl.atlas_dir + f"/tpl-fs32k/{cortex_roi}.{hemi}.label.gii"
         for hemi in ("L", "R")
     ]
-
 
     # -------------------------------
     # Cerebellar ROI
