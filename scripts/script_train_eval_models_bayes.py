@@ -999,10 +999,11 @@ if __name__ == "__main__":
    do_voxel_lodo_fuse = False
    do_fuse_all = False
    do_train_global = False
-   do_eval_global = True
+   do_eval_global = False
    do_fuse_lodo_mix = False
-   method = 'NPLS'
+   method = 'L2reg'
    cereb_atlas = 'MNISymC3'
+   hippocampus = None #'MNIAsymHippocampus'
    parcellation = 'Icosahedron1002'
    global_best_la = 0
    
@@ -1177,22 +1178,22 @@ if __name__ == "__main__":
                         fuse_id=fuse_id)
    
    if do_train_global:
-      print(f'\nTraining global models')
-      train_dscode = gl.get_ldo_names()
-      train_dscode = train_dscode[5:]
-            # train_dscode=''.join(gl.dscode)
-      for tr_ds in train_dscode:
-            print(f'{tr_ds}:')
+      # print(f'\nTraining global models')
+      # train_dscode = gl.get_ldo_names()
+            tr_ds = gl.traindata_string()
+      # for tr_ds in train_dscode:
+            # print(f'{tr_ds}:')
          # for net in range(1, 18):
             # print(f'{tr_ds}: no yeo{net}')
             train_global_model(train_dscode=tr_ds,
                               method=method,
                               cerebellum=cereb_atlas,
+                              hippocampus=hippocampus,
                               parcellation=parcellation,
                               # mname_ext=f"no-yeo{net}",
                               # exc_net=net,
-                              logalpha_list=[2],
-                              append=True)
+                              logalpha_list=[0, 2, 4, 6],
+                              append=False)
             
    if do_eval_global:
       for ds in list(eval_types.keys()):
