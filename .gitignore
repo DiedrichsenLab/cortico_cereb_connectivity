@@ -4,3 +4,4 @@ env/
 .vscode/
 models_SUIT3/
 models_MNISymC3/
+docs/_build/
