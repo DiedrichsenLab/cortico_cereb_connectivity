@@ -737,9 +737,9 @@ def train_model(config, save_path=None, mname=None, save_name=None):
 
          # Fit model, get train and validate metrics
          if config["method"] == 'L2reg':
-            conn_model.fit(X, Y, info_x)
+            conn_model.fit(X, Y, info_y)
          elif config["method"] == 'L2reghalf':
-            conn_model.fit(X, Y, config, info_x)
+            conn_model.fit(X, Y, config, info_y)
          else:
             conn_model.fit(X, Y)
          R_train, R2_train = train_metrics(conn_model, X, Y)
@@ -875,9 +875,9 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
 
       # Fit model, get train and validate metrics
       if config["method"] == 'L2reg' and not load_data:
-         conn_model.fit(XX, YY, info)
+         conn_model.fit(XX, YY, info_y)
       elif config["method"] == 'L2reghalf':
-         conn_model.fit(XX, YY, config, info)
+         conn_model.fit(XX, YY, config, info_y)
       else:
          conn_model.fit(XX, YY)
       R_train, R2_train = train_metrics(conn_model, XX, YY)
