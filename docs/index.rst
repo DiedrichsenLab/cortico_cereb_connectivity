@@ -8,3 +8,4 @@ Documentation for the cortico_cerebellar_connectivity project.
    :caption: Contents:
 
    introduction
+   cortical_weight_map
