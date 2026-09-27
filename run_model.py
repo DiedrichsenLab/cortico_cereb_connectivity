@@ -209,6 +209,10 @@ def get_eval_config(eval_dataset = 'MDTB',
    for hemi in ['L', 'R']:
       eval_config['label_img'].append(gl.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
 
+   eval_config['hipp_label_img'] = []
+   for hemi in ['L', 'R']:
+      eval_config['hipp_label_img'].append(gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_hem-{hemi}_dseg.nii')
+
    return eval_config
 
 
@@ -424,10 +428,12 @@ def std_data(Y,mode):
    if mode is None:
       return Y
    elif mode=='parcel':
-      sc=np.sqrt(np.nansum(Y ** 2, 0))# / Y.shape[0])
+      # make the length of each parcel equal to 1
+      sc = np.sqrt(np.nansum(Y ** 2, 0))
       return  np.nan_to_num(Y/sc)
    elif mode=='global':
-      sc=np.sqrt(np.nansum(Y ** 2))# / Y.size)
+      # make the length of each parcel (on average) equal to 1
+      sc = np.sqrt(np.nansum(Y ** 2) / Y.shape[1])
       return np.nan_to_num(Y/sc)
    else:
       raise ValueError('std_mode must be None, "parcel" or "global"')
@@ -1106,7 +1112,7 @@ def get_fitted_models(model_dirs, model_names, config):
    return fitted_model, train_info
 
 
-def eval_model(model_dirs, model_names, eval_config, model_config):
+def eval_model(model_dirs, model_names, eval_config, model_config, save_data_name=None, load_data=False):
    """Evaluate group model on a specific dataset and session.
    
    Args:
@@ -1130,9 +1136,13 @@ def eval_model(model_dirs, model_names, eval_config, model_config):
    # Get the list of fitted models
    fitted_model, train_info = get_fitted_models(model_dirs, model_names, model_config)
 
-   # Get cerebellar abd cortical data
-   YY, info = get_cerebellar_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
-   XX, info = get_cortical_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
+   # Get cerebellar and cortical data
+   if load_data and save_data_name is not None:
+      XX, YY = load_XY_data(save_data_name)
+      raise ValueError("To Do. Cannot resolve info yet.")
+   else:
+      YY, info = get_cerebellar_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
+      XX, info = get_cortical_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
 
    # Calculate group reliability of subjects
    group_noiseceil_lower = frel.between_subj_loo(YY)
