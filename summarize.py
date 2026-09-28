@@ -390,7 +390,7 @@ def seed_correlation(dscode=gl.traindata_string(),
         Y, _ = fdata.agg_parcels(YY, atlas_cereb.label_vector, fcn=np.nanmean)
 
     # hippocampal ROI
-    if hippocampus_roi is None:
+    if hippocampus is None:
         corr_xy = np.corrcoef(XX.T, Y.T)[:XX.shape[1], XX.shape[1]:]
         return corr_xy
     if hippocampus_roi != "Platchi5":
