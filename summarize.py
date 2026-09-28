@@ -45,9 +45,12 @@ def get_model(traindata=gl.traindata_string(),
     model,info = cio.load_model(fpath + f"/{model_name}")
     
     if norm:
-        # load X
-        X = nb.load(gl.conn_dir + f"/maps/{traindata}_data_cortex.pscalar.nii").get_fdata()
-        model.coef_ *= np.sqrt(np.nansum(X**2, axis=0))
+        if hasattr(model, "xscale_") and model.xscale_ is not None:
+            model.coef_ *= model.xscale_
+        else:
+            # load X
+            X = nb.load(gl.conn_dir + f"/maps/{traindata}_data_cortex.pscalar.nii").get_fdata()
+            model.coef_ *= np.sqrt(np.nansum(X**2, axis=0))
     return model, info
 
 def sort_roi_rows(cifti_img):
