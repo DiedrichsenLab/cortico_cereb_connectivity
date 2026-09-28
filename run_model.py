@@ -623,8 +623,21 @@ def save_XY_data(save_name, XX, YY, config, info_x, info_y, dataset=None):
    nb.save(Ycifti,f'{gl.conn_dir}/maps/{save_name}_cerebellum.dscalar.nii')
 
    Xatlas,_ = at.get_atlas(config['cortex'])
-   Xatlas.get_parcel(config['label_img'], unite_struct = False)      
-   Xparcelaxis  = Xatlas.get_parcel_axis()
+   Xatlas.get_parcel(config['label_img'], unite_struct=False)
+   Xparcelaxis = Xatlas.get_parcel_axis()
+   if config['hippocampus']:
+      raise ValueError("Saving hippocampus data is not yet supported.")
+      Hatlas_L,_ = at.get_atlas("Platchi5_L")
+      Hatlas_L.get_parcel(config['hipp_label_img'][0])
+      Hparcelaxis_L = Hatlas_L.get_parcel_axis()
+
+      Hatlas_R,_ = at.get_atlas("Platchi5_R")
+      Hatlas_R.get_parcel(config['hipp_label_img'][1])
+      Hparcelaxis_R = Hatlas_R.get_parcel_axis()
+
+      # combine
+      Xparcelaxis = nb.cifti2.ParcelsAxis(list(Xparcelaxis) + list(Hparcelaxis_L) + list(Hparcelaxis_R))
+
    row_axis_x = dataset + '_' + info_x.names 
    Xrowaxis = nb.cifti2.ScalarAxis(row_axis_x)
    header = nb.Cifti2Header.from_axes((Xrowaxis, Xparcelaxis))
@@ -774,23 +787,7 @@ def train_model(config, save_path=None, mname=None, save_name=None):
    return config, conn_model_list, train_info
 
 
-def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_data_name=None, load_data=False):
-   """
-   train a model based on the concatination of multiple datasets from functional fusion.
-   Data is group-averaged across subjects. 
-
-   Args:
-      config (dict): dictionary with configuration parameters.
-      save_path (str): path to save the trained model and info files.
-      mname (str): name of the model.
-      save_data_name (str): name of the data files to save.
-
-   Returns:
-      conn_model_list (list): list of trained models on the list of subjects / log-alphas
-      config (dict): dictionary containing info for training. Can be saved as json
-      train_df (pd.DataFrame): dataframe containing training information
-   """
-
+def make_global_data(config, save_data_name=None, load_data=False):
    # get list of datasets - interpret them over globals.dscode 
    num_ds = int(len(config['train_dataset'])/2)
    datasets = []   
@@ -835,6 +832,28 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
       info_y = pd.concat(info_y_list, ignore_index=True)
    else:
       XX, YY = load_XY_data(save_data_name)
+
+   return XX, YY, info_x, info_y
+
+
+def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_data_name=None, load_data=False):
+   """
+   train a model based on the concatination of multiple datasets from functional fusion.
+   Data is group-averaged across subjects. 
+
+   Args:
+      config (dict): dictionary with configuration parameters.
+      save_path (str): path to save the trained model and info files.
+      mname (str): name of the model.
+      save_data_name (str): name of the data files to save.
+
+   Returns:
+      conn_model_list (list): list of trained models on the list of subjects / log-alphas
+      config (dict): dictionary containing info for training. Can be saved as json
+      train_df (pd.DataFrame): dataframe containing training information
+   """
+
+   XX, YY, info_x, info_y = make_global_data(config, save_data_name=save_data_name, load_data=load_data)
 
    if save_data_name is not None and not load_data:
       save_XY_data(save_data_name, XX, YY, config, info_x, info_y, dataset=info_x.dataset)

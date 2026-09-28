@@ -196,8 +196,8 @@ def avrg_weight_map_roi(model=None,
             cereb_roi_labels = atlas_cereb.labels
     elif isinstance(cerebellum_roi, str):
         # look for the dseg file
-        label_suit = (Path(gl.atlas_dir) / f"tpl-{cerebellum_space}" / f"atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii")
-        if not label_suit.exists():
+        label_suit = f"{gl.atlas_dir}/tpl-{cerebellum_space}/atl-{cerebellum_roi}_space-{cerebellum_space}_dseg.nii"
+        if not os.path.exists(label_suit):
             raise FileNotFoundError(f"Cerebellar ROI file not found: {label_suit}")
         # get data
         atlas_cereb.get_parcel(label_suit)
@@ -353,6 +353,56 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
                         'color_b': colors[1:,2]})
     return T
 
+
+def seed_correlation(dscode=gl.traindata_string(),
+                     cortex_roi='Icosahedron1002',
+                     cerebellum_roi='NettekovenSym32',
+                     hippocampus_roi='Platchi5',
+                     cortex='fs32k',
+                     cerebellum='MNISymC3',
+                     hippocampus='MNIAsymHippocampus',
+                     ):
+    
+    config = rm.get_train_config(train_dataset=dscode,
+                                 cortex=cortex,
+                                 parcellation=cortex_roi,
+                                 cerebellum=cerebellum,
+                                 hippocampus=hippocampus)   
+    XX, YY, _, _ = rm.make_global_data(config)
+
+    # cerebellar ROI
+    if cerebellum_roi is None:
+        Y = YY
+    else:
+        atlas_cereb, _ = am.get_atlas(cerebellum)
+        if isinstance(cerebellum_roi, nb.Nifti1Image):
+            atlas_cereb.get_parcel(cerebellum_roi)
+        elif isinstance(cerebellum_roi, str):
+            # look for the dseg file
+            label_suit = f"{gl.atlas_dir}/tpl-MNI152NLin2009cSymC/atl-{cerebellum_roi}_space-MNI152NLin2009cSymC_dseg.nii"
+            if not os.path.exists(label_suit):
+                raise FileNotFoundError(f"Cerebellar ROI file not found: {label_suit}")
+            # get data
+            atlas_cereb.get_parcel(label_suit)
+        else:
+            raise TypeError("cerebellum_roi must be a string or a nibabel.Nifti1Image")
+
+        Y, _ = fdata.agg_parcels(YY, atlas_cereb.label_vector, fcn=np.nanmean)
+
+    # hippocampal ROI
+    if hippocampus_roi is None:
+        corr_xy = np.corrcoef(XX.T, Y.T)[:XX.shape[1], XX.shape[1]:]
+        return corr_xy
+    if hippocampus_roi != "Platchi5":
+        raise ValueError("Only hippocampus_roi='Platchi5' is currently supported.")
+    else:
+        warnings.warn("Assuming label order as: [1L, 2L, ..., 1R, 2R, ...]")
+        H = XX[:, -10:]
+        X = XX[:, :-10]
+        corr_xy = np.corrcoef(X.T, Y.T)[:X.shape[1], X.shape[1]:]
+        corr_hy = np.corrcoef(H.T, Y.T)[:H.shape[1], H.shape[1]:]
+        return corr_xy, corr_hy
+    
 
 def pscalar_to_smoothed_dscalar(infile,outfilename=None,sigma=4.0,wdir=f'{gl.conn_dir}/maps'):
     """ Takes a pscalar file, projects it to the full surface and smoothes it
