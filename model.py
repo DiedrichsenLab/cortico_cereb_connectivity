@@ -182,6 +182,7 @@ class L2reg(Model):
         return self.sigma2eps
 
     def fit(self, X, Y, dataframe=None):
+        self.xscale_ = np.sqrt(np.nansum(X**2, axis=0))
         Xs = np.nan_to_num(X)
         Xs_T = Xs.T
         self.estimate_sigma2eps(Y, dataframe)
@@ -384,6 +385,7 @@ class NNLS(Model):
         self.n_jobs = n_jobs
 
     def fit(self, X, Y):
+        self.xscale_ = np.sqrt(np.nansum(X**2, axis=0))
         Q = X.shape[1]
         P = Y.shape[1]
         if self.alpha > 0:
