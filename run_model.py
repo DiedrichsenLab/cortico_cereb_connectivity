@@ -102,9 +102,7 @@ def get_train_config(train_dataset = "MDTB",
    for hemi in ['L', 'R']:
       train_config['label_img'].append(gl.atlas_dir + f'/tpl-{train_config["cortex"]}' + f'/{train_config["parcellation"]}.{hemi}.label.gii')
 
-   train_config['hipp_label_img'] = []
-   for hemi in ['L', 'R']:
-      train_config['hipp_label_img'].append(gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_hem-{hemi}_dseg.nii')
+   train_config['hipp_label_img'] = gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_dseg.nii'
 
    return train_config
 
@@ -209,9 +207,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    for hemi in ['L', 'R']:
       eval_config['label_img'].append(gl.atlas_dir + f'/tpl-{eval_config["cortex"]}' + f'/{eval_config["parcellation"]}.{hemi}.label.gii')
 
-   eval_config['hipp_label_img'] = []
-   for hemi in ['L', 'R']:
-      eval_config['hipp_label_img'].append(gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_hem-{hemi}_dseg.nii')
+   eval_config['hipp_label_img'] = gl.atlas_dir + f'/tpl-MNI152NLin6Asym/atl-Platchi5_space-MNI152NLin6Asym_dseg.nii'
 
    return eval_config
 
@@ -539,12 +535,12 @@ def get_cortical_data(dataset, sessions, subj, config):
       H_atlas_L, _ = at.get_atlas('MNIAsymHippocampus_L')
       H_atlas_R, _ = at.get_atlas('MNIAsymHippocampus_R')
       # get the vector containing tessel labels
-      H_atlas_L.get_parcel(config['hipp_label_img'][0])
+      H_atlas_L.get_parcel(config['hipp_label_img'])
       label_L = H_atlas_L.label_vector
-      H_atlas_R.get_parcel(config['hipp_label_img'][1])
+      H_atlas_R.get_parcel(config['hipp_label_img'])
       label_R = H_atlas_R.label_vector
       label_R[label_R > 0] += 5
-      label_vector = label_L + label_R
+      label_vector = np.concatenate([label_L, label_R])
       # get the mean across tessels for hippocampal data
       HH, _ = fdata.agg_parcels(HH, label_vector, fcn=np.nanmean)
 
@@ -629,11 +625,11 @@ def save_XY_data(save_name, XX, YY, config, info_x, info_y, dataset=None):
    if config['hippocampus']:
       raise ValueError("Saving hippocampus data is not yet supported.")
       Hatlas_L,_ = at.get_atlas("Platchi5_L") # fix with MNI...
-      Hatlas_L.get_parcel(config['hipp_label_img'][0])
+      Hatlas_L.get_parcel(config['hipp_label_img'])
       Hparcelaxis_L = Hatlas_L.get_parcel_axis()
 
       Hatlas_R,_ = at.get_atlas("Platchi5_R")
-      Hatlas_R.get_parcel(config['hipp_label_img'][1])
+      Hatlas_R.get_parcel(config['hipp_label_img'])
       Hparcelaxis_R = Hatlas_R.get_parcel_axis()
 
       # combine
@@ -833,6 +829,8 @@ def make_global_data(config, save_data_name=None, load_data=False):
       info_y = pd.concat(info_y_list, ignore_index=True)
    else:
       XX, YY = load_XY_data(save_data_name)
+      info_x = None
+      info_y = None
 
    return XX, YY, info_x, info_y
 
