@@ -35,7 +35,7 @@ def get_train_config(train_dataset = "MDTB",
                      subj_list = 'all',
                      method = "NNLS",
                      log_alpha = 8,
-                     cerebellum = "MNICymC3",
+                     cerebellum = "MNISymC3",
                      cortex = "fs32k",
                      hippocampus = None,
                      parcellation = "Icosahedron1002",
@@ -60,7 +60,7 @@ def get_train_config(train_dataset = "MDTB",
       subj_list (list, str): Training subject list. Defaults to "all".
       method (str): Model class. Defaults to "NNLS".
       log_alpha (int): log of regularization. Defaults to 8.
-      cerebellum (str): Atlas for cerebellum. Defaults to "MNICymC3".
+      cerebellum (str): Atlas for cerebellum. Defaults to "MNISymC3".
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron-1002_Sym.32k".
       type (str): Training type, could be "CondHalf", "CondAll", "CondRun". see Functional_Fusion. Defaults to "CondHalf".
@@ -146,7 +146,7 @@ def get_eval_config(eval_dataset = 'MDTB',
                     run = 'all',
                     cond_num = 'all',
                     task_code = 'all',
-                    cerebellum = 'MNICymC3',
+                    cerebellum = 'MNISymC3',
                     cortex = "fs32k",
                     hippocampus = None,
                     parcellation = "Icosahedron1002",
@@ -169,7 +169,7 @@ def get_eval_config(eval_dataset = 'MDTB',
       run (str or list): List of runs to evaluate. Defaults to 'all'.
       cond_num (str or list): List of conditions to evaluate. Defaults to 'all'.
       task_code (str or list): List of task codes to evaluate. Defaults to 'all'.
-      cerebellum (str): Atlas for cerebellum. Defaults to 'MNICymC3'.
+      cerebellum (str): Atlas for cerebellum. Defaults to 'MNISymC3'.
       cortex (str): Atlas for neocortex. Defaults to "fs32k".
       parcellation (str): Parcellation for cortex. Defaults to "Icosahedron1002".
       crossed (str): Double crossvalidation cortex-cerebellum. ("half" (default) or None)
@@ -192,6 +192,7 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['task_code'] = task_code
    eval_config['cerebellum'] = cerebellum
    eval_config['cortex'] = cortex
+   eval_config['hippocampus'] = hippocampus
    eval_config['parcellation'] = parcellation
    eval_config['crossed'] = crossed
    eval_config['add_rest'] = add_rest
@@ -202,7 +203,6 @@ def get_eval_config(eval_dataset = 'MDTB',
    eval_config['subj_list'] = subj_list
    eval_config['cortical_act'] = cortical_act
    eval_config['load_default_group'] = load_default_group
-   eval_config['hippocampus'] = hippocampus
    
    # get label images for left and right hemisphere
    eval_config['label_img'] = []

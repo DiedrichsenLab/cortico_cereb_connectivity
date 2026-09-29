@@ -9,3 +9,5 @@ Documentation for the cortico_cerebellar_connectivity project.
 
    introduction
    cortical_weight_map
+   seed_correlation
+   
