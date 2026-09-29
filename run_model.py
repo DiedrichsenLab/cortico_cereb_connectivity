@@ -536,16 +536,17 @@ def get_cortical_data(dataset, sessions, subj, config):
                                     type=config["type"])
 
       # Average the hippocampal data over pacels
-      H_atlas, _ = at.get_atlas('Platchi5')
+      H_atlas_L, _ = at.get_atlas('MNIAsymHippocampus_L')
+      H_atlas_R, _ = at.get_atlas('MNIAsymHippocampus_R')
       # get the vector containing tessel labels
-      H_atlas.get_parcel(config['hipp_label_img'][0])
-      label_L = H_atlas.label_vector
-      H_atlas.get_parcel(config['hipp_label_img'][1])
-      label_R = H_atlas.label_vector
+      H_atlas_L.get_parcel(config['hipp_label_img'][0])
+      label_L = H_atlas_L.label_vector
+      H_atlas_R.get_parcel(config['hipp_label_img'][1])
+      label_R = H_atlas_R.label_vector
       label_R[label_R > 0] += 5
-      H_atlas.label_vector = label_L + label_R
+      label_vector = label_L + label_R
       # get the mean across tessels for hippocampal data
-      HH, _ = fdata.agg_parcels(HH, H_atlas.label_vector, fcn=np.nanmean)
+      HH, _ = fdata.agg_parcels(HH, label_vector, fcn=np.nanmean)
 
       # concatenate cortex with hippocampus
       XX = np.concatenate([XX, HH], axis=-1)
@@ -627,7 +628,7 @@ def save_XY_data(save_name, XX, YY, config, info_x, info_y, dataset=None):
    Xparcelaxis = Xatlas.get_parcel_axis()
    if config['hippocampus']:
       raise ValueError("Saving hippocampus data is not yet supported.")
-      Hatlas_L,_ = at.get_atlas("Platchi5_L")
+      Hatlas_L,_ = at.get_atlas("Platchi5_L") # fix with MNI...
       Hatlas_L.get_parcel(config['hipp_label_img'][0])
       Hparcelaxis_L = Hatlas_L.get_parcel_axis()
 
