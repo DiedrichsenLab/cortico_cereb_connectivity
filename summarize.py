@@ -34,6 +34,8 @@ def get_model(traindata=gl.traindata_string(),
         cortex_roi (str, optional): name of the cortical parcellation. Defaults to "Icosahedron1002".
         method (str, optional): method used to train the model. Defaults to 'NNLS'.
         extension (str, optional): extension to the model name. Defaults to 'A0_global'.
+        cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
+        norm (bool, optional): whether to normalize the weights. Defaults to False.
     Returns:
         model: the trained model object
         info: a dictionary with the model information (e.g. training data, method, etc
