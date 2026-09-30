@@ -454,7 +454,7 @@ def prepare_data(data, info, config):
    if config["add_rest"]:
       data,info = add_rest(data,info)
 
-   # Indlude only some runs?
+   # Include only some runs?
    if config["run"]!='all':
       if isinstance(config["run"], list):
          run_mask = info['run'].isin(config["run"])
