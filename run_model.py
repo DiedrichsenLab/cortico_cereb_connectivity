@@ -818,6 +818,7 @@ def make_global_data(config, save_data_name=None, load_data=False):
          X, info_x = get_cortical_data(datasets[i], sessions[i], subj, config)
          info_x['dataset'] = datasets[i]
          info_y['dataset'] = datasets[i]
+         # Average over subjects 
          XX.append(X.mean(axis=0))
          YY.append(Y.mean(axis=0))
          info_x_list.append(info_x)

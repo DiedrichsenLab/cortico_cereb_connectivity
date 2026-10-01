@@ -26,7 +26,8 @@ def get_model(traindata=gl.traindata_string(),
               method='NNLS',
               extension='A0_global',
               cerebellum_atlas="MNISymC3",
-              norm=False):
+              norm=False,
+              ynorm=False):
     """ Loads a model specific model
 
     Args:
@@ -35,7 +36,8 @@ def get_model(traindata=gl.traindata_string(),
         method (str, optional): method used to train the model. Defaults to 'NNLS'.
         extension (str, optional): extension to the model name. Defaults to 'A0_global'.
         cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
-        norm (bool, optional): whether to normalize the weights. Defaults to False.
+        norm (bool, optional): whether to multiply the weight by the length of cortical vector. Defaults to False.
+        ynorm (bool, optional): whether to normalize the weights within each cerebellar voxel. Defaults to False.
     Returns:
         model: the trained model object
         info: a dictionary with the model information (e.g. training data, method, etc
@@ -45,7 +47,7 @@ def get_model(traindata=gl.traindata_string(),
     fpath = gl.conn_dir + f"/{cerebellum_atlas}/train/{mroot}"
     # load the avg model
     model,info = cio.load_model(fpath + f"/{model_name}")
-    
+    # Multiply by the length of cortical input vector 
     if norm:
         if hasattr(model, "xscale_") and model.xscale_ is not None:
             model.coef_ *= model.xscale_
@@ -53,6 +55,11 @@ def get_model(traindata=gl.traindata_string(),
             # load X
             X = nb.load(gl.conn_dir + f"/maps/{traindata}_data_cortex.pscalar.nii").get_fdata()
             model.coef_ *= np.sqrt(np.nansum(X**2, axis=0))
+
+    # Normalize within each cerebellar voxel 
+    if ynorm: 
+        vlength = np.sqrt((model.coef_**2).sum(axis=1))
+        model.coef_ = model.coef_ / vlength.reshape(-1,1)
     return model, info
 
 def sort_roi_rows(cifti_img):
@@ -79,7 +86,8 @@ def stats_weight_map_cortex(traindata = None,
                             extension='A0_global',
                             stats = 'mean',
                             mean_mode = '',
-                            norm = True):
+                            norm = True,
+                            ynorm= True):
     """ returns cifti image of a statistics of the input weight for each cortical parcel
 
     Args:
@@ -88,6 +96,9 @@ def stats_weight_map_cortex(traindata = None,
         method (str, optional): method used to train the model. Defaults to 'NNLS'.
         extension (str, optional): extension to the model name. Defaults to 'A0_global'.
         stats (str, optional): statistic to compute. ['mean', 'prob']
+        mean_mode (str, optional): mode for computing the mean. ['pos', 'neg', 'abs']
+        norm (bool, optional): whether to multiply weights by cortical length. Defaults to True.
+        ynorm (bool, optional): whether to normalize the weights within each cerebellar voxel
     Returns:
         cifti_img (nibabel.Cifti2Image): cifti image with the statistic of the input weights for each cortical parcel.
     """
@@ -98,7 +109,7 @@ def stats_weight_map_cortex(traindata = None,
         raise ValueError("Only one of traindata or model should be provided.")
     elif model is None:
         # load model
-        model,_ = get_model(traindata, cortex_roi, method, extension, norm=norm)
+        model,_ = get_model(traindata, cortex_roi, method, extension, norm=norm,ynorm=ynorm)
 
     if stats == 'mean':
         if mean_mode == 'pos':
@@ -121,7 +132,8 @@ def stats_weight_map_cerebellum(traindata,
                     extension='A0_global',
                     cerebellar_space = 'MNISymC3',
                     stats = 'mean',
-                    norm = True):
+                    norm = True,
+                    ynorm= True):
     """ Returns nifti image of a statistics of the input weights for each cerebellar voxel.
 
     Args:
@@ -289,7 +301,8 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
                     cerebellum_atlas = "MNISymC3",
                     roi_cortex = 'yeo17',
                     sum_method = 'positive',
-                    norm = True):
+                    norm = True,
+                    ynorm = True):
     """ Make table of the connectivity weights for each cortical parcel,
     averaged across the entire cerebellum.
 
@@ -301,11 +314,12 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
         cerebellum_atlas (str, optional): name of the cerebellar atlas. Defaults to "MNISymC3".
         roi_cortex (str, optional): name of the cortical parcellation to summarize the data. Defaults to 'yeo17'.
         sum_method (str, optional): method to summarize the data. 'positive' only sums the positive weights
+        norm (bool, optional): whether to multiply weights by cortical length. Defaults to True.
+        ynorm (bool, optional): whether to normalize the weights within each cerebellar voxel. Defaults to True.
     Returns:
         T (pd.DataFrame): dataframe with the average connectivity weight for each cortical parcel, as well as the size of the parcel and its name.
     """
-    model,info  = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas,norm=norm)
-
+    model,info  = get_model(traindata,cortex_roi,method,extension,cerebellum_atlas,norm=norm,ynorm=ynorm)
     weights = model.coef_
 
     # prepping the parcel axis file
