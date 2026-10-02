@@ -587,13 +587,16 @@ def get_cerebellar_data(dataset, sessions, subj, config):
    YY, info = prepare_data(YY, info, config)
 
    # Standardize the data if specified
-   for i in range(YY.shape[0]):
-      if 'std_cerebellum' in config.keys():
+   if 'std_cerebellum' in config.keys():
+      for i in range(YY.shape[0]):
          YY[i,:,:] = std_data(YY[i,:,:], config['std_cerebellum'])
 
-      # cross the halves within each session
-      if config["crossed"] is not None:
-         YY[i,:,:], info = cross_data(YY[i,:,:], info, config["crossed"])
+   # cross the halves within each session
+   if config["crossed"] is not None:
+      _, info_crossed = cross_data(YY[0,:,:], info, config["crossed"])
+      for i in range(YY.shape[0]):
+         YY[i,:,:], _ = cross_data(YY[i,:,:], info, config["crossed"])
+      info = info_crossed
 
    return YY, info 
 
@@ -819,8 +822,11 @@ def make_global_data(config, save_data_name=None, load_data=False):
          info_x['dataset'] = datasets[i]
          info_y['dataset'] = datasets[i]
          # Average over subjects 
-         XX.append(X.mean(axis=0))
-         YY.append(Y.mean(axis=0))
+         X = X.mean(axis=0)
+         Y = Y.mean(axis=0)
+         # Normalize each dataset to unit norm
+         XX.append(std_data(X, 'global'))
+         YY.append(std_data(Y, 'global'))
          info_x_list.append(info_x)
          info_y_list.append(info_y)
       
