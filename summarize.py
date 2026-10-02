@@ -167,7 +167,9 @@ def avrg_weight_map_roi(model=None,
                         cereb_roi_labels=None,
                         cerebellum_atlas="MNISymC3",
                         cerebellum_space="MNI152NLin2009cSymC",
-                        norm=True):
+                        norm=True,
+                        ynorm=True,
+                        aggfcn=np.nanmean):
     """ Makes cortical maps with average connectivity weights for different cerebellar ROIs.
 
     Args:
@@ -189,7 +191,7 @@ def avrg_weight_map_roi(model=None,
     # Load model and get weights
     # -------------------------------
     if model is None:
-        model,_ = get_model(traindata, cortex_roi, method, extension, cerebellum_atlas, norm=norm)
+        model,_ = get_model(traindata, cortex_roi, method, extension, cerebellum_atlas, norm=norm,ynorm=ynorm)
     weights = model.coef_
 
     # -------------------------------
@@ -229,7 +231,7 @@ def avrg_weight_map_roi(model=None,
     # -------------------------------
     # Aggregate weights within ROI
     # -------------------------------
-    weights_parcel, _ = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=np.nanmean)
+    weights_parcel, _ = fdata.agg_parcels(weights.T, atlas_cereb.label_vector, fcn=aggfcn)
 
     # -------------------------------
     # Convert to CIFTI
@@ -238,7 +240,7 @@ def avrg_weight_map_roi(model=None,
                                    src_atlas="fs32k",
                                    trg_atlas=cerebellum_atlas,
                                    src_roi=cortex_labels,
-                                   trg_roi=cereb_roi_labels,
+                                   trg_roi=None,
                                    type='scalar')
     
     return cifti_img
