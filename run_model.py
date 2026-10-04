@@ -1266,14 +1266,14 @@ def comb_eval(models = ['Md_s1'],
             # get the dataframe
             if os.path.exists(f):
                dd = pd.read_csv(f, sep='\t')
-               # add a column for the name of the dataset
-               # get the noise ceilings
-
                # Remove negative values from dd.noise
                dd.group_noiseceil_Y_upper = dd.group_noiseceil_Y_upper.apply(lambda x: np.nan if x < 0 else x)
                dd.group_noiseceil_Y_lower = dd.group_noiseceil_Y_lower.apply(lambda x: np.nan if x < 0 else x)
-               dd['group_noiseceiling'] = ((dd.group_noiseceil_Y_upper)+(dd.group_noiseceil_Y_lower)) /2
-               dd['R_eval_adj'] = dd.R_eval/dd["group_noiseceiling"]
+               # get the noise ceilings
+               dd['group_noiseceiling_Y'] = ((dd.group_noiseceil_Y_upper)+(dd.group_noiseceil_Y_lower)) / 2
+               NC = pd.pivot_table(dd, values='group_noiseceiling_Y', index='eval_dataset')
+               dd['mean_group_noiseceiling_Y'] = dd['eval_dataset'].map(NC['group_noiseceiling_Y'])
+               dd['R_eval_adj'] = dd.R_eval / dd["mean_group_noiseceiling_Y"]
                T.append(dd)
    df = pd.concat(T, ignore_index=True)
    return df
