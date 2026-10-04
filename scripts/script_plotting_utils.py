@@ -13,6 +13,7 @@ def get_color_palette():
     color_palette = dict()
     color_palette['L2reg'] = palette[1]
     color_palette['NNLS'] = palette[0]
+    color_palette['NPLS'] = '#327078' # green
     return color_palette
 # purple: #805173
 # pink: #dcc2d7
