@@ -162,7 +162,7 @@ def avrg_weight_map_roi(model=None,
                         traindata=gl.traindata_string(),
                         cortex_roi="Icosahedron1002",
                         method="L2reg",
-                        extension="A2_avg",
+                        extension="sc_A4_global",
                         cerebellum_roi="NettekovenSym32",
                         cereb_roi_labels=None,
                         cerebellum_atlas="MNISymC3",
@@ -191,7 +191,7 @@ def avrg_weight_map_roi(model=None,
     # Load model and get weights
     # -------------------------------
     if model is None:
-        model,_ = get_model(traindata, cortex_roi, method, extension, cerebellum_atlas, norm=norm,ynorm=ynorm)
+        model,_ = get_model(traindata, cortex_roi, method, extension, cerebellum_atlas, norm=norm, ynorm=ynorm)
     weights = model.coef_
 
     # -------------------------------
@@ -240,7 +240,7 @@ def avrg_weight_map_roi(model=None,
                                    src_atlas="fs32k",
                                    trg_atlas=cerebellum_atlas,
                                    src_roi=cortex_labels,
-                                   trg_roi=None,
+                                   trg_roi=cereb_roi_labels,
                                    type='scalar')
     
     return cifti_img
