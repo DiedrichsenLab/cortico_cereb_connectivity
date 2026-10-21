@@ -550,14 +550,14 @@ def get_cortical_data(dataset, sessions, subj, config):
    # Prepare the data and info
    XX, info = prepare_data(XX, info, config)
 
+   # Exclude specific networks if specified
+   if 'exclude_network' in config.keys():
+      XX = exclude_network(XX, config)
+
    # Standardize the data if specified
    for i in range(XX.shape[0]):
       if 'std_cortex' in config.keys():
          XX[i,:,:] = std_data(XX[i,:,:],config['std_cortex'])
-
-   # Exclude specific networks if specified
-   if 'exclude_network' in config.keys():
-      XX = exclude_network(XX, config)
 
    return XX, info
 
@@ -885,7 +885,7 @@ def train_global_model(config, save_path=None, mname=None, mname_ext=None, save_
       pass
 
    # Check if training file already exists:
-   train_info_name = save_path + "/" + mname + ".tsv"
+   train_info_name = save_path + "/" + mname_plus + ".tsv"
    if os.path.isfile(train_info_name) and config["append"]:
       train_info = pd.read_csv(train_info_name, sep="\t")
    else:
