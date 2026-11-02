@@ -232,7 +232,7 @@ def train_metrics(model, X, Y):
    return R_train, R2_train
 
 
-def eval_metrics(Y, Y_pred, info):
+def eval_metrics(Y, Y_pred, info=None):
    """Compute evaluation, returning summary and voxel data.
 
    Args:
@@ -550,10 +550,6 @@ def get_cortical_data(dataset, sessions, subj, config):
    # Prepare the data and info
    XX, info = prepare_data(XX, info, config)
 
-   # Exclude specific networks if specified
-   if 'exclude_network' in config.keys():
-      XX = exclude_network(XX, config)
-
    # Standardize the data if specified
    for i in range(XX.shape[0]):
       if 'std_cortex' in config.keys():
@@ -838,6 +834,9 @@ def make_global_data(config, save_data_name=None, load_data=False):
       XX, YY = load_XY_data(save_data_name)
       info_x = None
       info_y = None
+
+   if 'exclude_network' in config.keys():
+      XX = exclude_network(XX, config)
 
    return XX, YY, info_x, info_y
 
@@ -1162,12 +1161,11 @@ def eval_model(model_dirs, model_names, eval_config, model_config, save_data_nam
    fitted_model, train_info = get_fitted_models(model_dirs, model_names, model_config)
 
    # Get cerebellar and cortical data
-   if load_data and save_data_name is not None:
-      XX, YY = load_XY_data(save_data_name)
-      raise ValueError("To Do. Cannot resolve info yet.")
+   if load_data and save_data_name is not None and eval_config['cortical_act']=='avg':
+      XX, _ = load_XY_data(save_data_name)
    else:
-      YY, info = get_cerebellar_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
-      XX, info = get_cortical_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
+      XX, _ = get_cortical_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
+   YY, _ = get_cerebellar_data(eval_config["eval_dataset"], eval_config["eval_ses"], eval_subj, eval_config)
 
    # Calculate group reliability of subjects
    group_noiseceil_lower = frel.between_subj_loo(YY)
@@ -1180,7 +1178,10 @@ def eval_model(model_dirs, model_names, eval_config, model_config, save_data_nam
       if eval_config['cortical_act'] == 'ind':
          X = XX[i,:,:] # get the data for the subject
       elif eval_config['cortical_act'] == 'avg':
-         X = XX.mean(axis=0) # get average cortical data
+         if XX.ndim==3:
+            X = XX.mean(axis=0) # get average cortical data
+         elif XX.ndim==2:
+            X = XX.copy()
       elif eval_config['cortical_act'] == 'loo':
          n_subj = len(eval_config['subj_list'])
          subj_vec = np.arange(n_subj)
@@ -1217,7 +1218,7 @@ def eval_model(model_dirs, model_names, eval_config, model_config, save_data_nam
                eval_sub.update({key: value})
 
          # add evaluation (summary)
-         evals = eval_metrics(Y=Y, Y_pred=Y_pred, info = info)
+         evals = eval_metrics(Y=Y, Y_pred=Y_pred)
 
          # add evaluation (voxels)
          for k, v in evals.items():
