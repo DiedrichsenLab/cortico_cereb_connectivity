@@ -342,6 +342,8 @@ def stats_weight_roi_cortex(traindata = 'MdWfIbDeHtNiSoScLa',
     ex_weights = weights[:,label_conn-1]
     if sum_method == 'positive':
         ex_weights[ex_weights<0]=0
+    elif sum_method == 'abs':
+        ex_weights = np.abs(ex_weights)
 
     # Get region names and colors for cortex
     gii = nb.load(label_sum_fname[0])
