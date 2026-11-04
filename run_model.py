@@ -435,6 +435,41 @@ def std_data(Y,mode):
       raise ValueError('std_mode must be None, "parcel" or "global"')
    
 
+def remove_extra_cond_half(data, info):
+   """
+   Remove extra conditions from one half if they are not present in the other half.
+   """
+   df = info.copy()
+   df['my_task_cond'] = df['names'].str.rsplit('_', n=1).str[0]
+
+   # Get task-condition combinations available in each half
+   valid = (
+      df.groupby(['sess', 'half'])['my_task_cond']
+      .unique()
+      .unstack()
+   )
+
+   # Intersection of half 1 and half 2 for each session
+   valid_pairs = pd.DataFrame([
+      (sess, task_cond)
+      for sess in valid.index
+      for task_cond in set(valid.loc[sess, 1]) & set(valid.loc[sess, 2])
+   ], columns=['sess', 'my_task_cond'])
+
+   # Identify rows to retain
+   keep_idx = df.merge(
+      valid_pairs,
+      on=['sess', 'my_task_cond'],
+      how='inner'
+   ).index
+
+   # Filter both objects using the same rows
+   df = df.loc[keep_idx].drop(columns='my_task_cond')
+   data = np.take(data, keep_idx, axis=-2)
+
+   return data, df
+
+
 def prepare_data(data, info, config):
    """ Prepare the data and info for modeling. Including removing NaNs, adding rest conditions, and subsetting.
 
@@ -449,6 +484,13 @@ def prepare_data(data, info, config):
    """
    # Remove Nans
    data = np.nan_to_num(data)
+
+   # Same length of halves?
+   if config["type"]=='CondHalf':
+      if len(info[info.half==1]) != len(info[info.half==2]):
+         warnings.warn(f"Unequal number of conditions in halves: {len(info[info.half==1])} vs {len(info[info.half==2])}. This may cause issues in modeling.")
+         # find extra cond to remove
+         data, info = remove_extra_cond_half(data, info)
 
    # Add rest condition?
    if config["add_rest"]:
@@ -473,7 +515,9 @@ def prepare_data(data, info, config):
       data,info = subset_cond(data, info, config['cond_num'])
 
    # Definitely subtract intercept across all conditions
-   data = (data - data.mean(axis=-2,keepdims=True))
+   for half in info['half'].unique():
+      idx = np.where(info['half'].values == half)[0]
+      data[..., idx, :] -= data[..., idx, :].mean(axis=-2, keepdims=True)
 
    return data, info
 
@@ -813,8 +857,8 @@ def make_global_data(config, save_data_name=None, load_data=False):
          # Get cerebellar and cortical data
          config['add_rest'] = add_rest[i]
          config['std_cortex'] = std_cortex[i]
-         Y, info_y = get_cerebellar_data(datasets[i], sessions[i], subj, config)
          X, info_x = get_cortical_data(datasets[i], sessions[i], subj, config)
+         Y, info_y = get_cerebellar_data(datasets[i], sessions[i], subj, config)
          info_x['dataset'] = datasets[i]
          info_y['dataset'] = datasets[i]
          # Average over subjects 
