@@ -78,7 +78,7 @@ def model_to_cifti(weight_matrix,
         else:
             trg_axis = trg_atlas.get_brain_model_axis()
     elif type == 'scalar':
-        if isinstance(trg_roi,list):
+        if (isinstance(trg_roi,list) or isinstance(trg_roi,np.ndarray)):
             trg_axis = nb.cifti2.ScalarAxis(trg_roi)
         elif trg_roi is not None:
             _,labels = trg_atlas.get_parcel(trg_roi)
