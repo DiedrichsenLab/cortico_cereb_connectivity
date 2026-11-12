@@ -452,6 +452,45 @@ def pscalar_to_smoothed_dscalar(infile,outfilename=None,sigma=4.0,wdir=f'{gl.con
     nt.smooth_cifti(temp_name,f'{wdir}/{outfilename}',hem_surf[0],hem_surf[1],surface_sigma=sigma,ignore_zeros=False)
     os.remove(temp_name)
 
+def make_weight_table(data_cifti,label_cifti):
+    """ Generates a table from a pscalar and a plabel input file:
+    Use this to  summarized weights by Yeo or Glasser parcellation
+    Args:
+        data_cifti: str or nibabel.Cifti2Image
+            Path to the cifti file containing the weights (pscalar)
+        label_cifti: str or nibabel.Cifti2Image
+            Path to the cifti file containing the labels (plabel)
+    Returns:
+        pd.DataFrame
+            A DataFrame containing the summarized weights: 
+                Cortical_roi: Label from label-cifti 
+                row: Row from data cifti 
+                Length: How many parcels? 
+                mean: mean value 
+                max: max value 
+    """
+    # Expand the data from the parcellation of the cortex to full surface
+    if isinstance(data_cifti,str): 
+        data_cifti = nb.load(data_cifti)
+    if isinstance(label_cifti,str): 
+        label_cifti = nb.load(label_cifti)
+
+    table = label_cifti.header.get_axis(0).label[0]
+    label = label_cifti.get_fdata()
+
+    X=data_cifti.get_fdata() 
+    T=[] 
+    for k,(name,rgba) in table.items():
+        data = X[:,label[0]==k]
+        T.append(pd.DataFrame({'cortical_roi': name,
+            'row': np.arange(data.shape[0]),
+            'length': data.shape[1],
+            'mean': data.mean(axis=1),
+            'max': data.max(axis=1)}))
+    T = pd.concat(T,ignore_index=True)
+    return T
+
+
 def export_model(model_dir = "MDTB_all_Icosahedron1002_L2Reg",
                     model_name = "MDTB_all_Icosahedron1002_L2Reg_A8",
                     cortex_roi = "Icosahedron1002",
