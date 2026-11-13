@@ -2,21 +2,27 @@
 # Input-output functions for connectivity model
 
 import Functional_Fusion.atlas_map as am
+import cortico_cereb_connectivity.globals as gl
 import nibabel as nb
 import numpy as np
-import warnings 
-import deepdish as dd
+import warnings
 import json
+import pickle
+import importlib
+import h5py
+
+H5_FORMAT = 'cortico_cereb_connectivity.model/1'
 
 def load_model(fname):
     """ Loads model from a combination of a .h5 file and a .json file.
+    Reads both the new h5 format (see save_h5_model) and old files written by deepdish.
     Args:
         fname (str): File name without .h5 or .json extension
-    Returns: 
-        model (Model): Model object 
+    Returns:
+        model (Model): Model object
         info (dict): Info dictionary
     """
-    model = dd.io.load(fname + ".h5")
+    model = load_h5_model(fname + ".h5")
     with open(fname + ".json") as json_file:
         info = json.load(json_file)
     return model, info
@@ -25,13 +31,75 @@ def save_model(model,info,fname):
     """ Saves model to a combinattion of a .h5 file and a .json file.
 
     Args:
-        model (Model): _description_
-        info (dict): _description_
+        model (Model): Model object
+        info (dict): Info dictionary
         fname (str): File name without .h5 or .json extension
     """
-    dd.io.save(fname + ".h5",model, compression=None)
+    save_h5_model(model, fname + ".h5")
     with open(fname + ".json", 'w') as fp:
         json.dump(info, fp, indent=4)
+
+def save_h5_model(model, fname, compression=None):
+    """ Saves a model object to a plain h5 file (no pickle).
+    Every numpy-array attribute becomes a dataset, all other attributes
+    (numbers, strings, bools, None, lists) are stored as a JSON string in the
+    'params' attribute. The class is stored by module and name.
+
+    Args:
+        model (Model): Model object
+        fname (str): File name including .h5 extension
+        compression (str): h5py compression for the arrays, e.g. 'gzip' (default: None)
+    """
+    arrays = {}
+    params = {}
+    for key, value in vars(model).items():
+        if isinstance(value, np.ndarray):
+            if value.dtype == object:
+                raise TypeError(f"Cannot save object array attribute '{key}' to h5")
+            arrays[key] = value
+        elif isinstance(value, np.generic):
+            params[key] = value.item()
+        else:
+            params[key] = value
+    # Serialize before opening the file, so a bad attribute does not leave a broken file
+    params = json.dumps(params)
+    with h5py.File(fname, 'w') as f:
+        f.attrs['format'] = H5_FORMAT
+        f.attrs['module'] = type(model).__module__
+        f.attrs['class'] = type(model).__qualname__
+        f.attrs['params'] = params
+        for key, value in arrays.items():
+            f.create_dataset(key, data=value, compression=compression)
+
+def load_h5_model(fname):
+    """ Loads a model object from an h5 file.
+    Reads files written by save_h5_model, and old files written by deepdish,
+    which hold a single pickled model object.
+
+    Args:
+        fname (str): File name including .h5 extension
+    Returns:
+        model (Model): Model object
+    """
+    with h5py.File(fname, 'r') as f:
+        if 'DEEPDISH_IO_VERSION' in f.attrs:
+            return _load_deepdish_pickle(f, fname)
+        if f.attrs.get('format') != H5_FORMAT:
+            raise ValueError(f"{fname} is not a model file")
+        cls = getattr(importlib.import_module(f.attrs['module']), f.attrs['class'])
+        model = cls.__new__(cls)
+        model.__dict__.update(json.loads(f.attrs['params']))
+        for key in f.keys():
+            model.__dict__[key] = f[key][()]
+    return model
+
+def _load_deepdish_pickle(f, fname):
+    """ Old deepdish files store the model as a pickled object in the
+    PyTables node 'data'. Only use this on files you trust: unpickling can run code.
+    """
+    if not ('data' in f and f['data'].attrs.get('PSEUDOATOM') == b'object'):
+        raise ValueError(f"{fname}: unsupported deepdish file layout")
+    return pickle.loads(f['data'][0].tobytes())
 
 def model_to_cifti(weight_matrix, 
                    src_atlas = "fs32k", 
@@ -117,7 +185,7 @@ def export_model_as_cifti(method = "L2Regression",
     # load the avg model
     if (len(extension) > 0) and extension[0] != "_":
         extension = "_" + extension
-    model = dd.io.load(fpath + f"/{m_basename}{extension}_avg.h5")
+    model = load_h5_model(fpath + f"/{m_basename}{extension}_avg.h5")
 
     # get the weights
     with warnings.catch_warnings():

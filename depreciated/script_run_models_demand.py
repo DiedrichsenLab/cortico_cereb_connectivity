@@ -4,7 +4,7 @@ script for getting group average weights
 """
 import os
 import numpy as np
-import deepdish as dd
+import cortico_cereb_connectivity.cio as cio
 import pathlib as Path
 import pandas as pd
 import re
@@ -84,7 +84,7 @@ def get_best_weights(log_alpha=8, method = "L2Regression"):
       print(f"- getting weights for {log_alpha} {sub}")
       fpath = os.path.join(prep.conn_dir, config["dataset"], 'train', config["name"])
       fname = os.path.join(fpath,  f"{config['method']}_alpha{config['log_alpha']}_{sub}.h5")
-      fitted_model = dd.io.load(fname)
+      fitted_model = cio.load_h5_model(fname)
       # load the model and get the weights for the subject
       weights_list.append(fitted_model.coef_[np.newaxis, ...])
       scales_list.append(fitted_model.scale_.reshape(-1, 1))

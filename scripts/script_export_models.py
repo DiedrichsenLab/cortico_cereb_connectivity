@@ -3,7 +3,6 @@ script for exporting models as pdconn.nii files
 """
 import os
 import numpy as np
-import deepdish as dd
 import pathlib as Path
 import pandas as pd
 import nibabel as nb

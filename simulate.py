@@ -19,7 +19,6 @@ import itertools
 import nibabel as nib
 import nilearn.plotting as nip
 import h5py
-import deepdish as dd
 import seaborn as sns
 from sklearn.model_selection import cross_val_score
 import connectivity.nib_utils as nio

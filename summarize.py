@@ -4,7 +4,6 @@ Functions to summarize and plot the group average weights based on cerebellar RO
 """
 import os
 import numpy as np
-import deepdish as dd
 import pandas as pd
 import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
