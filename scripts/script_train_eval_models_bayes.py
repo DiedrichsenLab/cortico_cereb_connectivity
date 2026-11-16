@@ -596,7 +596,7 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
          m = mname + f"_A{la}_{model}"
          fname = model_path + f"/{m}"
          conn_mo, info = cio.load_model(fname)
-         coef_list.append(conn_mo.coef_)
+         coef_list.append(rm.std_data(conn_mo.coef_, 'global'))
    elif model == 'bayes':
       # Decompose Variances and get weights
       data = np.load("/home/UWO/ashahb7/Github/bayes_temp/bestSTD_product_matrix.npz", allow_pickle=True)
@@ -647,7 +647,7 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
    all_df = pd.DataFrame()
    for i, edata in enumerate(eval_datasets):
       print(f'\nFusing models for {edata} ...')
-      T = fdata.get_dataset_class(gl.base_dir, dataset=edata).get_participants()
+      subj = rm.get_subj_list('all', edata)
       eval_config = rm.get_eval_config(eval_dataset=edata,
                                   eval_ses=eval_ses[i],
                                   parcellation=parcellation,
@@ -657,11 +657,11 @@ def fuse_models_lodo(train_datasets=['MDTB', 'Language', 'WMFS', 'Demand', 'Soma
                                   add_rest=add_rest[i],
                                   std_cortex=std_cortex[i],
                                   std_cerebellum='global',
-                                  subj_list=list(T.participant_id),
+                                  subj_list=subj,
                                   cortical_act=cortical_act)
       
       model_config = rm.get_model_config(dataset=edata,
-                                         subj_list=T.participant_id,
+                                         subj_list=subj,
                                          model=model,
                                          cerebellum=cerebellum)
 
@@ -827,7 +827,7 @@ def train_global_model(train_dscode=''.join(gl.dscode),
                        cerebellum='MNISymC3',
                        parcellation='Icosahedron1002',
                        mname_ext=None,
-                       logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                       logalpha_list=[0, 2, 4, 6, 8, 10],
                        exc_net=None,
                        hippocampus=None,
                        append=False):
@@ -844,7 +844,11 @@ def train_global_model(train_dscode=''.join(gl.dscode),
    if exc_net is not None:
       config['exclude_network'] = exc_net
 
-   rm.train_global_model(config, mname_ext=mname_ext, save_data_name=f'{train_dscode}_data', load_data=True)
+   if hippocampus is None:
+      save_name = f'{train_dscode}_data'
+   else:
+      save_name = f'{train_dscode}+hipp_data'
+   rm.train_global_model(config, mname_ext=mname_ext)#, save_data_name=save_name, load_data=True)
 
 
 def eval_global_model(train_dscode=''.join(gl.dscode),
@@ -852,8 +856,8 @@ def eval_global_model(train_dscode=''.join(gl.dscode),
                       parcellation='Icosahedron1002',
                       cerebellum='MNISymC3',
                       method='L2reg',
-                      mname_ext="",
-                      logalpha_list=[0, 2, 4, 6, 8, 10, 12],
+                      mname_ext=None,
+                      logalpha_list=[0, 2, 4, 6, 8, 10],
                       hippocampus=None,
                       append=False,
                       eval_id='MdWfIbDeNiSoScLa-global-Cavg'):
@@ -875,15 +879,19 @@ def eval_global_model(train_dscode=''.join(gl.dscode),
    
    df_all = pd.DataFrame()
    if hippocampus is not None:
-      mname = f"{train_dscode}_{parcellation}-{hippocampus}_{method}{mname_ext}"
+      mname = f"{train_dscode}_{parcellation}-{hippocampus}_{method}"
    else:
-      mname = f"{train_dscode}_{parcellation}_{method}{mname_ext}"
+      mname = f"{train_dscode}_{parcellation}_{method}"
    model_path = os.path.join(gl.conn_dir,cerebellum,'train',mname)
+   if mname_ext is None:
+      mname_plus = mname
+   else:
+      mname_plus = mname + f"_{mname_ext}"
    for la in logalpha_list:
       if la is not None:
-         m = mname + f"_A{la}_global"
+         m = mname_plus + f"_A{la}_global"
       else:
-         m = mname + f"_global"
+         m = mname_plus + f"_global"
       fname = model_path + f"/{m}"
       conn_mo, info = cio.load_model(fname)
       model_config['model'] = [conn_mo]
@@ -998,12 +1006,12 @@ if __name__ == "__main__":
    do_lodo_fuse = False
    do_voxel_lodo_fuse = False
    do_fuse_all = False
-   do_train_global = False
+   do_train_global = True
    do_eval_global = False
    do_fuse_lodo_mix = False
    method = 'L2reg'
    cereb_atlas = 'MNISymC3'
-   hippocampus = None #'MNIAsymHippocampus'
+   hippocampus = 'MNIAsymHippocampus'
    parcellation = 'Icosahedron1002'
    global_best_la = 0
    
@@ -1191,8 +1199,10 @@ if __name__ == "__main__":
                               hippocampus=hippocampus,
                               parcellation=parcellation,
                               # mname_ext=f"no-yeo{net}",
+                              # mname_ext="+hipp",
                               # exc_net=net,
-                              logalpha_list=[0, 2, 4, 6],
+                              logalpha_list=[4],
+                              # logalpha_list=[None, 0, 2, 4, 6, 8, 10],
                               append=False)
             
    if do_eval_global:
@@ -1200,16 +1210,23 @@ if __name__ == "__main__":
          print(f'\nEvaluating global model for {ds}')
          d = gl.datasets.index(ds)
          train_dscode = ''.join(gl.dscode[:d]+gl.dscode[d+1:])
-         eval_id = train_dscode + '-global-Cavg'
-         eval_global_model(train_dscode=train_dscode,
-                           eval_dataset=ds,
-                           cerebellum=cereb_atlas,
-                           parcellation=parcellation,
-                           method=method,
-                           # mname_ext="_fixSTD",
-                           logalpha_list=[2], append=True,
-                           # logalpha_list=[None, 0, 2, 4, 6, 8, 10],
-                           eval_id=eval_id)
+         # if hippocampus is None:
+         #    eval_id = train_dscode + f'-noyeo{}-global-Cavg'
+         #    # eval_id = train_dscode + '-sc-global-Cavg'
+         # else:
+         #    eval_id = train_dscode + '+hipp-global-Cavg'
+         for net in range(1, 18):
+            eval_id = train_dscode + f'-noyeo{net}-global-Cavg'
+            eval_global_model(train_dscode=train_dscode,
+                              eval_dataset=ds,
+                              cerebellum=cereb_atlas,
+                              hippocampus=hippocampus,
+                              parcellation=parcellation,
+                              method=method,
+                              mname_ext=f"no-yeo{net}",
+                              logalpha_list=[4],
+                              # logalpha_list=[None, 0, 2, 4, 6, 8, 10],
+                              eval_id=eval_id)
                
    if do_fuse_lodo_mix:
       for i, (ds, (eval_ses, add_rest, std_cortex, la)) in enumerate(train_types.items()):
