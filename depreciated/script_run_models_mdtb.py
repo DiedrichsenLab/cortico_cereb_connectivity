@@ -4,7 +4,6 @@ script for getting group average weights
 """
 import os
 import numpy as np
-import deepdish as dd
 import pathlib as Path
 import pandas as pd
 import re
@@ -17,6 +16,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
+import cortico_cereb_connectivity.cio as cio
 
 def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12], 
                  cross_over = "sess", 
@@ -59,7 +59,7 @@ def train_models(logalpha_list = [0, 2, 4, 6, 8, 10, 12],
          save_path = os.path.join(gl.conn_dir,config['train_dataset'],'train', config['name'])
          fname = save_path + f"/{config['method']}_{config['train_id']}_logalpha{config['logalpha']}_avg.h5"
          # save group level weights
-         dd.io.save(fname, group_model, compression=None)
+         cio.save_h5_model(group_model, fname)
 
       df = pd.concat(df_train_list, ignore_index=True)
       # save the dataframe

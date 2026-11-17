@@ -4,7 +4,6 @@ script for training models
 """
 import os
 import numpy as np
-import deepdish as dd
 import pathlib as Path
 import pandas as pd
 import re
@@ -15,6 +14,7 @@ import Functional_Fusion.dataset as fdata # from functional fusion module
 import cortico_cereb_connectivity.globals as gl
 import cortico_cereb_connectivity.run_model as rm
 import cortico_cereb_connectivity.model as cm
+import cortico_cereb_connectivity.cio as cio
 from scripts.script_train_models import eval_models
 import json 
 from copy import deepcopy, copy
@@ -68,10 +68,7 @@ def fuse_models(logalpha = [8, -2, 6, 8,  8, 8, 10],
         if os.path.exists(model_path) == False:
             os.makedirs(model_path)
 
-        dd.io.save(model_path + f"/{mname}_{fuse_id}_avg.h5",
-                   fused_model, compression=None)
-        with open(model_path + f"/{mname}_{fuse_id}_avg.json", 'w') as fp:
-            json.dump(fused_info, fp, indent=4)
+        cio.save_model(fused_model, fused_info, model_path + f"/{mname}_{fuse_id}_avg")
 
 def eval_fusion(): 
     ED=["MDTB","WMFS", "Nishimoto", "IBC","Demand","Somatotopic"]
@@ -106,7 +103,7 @@ def eval_fusion_loo(logalpha = [8, -2, 6, 8,  8, 8, 10],
         m = mname + f"_A{la}_avg"
         fname = model_path + f"/{m}.h5"
         json_name = model_path + f"/{m}.json"
-        m = dd.io.load(fname)
+        m = cio.load_h5_model(fname)
         coef_list.append(m.coef_/m.scale_) # Adjust for scaling
 
     # Next get all individual models from the evaluation dataset  

@@ -4,7 +4,6 @@ ROIs
 """
 import os
 import numpy as np
-import deepdish as dd
 import pandas as pd
 import nibabel as nb
 import Functional_Fusion.dataset as fdata # from functional fusion module
