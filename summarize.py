@@ -476,13 +476,15 @@ def make_weight_table(data_cifti,label_cifti):
 
     table = label_cifti.header.get_axis(0).label[0]
     label = label_cifti.get_fdata()
+    row_names = data_cifti.header.get_axis(0).name
 
     X=data_cifti.get_fdata() 
     T=[] 
     for k,(name,rgba) in table.items():
         data = X[:,label[0]==k]
         T.append(pd.DataFrame({'cortical_roi': name,
-            'row': np.arange(data.shape[0]),
+            'row_num': np.arange(data.shape[0]),
+            'row_name': row_names,
             'length': data.shape[1],
             'mean': data.mean(axis=1),
             'max': data.max(axis=1)}))
